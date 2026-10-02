@@ -33,7 +33,8 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                var theme = localStorage.getItem('muvera_theme') || 'dark';
+                var stored = localStorage.getItem('muvera_theme');
+                var theme = stored || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
                 document.documentElement.classList.remove('light', 'dark');
                 document.documentElement.classList.add(theme);
               } catch (e) {}

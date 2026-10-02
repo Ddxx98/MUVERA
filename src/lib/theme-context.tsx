@@ -20,12 +20,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setMounted(true);
     const stored = localStorage.getItem('muvera_theme') as Theme | null;
     if (stored === 'light' || stored === 'dark') {
+      // Use user's explicit saved preference
       setThemeState(stored);
       applyTheme(stored);
     } else {
-      // Default to dark mode for MUVERA
-      setThemeState('dark');
-      applyTheme('dark');
+      // No saved preference — follow system default
+      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const systemTheme: Theme = systemDark ? 'dark' : 'light';
+      setThemeState(systemTheme);
+      applyTheme(systemTheme);
     }
   }, []);
 
