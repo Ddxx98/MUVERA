@@ -1,17 +1,16 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { InventoryItem, StockMovement } from '@/lib/types';
-import { inventoryService } from '@/modules/inventory/service';
 import {
   Boxes,
-  Plus,
-  Minus,
   RefreshCw,
-  AlertTriangle,
   History,
   ShieldCheck,
   CheckCircle,
+  Shirt,
+  Search,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
@@ -79,9 +78,16 @@ export default function AdminInventoryPage() {
     }
   };
 
-  const filteredInventory = inventory.filter((item) =>
-    item.sku.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredInventory = inventory.filter((item) => {
+    const q = search.toLowerCase().trim();
+    if (!q) return true;
+    return (
+      (item.sku && item.sku.toLowerCase().includes(q)) ||
+      (item.productTitle && item.productTitle.toLowerCase().includes(q)) ||
+      (item.brand && item.brand.toLowerCase().includes(q)) ||
+      (item.size && item.size.toLowerCase().includes(q))
+    );
+  });
 
   return (
     <div className="space-y-8">
@@ -100,7 +106,7 @@ export default function AdminInventoryPage() {
             Real-Time Inventory Engine
           </h1>
           <p className="text-xs text-text-muted mt-0.5">
-            Strict transactional invariants • Dark store stock allocations • Zero-oversell protection
+            Strict transactional invariants • Dark store stock allocations per Size &amp; SKU • Zero-oversell protection
           </p>
         </div>
 
@@ -115,13 +121,16 @@ export default function AdminInventoryPage() {
 
       {/* Search & Invariants Banner */}
       <div className="p-4 rounded-2xl bg-surface-card border border-surface-border flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Filter by SKU (e.g. MUV-SAT, SNI-ACD, PUM-SLP)..."
-          className="bg-surface-raised border border-surface-border rounded-xl px-4 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary max-w-sm w-full font-mono"
-        />
+        <div className="relative w-full max-w-md">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by Product Name, SKU, Brand, or Size (e.g. Bomber, S, M, NOC-S)..."
+            className="bg-surface-raised border border-surface-border rounded-xl pl-10 pr-4 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary w-full"
+          />
+        </div>
 
         <div className="flex items-center gap-2 text-xs text-text-muted">
           <ShieldCheck className="w-4 h-4 text-emerald-400" />
@@ -135,7 +144,8 @@ export default function AdminInventoryPage() {
           <table className="w-full text-xs text-left">
             <thead>
               <tr className="border-b border-surface-border text-text-muted font-bold uppercase tracking-wider bg-surface-raised/50">
-                <th className="p-4">SKU / Identifier</th>
+                <th className="p-4">Product &amp; Size</th>
+                <th className="p-4">SKU / Code</th>
                 <th className="p-4">Location</th>
                 <th className="p-4 text-center">On Hand</th>
                 <th className="p-4 text-center">Reserved</th>
@@ -145,44 +155,113 @@ export default function AdminInventoryPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-border">
-              {filteredInventory.map((item) => {
-                const isLow = item.available <= item.lowStockThreshold && item.available > 0;
-                const isOut = item.available <= 0;
+              {filteredInventory.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="p-8 text-center text-text-muted">
+                    {loading ? 'Loading inventory data...' : 'No inventory items match your search.'}
+                  </td>
+                </tr>
+              ) : (
+                filteredInventory.map((item) => {
+                  const isLow = item.available <= item.lowStockThreshold && item.available > 0;
+                  const isOut = item.available <= 0;
 
-                return (
-                  <tr key={item.sku} className="hover:bg-surface-raised/40 transition-colors">
-                    <td className="p-4 font-mono font-bold text-text-primary">{item.sku}</td>
-                    <td className="p-4 text-text-muted">Indiranagar Dark Store Hub</td>
-                    <td className="p-4 text-center font-mono font-bold text-text-primary">{item.onHand}</td>
-                    <td className="p-4 text-center font-mono text-amber-400 font-bold">
-                      {item.reserved}
-                    </td>
-                    <td className="p-4 text-center font-mono font-black text-sm text-primary">
-                      {item.available}
-                    </td>
-                    <td className="p-4">
-                      {isOut ? (
-                        <span className="text-[10px] font-bold text-red-400 bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20">
-                          Out of Stock
-                        </span>
-                      ) : isLow ? (
-                        <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 animate-pulse">
-                          Low Stock ({item.available})
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                          Optimal
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-4 text-right">
-                      <Button onClick={() => handleOpenAdjust(item)} variant="outline" size="sm">
-                        Adjust Stock
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
+                  return (
+                    <tr key={`${item.sku}-${item.variantId}`} className="hover:bg-surface-raised/40 transition-colors">
+                      {/* Product Thumbnail & Title & Size */}
+                      <td className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="relative w-12 h-14 rounded-lg overflow-hidden bg-surface-raised border border-surface-border flex-shrink-0">
+                            {item.image ? (
+                              <Image
+                                src={item.image}
+                                alt={item.productTitle || item.sku}
+                                fill
+                                className="object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-text-muted">
+                                <Shirt className="w-5 h-5 opacity-40" />
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-headline font-bold text-text-primary text-xs line-clamp-1">
+                              {item.productTitle || 'Streetwear Fashion Item'}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              {item.brand && (
+                                <span className="text-[10px] text-text-muted font-bold uppercase">
+                                  {item.brand}
+                                </span>
+                              )}
+                              {item.size && (
+                                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
+                                  Size {item.size}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* SKU */}
+                      <td className="p-4">
+                        <div className="flex flex-col">
+                          <span className="font-mono font-bold text-text-primary text-xs tracking-wider">
+                            {item.sku}
+                          </span>
+                          <span className="text-[10px] text-text-muted font-mono truncate max-w-[120px]">
+                            {item.variantId}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Location */}
+                      <td className="p-4 text-text-muted">Indiranagar Dark Store Hub</td>
+
+                      {/* On Hand */}
+                      <td className="p-4 text-center font-mono font-bold text-text-primary">
+                        {item.onHand}
+                      </td>
+
+                      {/* Reserved */}
+                      <td className="p-4 text-center font-mono text-amber-400 font-bold">
+                        {item.reserved}
+                      </td>
+
+                      {/* Available */}
+                      <td className="p-4 text-center font-mono font-black text-sm text-primary">
+                        {item.available}
+                      </td>
+
+                      {/* Stock Status */}
+                      <td className="p-4">
+                        {isOut ? (
+                          <span className="text-[10px] font-bold text-red-400 bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20">
+                            Out of Stock
+                          </span>
+                        ) : isLow ? (
+                          <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 animate-pulse">
+                            Low Stock ({item.available})
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                            Optimal ({item.available})
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="p-4 text-right">
+                        <Button onClick={() => handleOpenAdjust(item)} variant="outline" size="sm">
+                          Adjust Stock
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -207,7 +286,7 @@ export default function AdminInventoryPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-border text-text-surface">
-              {movements.slice(0, 8).map((m) => (
+              {movements.slice(0, 10).map((m) => (
                 <tr key={m.id}>
                   <td className="py-2.5 text-text-muted font-mono text-[11px]">
                     {new Date(m.createdAt).toLocaleTimeString('en-IN', {
@@ -242,7 +321,7 @@ export default function AdminInventoryPage() {
             <div className="flex justify-between items-center pb-2 border-b border-surface-border">
               <div>
                 <h3 className="font-headline font-bold text-base text-text-primary">Manual Stock Adjustment</h3>
-                <p className="text-xs text-text-muted font-mono">{selectedItem.sku}</p>
+                <p className="text-xs text-text-muted">Dark Store: Indiranagar Hub</p>
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -250,6 +329,42 @@ export default function AdminInventoryPage() {
               >
                 ✕
               </button>
+            </div>
+
+            {/* Product & SKU summary card */}
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-surface-raised border border-surface-border">
+              <div className="relative w-12 h-14 rounded-lg overflow-hidden bg-surface-card border border-surface-border flex-shrink-0">
+                {selectedItem.image ? (
+                  <Image
+                    src={selectedItem.image}
+                    alt={selectedItem.productTitle || selectedItem.sku}
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-text-muted">
+                    <Shirt className="w-5 h-5 opacity-40" />
+                  </div>
+                )}
+              </div>
+              <div className="overflow-hidden">
+                <h4 className="font-headline font-bold text-text-primary text-xs truncate">
+                  {selectedItem.productTitle || 'Fashion Item'}
+                </h4>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="font-mono text-xs font-bold text-primary">{selectedItem.sku}</span>
+                  {selectedItem.size && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                      Size {selectedItem.size}
+                    </span>
+                  )}
+                  {selectedItem.brand && (
+                    <span className="text-[10px] text-text-muted font-semibold uppercase">
+                      {selectedItem.brand}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
 
             <form onSubmit={handleExecuteAdjustment} className="space-y-4 text-xs">
@@ -271,7 +386,7 @@ export default function AdminInventoryPage() {
                 <input
                   type="number"
                   min="1"
-                  max="100"
+                  max="1000"
                   required
                   value={adjustQty}
                   onChange={(e) => setAdjustQty(Number(e.target.value))}
@@ -280,7 +395,7 @@ export default function AdminInventoryPage() {
               </div>
 
               <div className="p-3 rounded-xl bg-surface-raised border border-surface-border text-text-muted text-[11px] leading-relaxed">
-                Current On Hand: <strong className="text-text-primary">{selectedItem.onHand}</strong> | Reserved: <strong className="text-amber-400">{selectedItem.reserved}</strong>
+                Current On Hand: <strong className="text-text-primary">{selectedItem.onHand}</strong> | Reserved: <strong className="text-amber-400">{selectedItem.reserved}</strong> | Available: <strong className="text-primary">{selectedItem.available}</strong>
               </div>
 
               <div className="flex gap-2 pt-2">
@@ -288,7 +403,7 @@ export default function AdminInventoryPage() {
                   Cancel
                 </Button>
                 <Button type="submit" size="sm" fullWidth>
-                  Apply Adjustment
+                  Apply Stock Adjustment
                 </Button>
               </div>
             </form>

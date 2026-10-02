@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { Product, Variant, SizeOption } from '@/lib/types';
 import { formatPaise } from '@/lib/money';
 import { siteConfig } from '@/config/site';
-import { Plus, CheckCircle, Upload, X } from 'lucide-react';
+import { Plus, CheckCircle, Upload, X, Layers, Boxes } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 export default function AdminCatalogPage() {
@@ -23,6 +23,16 @@ export default function AdminCatalogPage() {
   const [sellingPrice, setSellingPrice] = useState(1799);
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [skuPrefix, setSkuPrefix] = useState('');
+
+  // Per-size SKU & initial stock configuration
+  const [sizeConfig, setSizeConfig] = useState<{ [sz: string]: { enabled: boolean; stock: number } }>({
+    S: { enabled: true, stock: 10 },
+    M: { enabled: true, stock: 15 },
+    L: { enabled: true, stock: 20 },
+    XL: { enabled: true, stock: 10 },
+    XXL: { enabled: false, stock: 5 },
+  });
 
   // Cloudinary upload state
   const [uploading, setUploading] = useState(false);
@@ -42,6 +52,16 @@ export default function AdminCatalogPage() {
   useEffect(() => {
     loadProducts();
   }, []);
+
+  // Auto-generate suggested SKU Prefix when title changes (if user hasn't typed custom prefix)
+  const handleTitleChange = (val: string) => {
+    setTitle(val);
+    const words = val.trim().split(/\s+/).filter(Boolean);
+    if (words.length > 0) {
+      const suggested = words.map(w => w.slice(0, 3).toUpperCase()).join('-').slice(0, 10);
+      setSkuPrefix(prev => (prev === '' || prev.length <= 4 ? suggested : prev));
+    }
+  };
 
   /** Upload selected file directly to Cloudinary via signed upload */
   const handleImageUpload = async (file: File) => {
@@ -90,17 +110,26 @@ export default function AdminCatalogPage() {
     const brandSlug = brand.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     const categorySlug = category.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
-    const sizes: SizeOption[] = ['S', 'M', 'L', 'XL'];
-    const prefix = title.slice(0, 3).toUpperCase();
-    const variants: Variant[] = sizes.map((s) => ({
-      id: `var_${prefix}_${s.toLowerCase()}_${Date.now()}`,
-      sku: `${prefix}-${s}`,
-      size: s,
+    const selectedSizes = Object.entries(sizeConfig)
+      .filter(([_, cfg]) => cfg.enabled)
+      .map(([sz, cfg]) => ({ size: sz as SizeOption, stock: cfg.stock }));
+
+    if (selectedSizes.length === 0) {
+      alert('Please enable at least one size variant!');
+      return;
+    }
+
+    const basePrefix = skuPrefix.trim() ? skuPrefix.trim().toUpperCase() : title.slice(0, 3).toUpperCase();
+    const variants: Variant[] = selectedSizes.map(({ size, stock }) => ({
+      id: `var_${basePrefix.toLowerCase()}_${size.toLowerCase()}_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
+      sku: `${basePrefix}-${size}`.toUpperCase(),
+      size,
       color: 'Obsidian Black',
       colorHex: '#0E0E10',
       pricePaise: sellingPrice * 100,
       mrpPaise: mrp * 100,
-    }));
+      initialStock: stock,
+    } as any));
 
     const newProd: Product = {
       id: `prod_${Date.now()}`,
@@ -128,13 +157,17 @@ export default function AdminCatalogPage() {
       body: JSON.stringify(newProd),
     });
 
-    setFeedback(`Product "${title}" created with 4 size variants!`);
-    setTimeout(() => setFeedback(''), 3000);
+    setFeedback(`Product "${title}" created with ${variants.length} SKUs & stock allocated!`);
+    setTimeout(() => setFeedback(''), 3500);
     setIsModalOpen(false);
     loadProducts();
 
     // Reset
-    setTitle(''); setDescription(''); setImageUrl(''); setUploadError('');
+    setTitle('');
+    setDescription('');
+    setImageUrl('');
+    setUploadError('');
+    setSkuPrefix('');
   };
 
   const filtered = products.filter(
@@ -157,7 +190,7 @@ export default function AdminCatalogPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-headline font-black text-2xl sm:text-3xl text-text-primary">Product Catalog &amp; Variants</h1>
-          <p className="text-xs text-text-muted mt-0.5">Manage products, automated SKU matrix &amp; pricing</p>
+          <p className="text-xs text-text-muted mt-0.5">Manage products, automated SKU matrix per size &amp; pricing</p>
         </div>
         <Button onClick={() => setIsModalOpen(true)} size="sm">
           <Plus className="w-4 h-4" />
@@ -186,7 +219,7 @@ export default function AdminCatalogPage() {
                 <th className="p-4">Brand</th>
                 <th className="p-4">Category</th>
                 <th className="p-4">Price</th>
-                <th className="p-4 text-center">Variants</th>
+                <th className="p-4 text-center">Variants &amp; SKUs</th>
                 <th className="p-4 text-right">Actions</th>
               </tr>
             </thead>
@@ -213,9 +246,13 @@ export default function AdminCatalogPage() {
                     </span>
                   </td>
                   <td className="p-4 text-center">
-                    <span className="font-mono text-xs font-bold bg-surface-raised px-2 py-0.5 rounded border border-surface-border">
-                      {p.variants.length} SKUs
-                    </span>
+                    <div className="flex flex-wrap items-center justify-center gap-1">
+                      {p.variants.map((v) => (
+                        <span key={v.sku} className="font-mono text-[10px] font-bold bg-surface-raised px-1.5 py-0.5 rounded border border-surface-border" title={`${v.size}: ${v.sku}`}>
+                          {v.sku}
+                        </span>
+                      ))}
+                    </div>
                   </td>
                   <td className="p-4 text-right">
                     <Link href={`/product/${p.slug}`} className="text-primary hover:underline font-bold text-xs" target="_blank">
@@ -232,7 +269,7 @@ export default function AdminCatalogPage() {
       {/* Add Product Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-surface-card border border-surface-border rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-surface-card border border-surface-border rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center pb-2 border-b border-surface-border">
               <h3 className="font-headline font-bold text-base text-text-primary">Add New Fashion Product</h3>
               <button onClick={() => setIsModalOpen(false)} className="p-1 rounded-full text-text-muted hover:text-text-primary hover:bg-surface-raised transition-colors text-sm">✕</button>
@@ -241,9 +278,14 @@ export default function AdminCatalogPage() {
             <form onSubmit={handleCreateProduct} className="space-y-4 text-xs">
               <div>
                 <label className="font-bold text-text-muted mb-1 block">Product Title *</label>
-                <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Vintage Leather Moto Jacket"
-                  className="w-full bg-surface-raised border border-surface-border rounded-xl p-2.5 text-text-primary" />
+                <input
+                  type="text"
+                  required
+                  value={title}
+                  onChange={(e) => handleTitleChange(e.target.value)}
+                  placeholder="e.g. Nocturne Heavyweight Satin Bomber"
+                  className="w-full bg-surface-raised border border-surface-border rounded-xl p-2.5 text-text-primary"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -300,7 +342,7 @@ export default function AdminCatalogPage() {
                   </div>
                 ) : (
                   <div onClick={() => !uploading && fileInputRef.current?.click()}
-                    className={`w-full h-36 rounded-xl border-2 border-dashed border-surface-border bg-surface-raised hover:border-primary transition-colors flex flex-col items-center justify-center gap-2 text-text-muted ${uploading ? 'cursor-wait' : 'cursor-pointer hover:bg-surface-raised/80'}`}>
+                    className={`w-full h-32 rounded-xl border-2 border-dashed border-surface-border bg-surface-raised hover:border-primary transition-colors flex flex-col items-center justify-center gap-2 text-text-muted ${uploading ? 'cursor-wait' : 'cursor-pointer hover:bg-surface-raised/80'}`}>
                     {uploading ? (
                       <>
                         <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -326,8 +368,88 @@ export default function AdminCatalogPage() {
                 )}
               </div>
 
-              <div className="p-3 rounded-xl bg-surface-raised border border-surface-border text-[11px] text-text-muted">
-                ⚡ Variant matrix (S, M, L, XL) with individual SKU generation will be generated automatically.
+              {/* SKU Base Code & Per-Size Stock Matrix */}
+              <div className="space-y-3 p-4 rounded-2xl bg-surface-raised border border-surface-border">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <label className="font-bold text-text-primary block">SKU Base Code / Prefix *</label>
+                    <p className="text-[11px] text-text-muted">
+                      Unique prefix for this product&apos;s variants (e.g. <span className="font-mono text-primary font-bold">{(skuPrefix || 'NOC-BOM')}-S</span>, <span className="font-mono text-primary font-bold">{(skuPrefix || 'NOC-BOM')}-M</span>)
+                    </p>
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={skuPrefix}
+                    onChange={(e) => setSkuPrefix(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ''))}
+                    placeholder="e.g. NOC-BOM"
+                    className="bg-surface-card border border-surface-border rounded-xl px-3 py-1.5 text-xs text-text-primary font-mono font-bold max-w-[160px] focus:outline-none focus:border-primary"
+                  />
+                </div>
+
+                <div className="pt-2 border-t border-surface-border/60">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="font-bold text-text-muted">Select Sizes &amp; Initial Stock Units</label>
+                    <span className="text-[10px] text-text-muted">Each size gets a distinct SKU &amp; inventory count</span>
+                  </div>
+
+                  <div className="space-y-2">
+                    {Object.entries(sizeConfig).map(([sz, cfg]) => {
+                      const fullSku = `${(skuPrefix || 'SKU')}-${sz}`;
+                      return (
+                        <div
+                          key={sz}
+                          className={`flex items-center justify-between p-2.5 rounded-xl border transition-all ${
+                            cfg.enabled
+                              ? 'bg-surface-card border-surface-border shadow-sm'
+                              : 'bg-surface-card/40 border-transparent opacity-50'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              id={`sz-${sz}`}
+                              checked={cfg.enabled}
+                              onChange={(e) =>
+                                setSizeConfig((prev) => ({
+                                  ...prev,
+                                  [sz]: { ...prev[sz], enabled: e.target.checked },
+                                }))
+                              }
+                              className="w-4 h-4 rounded text-primary focus:ring-primary accent-primary cursor-pointer"
+                            />
+                            <label htmlFor={`sz-${sz}`} className="font-black text-xs px-2.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 cursor-pointer">
+                              Size {sz}
+                            </label>
+                            <span className="font-mono text-[11px] text-text-muted">
+                              SKU: <strong className="text-text-primary tracking-wide">{fullSku}</strong>
+                            </span>
+                          </div>
+
+                          {cfg.enabled && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-text-muted font-bold">Initial Stock:</span>
+                              <input
+                                type="number"
+                                min="0"
+                                max="1000"
+                                value={cfg.stock}
+                                onChange={(e) =>
+                                  setSizeConfig((prev) => ({
+                                    ...prev,
+                                    [sz]: { ...prev[sz], stock: Math.max(0, Number(e.target.value)) },
+                                  }))
+                                }
+                                className="w-16 bg-surface-raised border border-surface-border rounded-lg px-2 py-1 text-center font-mono font-bold text-xs text-text-primary focus:outline-none focus:border-primary"
+                              />
+                              <span className="text-[10px] text-text-muted">units</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
 
               <div className="flex gap-2 pt-2">

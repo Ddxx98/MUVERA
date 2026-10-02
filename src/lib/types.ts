@@ -48,6 +48,12 @@ export interface InventoryItem {
   available: number;
   lowStockThreshold: number;
   updatedAt: string;
+  productTitle?: string;
+  productSlug?: string;
+  brand?: string;
+  image?: string;
+  size?: string;
+  color?: string;
 }
 
 export interface StockMovement {
