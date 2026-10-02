@@ -10,16 +10,16 @@ export default function SearchPage() {
   const [recentSearches, setRecentSearches] = useState<string[]>([
     'Oversized T-Shirts',
     'Satin Bomber',
-    'Snitch',
+    'Heavyweight Fleece',
     'Parachute Cargoes',
   ]);
 
   const trendingTags = [
     'Oversized Tees',
     'Heavyweight Hoodies',
-    'Puma Slipstream',
-    'Satin Club Dress',
-    'Brownbutter',
+    'Satin Bomber',
+    'Club & Party Fits',
+    'Tactical Cargoes',
     'Indiranagar 60-Min',
   ];
 
@@ -50,7 +50,7 @@ export default function SearchPage() {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search 50,000+ luxury streetwear fits from Snitch, Puma..."
+          placeholder="Search MUVERA luxury streetwear, bombers, hoodies, tees..."
           autoFocus
           className="w-full bg-transparent font-headline font-bold text-sm text-text-primary placeholder:text-text-muted focus:outline-none"
         />
@@ -120,7 +120,7 @@ export default function SearchPage() {
             <div className="p-12 text-center bg-surface-card rounded-2xl border border-surface-border space-y-3">
               <p className="font-headline font-bold text-text-primary text-base">No matches found for "{query}"</p>
               <p className="text-xs text-text-muted">
-                Try searching for "Bomber", "Hoodie", "Puma", or "Snitch".
+                Try searching for &quot;Bomber&quot;, &quot;Hoodie&quot;, &quot;Cargo&quot;, or &quot;Oversized Tee&quot;.
               </p>
             </div>
           ) : (

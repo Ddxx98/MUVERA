@@ -198,7 +198,7 @@ export default async function HomePage() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="font-headline font-black text-xl text-text-primary">Fresh Streetwear Releases</h2>
-            <p className="text-xs text-text-muted">Verified authentic from Snitch, Brownbutter & Puma</p>
+            <p className="text-xs text-text-muted">Exclusive MUVERA drops • Crafted in limited batches with ultra-dense fabrics</p>
           </div>
           <Link href="/products" className="text-xs font-bold text-primary hover:underline">
             View All

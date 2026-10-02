@@ -17,7 +17,7 @@ export default function AdminCatalogPage() {
 
   // Form State
   const [title, setTitle] = useState('');
-  const [brand, setBrand] = useState('MUVERA SIGNATURE');
+  const [brand, setBrand] = useState('MUVERA');
   const [category, setCategory] = useState('Oversized Tees');
   const [mrp, setMrp] = useState(2999);
   const [sellingPrice, setSellingPrice] = useState(1799);

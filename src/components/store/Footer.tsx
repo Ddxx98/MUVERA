@@ -92,15 +92,15 @@ export function Footer() {
           </ul>
         </div>
 
-        {/* Labels */}
+        {/* The MUVERA Standard */}
         <div>
-          <h4 className="font-headline font-bold text-text-primary text-sm mb-3 uppercase tracking-wider">Top Labels</h4>
-          <ul className="space-y-2 text-xs">
-            <li><Link href="/products?brand=snitch" className="hover:text-primary transition-colors">Snitch</Link></li>
-            <li><Link href="/products?brand=puma" className="hover:text-primary transition-colors">Puma</Link></li>
-            <li><Link href="/products?brand=bewakoof" className="hover:text-primary transition-colors">Bewakoof</Link></li>
-            <li><Link href="/products?brand=brownbutter" className="hover:text-primary transition-colors">Brownbutter</Link></li>
-            <li><Link href="/products?brand=the-souled-store" className="hover:text-primary transition-colors">The Souled Store</Link></li>
+          <h4 className="font-headline font-bold text-text-primary text-sm mb-3 uppercase tracking-wider">The MUVERA Standard</h4>
+          <ul className="space-y-2 text-xs text-text-muted">
+            <li>100% In-House Luxury Design</li>
+            <li>Heavyweight Japanese &amp; French Fabrics</li>
+            <li>60-Min Bengaluru Dark Store Dispatch</li>
+            <li>Zero-Risk WhatsApp Concierge Booking</li>
+            <li>Limited Edition Numbered Drops</li>
           </ul>
         </div>
 

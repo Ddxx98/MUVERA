@@ -77,7 +77,7 @@ export function StoreHeader() {
             >
               <div className="flex items-center gap-2">
                 <Search className="w-4 h-4 text-primary" />
-                <span>Search 50,000+ fits from Snitch, Puma, Brownbutter...</span>
+                <span>Search MUVERA luxury streetwear, bombers, tees...</span>
               </div>
               <span className="text-[10px] bg-surface-card px-2 py-0.5 rounded text-text-muted font-mono border border-surface-border/50">/</span>
             </Link>

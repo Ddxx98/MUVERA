@@ -78,7 +78,7 @@ function ProductsContent() {
               ? siteConfig.categories.find((c) => c.slug === selectedCategory)?.name || 'Catalog'
               : selectedBrand !== 'all'
               ? siteConfig.brands.find((b) => b.slug === selectedBrand)?.name || 'Brand Drops'
-              : 'All Streetwear Drops'}
+              : 'All MUVERA Drops'}
           </h1>
           <p className="text-xs text-text-muted mt-0.5">
             Showing <strong className="text-text-primary font-mono">{filteredProducts.length}</strong> drops available with 60-min express fulfillment
@@ -149,25 +149,6 @@ function ProductsContent() {
                 {siteConfig.categories.map((c) => (
                   <option key={c.id} value={c.slug}>
                     {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Brand Select */}
-            <div>
-              <label className="text-[11px] font-black uppercase tracking-wider text-text-muted mb-2 block">
-                Brand
-              </label>
-              <select
-                value={selectedBrand}
-                onChange={(e) => setSelectedBrand(e.target.value)}
-                className="w-full bg-surface-raised border border-surface-border text-text-primary text-xs rounded-xl p-2.5 focus:outline-none focus:border-primary"
-              >
-                <option value="all">All Brands</option>
-                {siteConfig.brands.map((b) => (
-                  <option key={b.slug} value={b.slug}>
-                    {b.name}
                   </option>
                 ))}
               </select>

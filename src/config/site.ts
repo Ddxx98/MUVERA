@@ -20,14 +20,7 @@ export const siteConfig = {
     { id: 'footwear', name: 'Footwear & Retro kicks', slug: 'footwear', image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop&q=80', count: 8 },
   ],
   brands: [
-    { name: 'SNITCH', slug: 'snitch' },
-    { name: 'PUMA', slug: 'puma' },
-    { name: 'BEWAKOOF', slug: 'bewakoof' },
-    { name: 'BROWNBUTTER', slug: 'brownbutter' },
-    { name: 'THE SOULED STORE', slug: 'the-souled-store' },
-    { name: 'TOKYO TALKIES', slug: 'tokyo-talkies' },
-    { name: 'ZOUK', slug: 'zouk' },
-    { name: 'MUVERA SIGNATURE', slug: 'muvera' },
+    { name: 'MUVERA', slug: 'muvera' },
   ],
   locations: [
     { id: 'loc_blr_ind_01', name: 'Indiranagar Hub', city: 'Bengaluru', expressEtaMinutes: 60, servicePincodes: ['560038', '560008', '560075', '560001', '560025'] },
