@@ -1,0 +1,166 @@
+{
+  "project": "projects/11537620980849831602",
+  "theme": "Midnight Quick-Glam",
+  "screens": [
+    {
+      "screenId": "pincode-serviceability",
+      "title": "Location & Serviceability Sheet",
+      "route": "bottom-sheet / modal",
+      "components": ["LocationPickerSheet", "PincodeInput", "ZoneBadge", "ETABanner"],
+      "dataSource": "inventory.checkServiceability()",
+      "status": "todo"
+    },
+    {
+      "screenId": "auth-login-otp",
+      "title": "Customer Login & OTP Modal",
+      "route": "/login (modal & page)",
+      "components": ["EmailOtpForm", "GoogleOAuthButton", "OtpInputGrid", "ResendTimer"],
+      "dataSource": "auth.sendOtp() / auth.verifyOtp()",
+      "status": "todo"
+    },
+    {
+      "screenId": "storefront-home",
+      "title": "Storefront Home Page",
+      "route": "/",
+      "components": ["Header", "LocationSelector", "SearchBar", "MarqueeTicker", "HeroBannerCarousel", "FlashDealsRail", "CategoryGrid", "BrandGrid", "ProductRail", "BottomNav"],
+      "dataSource": "merchandising.getHomeSections()",
+      "status": "todo"
+    },
+    {
+      "screenId": "product-listing",
+      "title": "Category / Collection / Brand Listing",
+      "route": "/category/[slug]",
+      "components": ["ListingHeader", "FilterChips", "FilterDrawer", "SortSheet", "ProductGrid", "ProductCard", "SkeletonGrid"],
+      "dataSource": "catalog.getProducts(filters, sort, cursor)",
+      "status": "todo"
+    },
+    {
+      "screenId": "search-results",
+      "title": "Search & Auto-Suggest",
+      "route": "/search",
+      "components": ["SearchHeader", "RecentSearches", "TrendingKeywords", "ProductSearchResult", "ZeroState"],
+      "dataSource": "catalog.searchProducts(query)",
+      "status": "todo"
+    },
+    {
+      "screenId": "product-detail",
+      "title": "Product Detail Page (PDP)",
+      "route": "/product/[slug]",
+      "components": ["ImageGalleryCarousel", "BrandTitleHeader", "PriceDisplayPaise", "SizePickerGrid", "SizeGuideModal", "DeliveryPincodeChecker", "CouponsAccordion", "WishlistToggle", "StickyAddToCartCTA", "ReviewsSection", "SimilarProductsRail"],
+      "dataSource": "catalog.getBySlug() + inventory.getLiveStock()",
+      "status": "todo"
+    },
+    {
+      "screenId": "wishlist",
+      "title": "Customer Saved Wishlist",
+      "route": "/wishlist",
+      "components": ["WishlistGrid", "WishlistCard", "MoveToCartButton", "EmptyWishlistState"],
+      "dataSource": "wishlist.getSavedItems()",
+      "status": "todo"
+    },
+    {
+      "screenId": "cart-drawer",
+      "title": "Cart & Stock Hold Drawer/Page",
+      "route": "/cart",
+      "components": ["CartItemList", "CartItemRow", "HoldReservationTimer", "CouponInputDrawer", "FreeShippingBar", "BillSummaryCard", "ProceedToCheckoutCTA"],
+      "dataSource": "cart.getCart()",
+      "status": "todo"
+    },
+    {
+      "screenId": "checkout",
+      "title": "Checkout & Payment Flow",
+      "route": "/checkout",
+      "components": ["AddressSelector", "AddAddressModal", "DeliveryOptionRadio", "PaymentMethodGroup", "RazorpayTrigger", "CODRiskGuard", "OrderFreezeSummary"],
+      "dataSource": "checkout.initialize()",
+      "status": "todo"
+    },
+    {
+      "screenId": "order-success",
+      "title": "Order Placed & Confirmation",
+      "route": "/order-success/[orderId]",
+      "components": ["OrderPlacedAnimation", "OrderSummaryCard", "DeliveryETABadge", "TrackOrderButton"],
+      "dataSource": "orders.getSuccessSummary()",
+      "status": "todo"
+    },
+    {
+      "screenId": "customer-account",
+      "title": "Customer Profile & Dashboard",
+      "route": "/account",
+      "components": ["ProfileHeader", "QuickLinksMenu", "RecentOrdersWidget", "AddressBookPreview"],
+      "dataSource": "customers.getProfile()",
+      "status": "todo"
+    },
+    {
+      "screenId": "customer-orders-list",
+      "title": "Customer Orders History",
+      "route": "/account/orders",
+      "components": ["OrderTabsFilter", "OrderCard", "OrderStatusBadge", "ReorderButton"],
+      "dataSource": "orders.getCustomerOrders()",
+      "status": "todo"
+    },
+    {
+      "screenId": "customer-order-detail",
+      "title": "Order Detail, Invoice & Live Tracking",
+      "route": "/account/orders/[id]",
+      "components": ["StatusTimeline", "RiderLiveTracker", "OrderItemList", "InvoiceDownloadButton", "CancelOrderModal", "InitiateReturnModal"],
+      "dataSource": "orders.getOrderDetail()",
+      "status": "todo"
+    },
+    {
+      "screenId": "admin-login",
+      "title": "Admin Login & 2FA Auth",
+      "route": "/admin/login",
+      "components": ["AdminLoginForm", "Totp2FaInput"],
+      "dataSource": "auth.adminLogin()",
+      "status": "todo"
+    },
+    {
+      "screenId": "admin-dashboard",
+      "title": "Admin Dashboard",
+      "route": "/admin",
+      "components": ["KPICardGrid", "RecentOrdersTable", "LowStockAlerts", "SalesChart"],
+      "dataSource": "admin.getStats()",
+      "status": "todo"
+    },
+    {
+      "screenId": "admin-catalog",
+      "title": "Admin Product Catalog & Variants",
+      "route": "/admin/catalog",
+      "components": ["ProductTable", "ProductEditorForm", "VariantMatrixBuilder", "CloudinaryUploadWidget"],
+      "dataSource": "catalog.getAdminCatalog()",
+      "status": "todo"
+    },
+    {
+      "screenId": "admin-inventory",
+      "title": "Admin Inventory & Adjustments",
+      "route": "/admin/inventory",
+      "components": ["StockLevelTable", "ManualAdjustmentModal", "StockMovementLog"],
+      "dataSource": "inventory.getAdminInventory()",
+      "status": "todo"
+    },
+    {
+      "screenId": "admin-orders",
+      "title": "Admin Order Operations & Packing",
+      "route": "/admin/orders",
+      "components": ["AdminOrderTable", "OrderFulfillmentModal", "InvoicePrintTrigger", "ShippingLabelGenerator"],
+      "dataSource": "orders.getAdminOrders()",
+      "status": "todo"
+    },
+    {
+      "screenId": "admin-returns",
+      "title": "Admin Returns & Refunds Queue",
+      "route": "/admin/returns",
+      "components": ["ReturnQueueTable", "InspectionModal", "TriggerRefundButton"],
+      "dataSource": "returns.getQueue()",
+      "status": "todo"
+    },
+    {
+      "screenId": "admin-merchandising",
+      "title": "Admin Merchandising & Banners CMS",
+      "route": "/admin/merchandising",
+      "components": ["HomeSectionManager", "BannerScheduler", "CouponCodeForm"],
+      "dataSource": "merchandising.getAdminCMS()",
+      "status": "todo"
+    }
+  ]
+}
