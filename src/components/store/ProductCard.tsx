@@ -46,10 +46,16 @@ export function ProductCard({ product }: ProductCardProps) {
         />
 
         {/* Top Badges */}
-        <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 z-10">
-          {product.isBlitzDrop && <Badge variant="blitz">🔥 Blitz</Badge>}
+        <div className="absolute top-2 left-2 flex items-center gap-1 z-10 flex-wrap max-w-[calc(100%-38px)] pointer-events-none">
+          {product.isBlitzDrop && (
+            <Badge variant="blitz" className="shadow-md">
+              🔥 Blitz
+            </Badge>
+          )}
           {product.discountPercentage > 0 && (
-            <Badge variant="discount">-{product.discountPercentage}%</Badge>
+            <Badge variant="discount" className="shadow-md">
+              -{product.discountPercentage}%
+            </Badge>
           )}
         </div>
 
@@ -61,31 +67,31 @@ export function ProductCard({ product }: ProductCardProps) {
             toggleWishlist(product.id);
           }}
           aria-label="Wishlist"
-          className="absolute top-2.5 right-2.5 z-10 w-8 h-8 rounded-full bg-surface-base/80 backdrop-blur-md flex items-center justify-center text-text-surface hover:text-primary transition-all duration-200 active:scale-90"
+          className="absolute top-2 right-2 z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-surface-base/80 backdrop-blur-md flex items-center justify-center text-text-surface hover:text-primary transition-all duration-200 active:scale-90"
         >
           <Heart
-            className={`w-4 h-4 transition-colors ${
+            className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-colors ${
               favorited ? 'fill-secondary text-secondary' : 'text-text-muted hover:text-primary'
             }`}
           />
         </button>
 
         {/* 60-Min Express Strip on bottom of image */}
-        <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between pointer-events-none">
-          <span className="bg-surface-base/80 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] font-bold text-primary flex items-center gap-1 border border-primary/20">
-            <Zap className="w-3 h-3 fill-current" />
+        <div className="absolute bottom-2 left-2 z-10 pointer-events-none">
+          <span className="bg-surface-base/85 backdrop-blur-md px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold text-primary flex items-center gap-1 border border-primary/20 shadow-sm whitespace-nowrap">
+            <Zap className="w-2.5 h-2.5 fill-current" />
             60-MIN
           </span>
         </div>
 
         {/* Quick Size Selector Strip on Hover (Desktop) */}
-        <div className="absolute inset-x-2 bottom-9 hidden sm:flex items-center justify-center gap-1 bg-surface-card/95 backdrop-blur-md p-1.5 rounded-xl border border-surface-border opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20 shadow-lg">
-          <span className="text-[10px] font-bold text-text-muted mr-1">ADD:</span>
+        <div className="absolute inset-x-2 bottom-2 hidden sm:flex items-center justify-center gap-1 bg-surface-card/95 backdrop-blur-md p-1.5 rounded-xl border border-surface-border opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20 shadow-lg">
+          <span className="text-[10px] font-bold text-text-muted mr-1 whitespace-nowrap">ADD:</span>
           {product.variants.map((v) => (
             <button
               key={v.id}
               onClick={(e) => handleQuickAdd(e, v)}
-              className="text-[11px] font-extrabold px-2 py-0.5 rounded bg-surface-raised hover:bg-primary hover:text-surface-base text-text-primary transition-all active:scale-95"
+              className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-surface-raised hover:bg-primary hover:text-surface-base text-text-primary transition-all active:scale-95 whitespace-nowrap"
             >
               {v.size}
             </button>
@@ -103,26 +109,26 @@ export function ProductCard({ product }: ProductCardProps) {
 
           {/* Title */}
           <Link href={`/product/${product.slug}`} className="block">
-            <h3 className="font-headline font-bold text-sm text-text-primary line-clamp-1 group-hover:text-primary transition-colors">
+            <h3 className="font-headline font-bold text-xs sm:text-sm text-text-primary line-clamp-1 group-hover:text-primary transition-colors">
               {product.title}
             </h3>
           </Link>
         </div>
 
         {/* Pricing in Integer Paise */}
-        <div className="mt-3 flex items-baseline justify-between gap-1 flex-wrap">
-          <div className="flex items-baseline gap-1.5">
-            <span className="font-headline font-black text-base text-text-primary">
+        <div className="mt-2.5 flex items-center justify-between gap-1">
+          <div className="flex items-baseline gap-1.5 min-w-0">
+            <span className="font-headline font-black text-sm sm:text-base text-text-primary whitespace-nowrap">
               {formatPaise(product.sellingPricePaise)}
             </span>
             {product.mrpPaise > product.sellingPricePaise && (
-              <span className="text-xs text-text-muted line-through font-semibold">
+              <span className="text-[11px] sm:text-xs text-text-muted line-through font-semibold whitespace-nowrap truncate">
                 {formatPaise(product.mrpPaise)}
               </span>
             )}
           </div>
 
-          <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+          <span className="text-[9px] sm:text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 whitespace-nowrap flex-shrink-0">
             In Stock
           </span>
         </div>

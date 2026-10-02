@@ -118,6 +118,33 @@ function ProductsContent() {
         </div>
       </div>
 
+      {/* Category Quick Filter Chips Rail */}
+      <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+        <button
+          onClick={() => setSelectedCategory('all')}
+          className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-headline font-bold transition-all shadow-sm whitespace-nowrap ${
+            selectedCategory === 'all'
+              ? 'bg-primary text-surface-base font-black shadow-gold-glow'
+              : 'bg-surface-card hover:bg-surface-raised border border-surface-border text-text-primary'
+          }`}
+        >
+          All Drops
+        </button>
+        {siteConfig.categories.map((c) => (
+          <button
+            key={c.id}
+            onClick={() => setSelectedCategory(c.slug)}
+            className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-headline font-bold transition-all shadow-sm whitespace-nowrap ${
+              selectedCategory === c.slug
+                ? 'bg-primary text-surface-base font-black shadow-gold-glow'
+                : 'bg-surface-card hover:bg-surface-raised border border-surface-border text-text-primary'
+            }`}
+          >
+            {c.name}
+          </button>
+        ))}
+      </div>
+
       {/* Expandable Filter Drawer */}
       {isFilterOpen && (
         <div className="p-5 rounded-2xl bg-surface-card border border-surface-border space-y-5 animate-in fade-in duration-200 shadow-xl">
@@ -200,40 +227,50 @@ function ProductsContent() {
 
       {/* Active Filter Chips */}
       {hasActiveFilters && (
-        <div className="flex items-center gap-2 flex-wrap text-xs">
-          <span className="text-text-muted font-bold text-[11px]">Active Filters:</span>
+        <div className="flex items-center gap-1.5 flex-wrap text-xs">
+          <span className="text-text-muted font-bold text-[11px] mr-1">Active Filters:</span>
           {selectedCategory !== 'all' && (
-            <span className="inline-flex items-center gap-1 bg-surface-card border border-surface-border px-2.5 py-1 rounded-full text-white font-medium">
-              Category: {siteConfig.categories.find((c) => c.slug === selectedCategory)?.name}
-              <button onClick={() => setSelectedCategory('all')} className="hover:text-red-400">
-                ×
-              </button>
-            </span>
-          )}
-          {selectedBrand !== 'all' && (
-            <span className="inline-flex items-center gap-1 bg-surface-card border border-surface-border px-2.5 py-1 rounded-full text-white font-medium">
-              Brand: {siteConfig.brands.find((b) => b.slug === selectedBrand)?.name}
-              <button onClick={() => setSelectedBrand('all')} className="hover:text-red-400">
-                ×
+            <span className="inline-flex items-center gap-1.5 bg-surface-card border border-surface-border px-2.5 py-1 rounded-full text-text-primary text-xs font-medium whitespace-nowrap shadow-sm">
+              <span>Category: {siteConfig.categories.find((c) => c.slug === selectedCategory)?.name || selectedCategory}</span>
+              <button
+                onClick={() => setSelectedCategory('all')}
+                aria-label="Remove category filter"
+                className="hover:text-red-400 p-0.5 rounded-full hover:bg-surface-raised transition-colors"
+              >
+                <X className="w-3 h-3" />
               </button>
             </span>
           )}
           {selectedSize !== 'all' && (
-            <span className="inline-flex items-center gap-1 bg-surface-card border border-surface-border px-2.5 py-1 rounded-full text-white font-medium">
-              Size: {selectedSize}
-              <button onClick={() => setSelectedSize('all')} className="hover:text-red-400">
-                ×
+            <span className="inline-flex items-center gap-1.5 bg-surface-card border border-surface-border px-2.5 py-1 rounded-full text-text-primary text-xs font-medium whitespace-nowrap shadow-sm">
+              <span>Size: {selectedSize}</span>
+              <button
+                onClick={() => setSelectedSize('all')}
+                aria-label="Remove size filter"
+                className="hover:text-red-400 p-0.5 rounded-full hover:bg-surface-raised transition-colors"
+              >
+                <X className="w-3 h-3" />
               </button>
             </span>
           )}
           {maxPrice < 10000 && (
-            <span className="inline-flex items-center gap-1 bg-surface-card border border-surface-border px-2.5 py-1 rounded-full text-white font-medium">
-              Under ₹{maxPrice}
-              <button onClick={() => setMaxPrice(10000)} className="hover:text-red-400">
-                ×
+            <span className="inline-flex items-center gap-1.5 bg-surface-card border border-surface-border px-2.5 py-1 rounded-full text-text-primary text-xs font-medium whitespace-nowrap shadow-sm">
+              <span>Under ₹{maxPrice}</span>
+              <button
+                onClick={() => setMaxPrice(10000)}
+                aria-label="Remove price filter"
+                className="hover:text-red-400 p-0.5 rounded-full hover:bg-surface-raised transition-colors"
+              >
+                <X className="w-3 h-3" />
               </button>
             </span>
           )}
+          <button
+            onClick={clearAllFilters}
+            className="text-[11px] font-bold text-primary hover:underline ml-1.5 whitespace-nowrap"
+          >
+            Clear All
+          </button>
         </div>
       )}
 

@@ -284,9 +284,9 @@ export default function AdminCatalogPage() {
                     </span>
                   </td>
                   <td className="p-4 text-center">
-                    <div className="flex flex-wrap items-center justify-center gap-1">
+                    <div className="flex flex-wrap items-center justify-center gap-1 max-w-[220px] mx-auto">
                       {p.variants.map((v) => (
-                        <span key={v.sku} className="font-mono text-[10px] font-bold bg-surface-raised px-1.5 py-0.5 rounded border border-surface-border" title={`${v.size}: ${v.sku}`}>
+                        <span key={v.sku} className="font-mono text-[10px] font-bold bg-surface-raised px-1.5 py-0.5 rounded border border-surface-border whitespace-nowrap inline-flex items-center" title={`${v.size}: ${v.sku}`}>
                           {v.sku}
                         </span>
                       ))}

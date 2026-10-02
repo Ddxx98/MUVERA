@@ -196,7 +196,7 @@ export default function AdminInventoryPage() {
                                 </span>
                               )}
                               {item.size && (
-                                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
+                                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 whitespace-nowrap inline-flex items-center">
                                   Size {item.size}
                                 </span>
                               )}
@@ -238,15 +238,15 @@ export default function AdminInventoryPage() {
                       {/* Stock Status */}
                       <td className="p-4">
                         {isOut ? (
-                          <span className="text-[10px] font-bold text-red-400 bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20">
+                          <span className="text-[10px] font-bold text-red-400 bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20 whitespace-nowrap inline-flex items-center">
                             Out of Stock
                           </span>
                         ) : isLow ? (
-                          <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 animate-pulse">
+                          <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 animate-pulse whitespace-nowrap inline-flex items-center">
                             Low Stock ({item.available})
                           </span>
                         ) : (
-                          <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                          <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 whitespace-nowrap inline-flex items-center">
                             Optimal ({item.available})
                           </span>
                         )}

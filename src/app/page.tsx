@@ -75,22 +75,24 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* 2. Top Brands Marquee */}
+      {/* 2. Categories Quick Filter Chips */}
       <section className="max-w-7xl mx-auto px-4">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-bold uppercase tracking-widest text-text-muted">
-            Powered By Official Labels
+        <div className="flex items-center justify-between mb-2.5">
+          <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
+            Curated Collections
           </span>
-          <span className="text-xs font-semibold text-primary">50+ Official Drops</span>
+          <Link href="/categories" className="text-xs font-bold text-primary hover:underline">
+            View All
+          </Link>
         </div>
-        <div className="flex gap-2.5 overflow-x-auto pb-2 no-scrollbar">
-          {siteConfig.brands.map((brand) => (
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          {siteConfig.categories.map((cat) => (
             <Link
-              key={brand.slug}
-              href={`/products?brand=${brand.slug}`}
-              className="flex-shrink-0 bg-surface-card hover:bg-surface-raised border border-surface-border hover:border-primary/40 px-4 py-2 rounded-xl text-xs font-headline font-black uppercase text-text-primary tracking-wider transition-all duration-200 shadow-sm"
+              key={cat.id}
+              href={`/products?category=${cat.slug}`}
+              className="flex-shrink-0 bg-surface-card hover:bg-surface-raised border border-surface-border hover:border-primary/50 px-3.5 py-1.5 rounded-full text-xs font-headline font-bold text-text-primary tracking-wide transition-all shadow-sm whitespace-nowrap"
             >
-              {brand.name}
+              {cat.name}
             </Link>
           ))}
         </div>
