@@ -175,25 +175,27 @@ export default async function HomePage() {
       </section>
 
       {/* 5. Trending Nocturne Blitz Drops (PLP Grid) */}
-      <section className="max-w-7xl mx-auto px-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-secondary animate-ping" />
-            <h2 className="font-headline font-black text-xl text-text-primary">Trending Blitz Drops</h2>
-            <Badge variant="express">⚡ 60-MIN EXPRESS</Badge>
+      {blitzDrops.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-secondary animate-ping" />
+              <h2 className="font-headline font-black text-xl text-text-primary">Trending Blitz Drops</h2>
+              <Badge variant="express">⚡ 60-MIN EXPRESS</Badge>
+            </div>
+            <Link href="/products" className="text-xs font-bold text-primary flex items-center gap-1 hover:underline">
+              <span>Browse All</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
-          <Link href="/products" className="text-xs font-bold text-primary flex items-center gap-1 hover:underline">
-            <span>Browse All (50+)</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
-          {blitzDrops.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      </section>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+            {blitzDrops.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 6. All Streetwear Catalog Rail */}
       <section className="max-w-7xl mx-auto px-4">
