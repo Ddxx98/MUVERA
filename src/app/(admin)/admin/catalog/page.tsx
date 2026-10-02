@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { Product, Variant, SizeOption } from '@/lib/types';
 import { formatPaise } from '@/lib/money';
 import { siteConfig } from '@/config/site';
-import { Plus, CheckCircle, Upload, X, Layers, Boxes } from 'lucide-react';
+import { Plus, CheckCircle, Upload, X, Star, Layers, Boxes, Images } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 export default function AdminCatalogPage() {
@@ -22,7 +22,7 @@ export default function AdminCatalogPage() {
   const [mrp, setMrp] = useState(2999);
   const [sellingPrice, setSellingPrice] = useState(1799);
   const [description, setDescription] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [skuPrefix, setSkuPrefix] = useState('');
 
   // Per-size SKU & initial stock configuration
@@ -36,6 +36,7 @@ export default function AdminCatalogPage() {
 
   // Cloudinary upload state
   const [uploading, setUploading] = useState(false);
+  const [uploadCount, setUploadCount] = useState(0);
   const [uploadError, setUploadError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -53,7 +54,7 @@ export default function AdminCatalogPage() {
     loadProducts();
   }, []);
 
-  // Auto-generate suggested SKU Prefix when title changes (if user hasn't typed custom prefix)
+  // Auto-generate suggested SKU Prefix when title changes
   const handleTitleChange = (val: string) => {
     setTitle(val);
     const words = val.trim().split(/\s+/).filter(Boolean);
@@ -63,10 +64,15 @@ export default function AdminCatalogPage() {
     }
   };
 
-  /** Upload selected file directly to Cloudinary via signed upload */
-  const handleImageUpload = async (file: File) => {
+  /** Upload multiple selected files directly to Cloudinary */
+  const handleImagesUpload = async (files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    if (fileArray.length === 0) return;
+
     setUploading(true);
+    setUploadCount(fileArray.length);
     setUploadError('');
+
     try {
       // 1. Get upload signature from server
       const sigRes = await fetch('/api/admin/uploads/sign', {
@@ -80,31 +86,54 @@ export default function AdminCatalogPage() {
       const sig = await sigRes.json();
       if (!sig.success) throw new Error(sig.error || 'Signature generation failed');
 
-      // 2. Upload directly to Cloudinary
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('api_key', sig.apiKey);
-      formData.append('timestamp', String(sig.timestamp));
-      formData.append('signature', sig.signature);
-      formData.append('folder', sig.folder);
+      // 2. Upload all selected files concurrently
+      const uploadPromises = fileArray.map(async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('api_key', sig.apiKey);
+        formData.append('timestamp', String(sig.timestamp));
+        formData.append('signature', sig.signature);
+        formData.append('folder', sig.folder);
 
-      const uploadRes = await fetch(
-        `https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`,
-        { method: 'POST', body: formData }
-      );
-      const uploadData = await uploadRes.json();
-      if (uploadData.error) throw new Error(uploadData.error.message);
+        const uploadRes = await fetch(
+          `https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`,
+          { method: 'POST', body: formData }
+        );
+        const uploadData = await uploadRes.json();
+        if (uploadData.error) throw new Error(uploadData.error.message);
+        return uploadData.secure_url as string;
+      });
 
-      setImageUrl(uploadData.secure_url);
+      const newUrls = await Promise.all(uploadPromises);
+      setImageUrls((prev) => [...prev, ...newUrls]);
     } catch (err: any) {
       setUploadError(err.message || 'Upload failed. Check Cloudinary credentials.');
     } finally {
       setUploading(false);
+      setUploadCount(0);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
+  };
+
+  const handleRemoveImage = (indexToRemove: number) => {
+    setImageUrls((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
+  const handleSetPrimaryImage = (indexToPrimary: number) => {
+    setImageUrls((prev) => {
+      const target = prev[indexToPrimary];
+      const rest = prev.filter((_, idx) => idx !== indexToPrimary);
+      return [target, ...rest];
+    });
   };
 
   const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (imageUrls.length === 0) {
+      alert('Please upload at least one product photo!');
+      return;
+    }
 
     const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     const brandSlug = brand.toLowerCase().replace(/[^a-z0-9]+/g, '-');
@@ -143,7 +172,11 @@ export default function AdminCatalogPage() {
       mrpPaise: mrp * 100,
       sellingPricePaise: sellingPrice * 100,
       discountPercentage: Math.round(((mrp - sellingPrice) / mrp) * 100),
-      images: [{ url: imageUrl, alt: title, order: 0 }],
+      images: imageUrls.map((url, order) => ({
+        url,
+        alt: `${title} - View ${order + 1}`,
+        order,
+      })),
       variants,
       rating: 5.0,
       reviewCount: 1,
@@ -157,7 +190,7 @@ export default function AdminCatalogPage() {
       body: JSON.stringify(newProd),
     });
 
-    setFeedback(`Product "${title}" created with ${variants.length} SKUs & stock allocated!`);
+    setFeedback(`Product "${title}" created with ${imageUrls.length} photos & ${variants.length} SKUs!`);
     setTimeout(() => setFeedback(''), 3500);
     setIsModalOpen(false);
     loadProducts();
@@ -165,7 +198,7 @@ export default function AdminCatalogPage() {
     // Reset
     setTitle('');
     setDescription('');
-    setImageUrl('');
+    setImageUrls([]);
     setUploadError('');
     setSkuPrefix('');
   };
@@ -190,7 +223,7 @@ export default function AdminCatalogPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-headline font-black text-2xl sm:text-3xl text-text-primary">Product Catalog &amp; Variants</h1>
-          <p className="text-xs text-text-muted mt-0.5">Manage products, automated SKU matrix per size &amp; pricing</p>
+          <p className="text-xs text-text-muted mt-0.5">Manage products, multi-photo lookbooks, automated SKU matrix per size &amp; pricing</p>
         </div>
         <Button onClick={() => setIsModalOpen(true)} size="sm">
           <Plus className="w-4 h-4" />
@@ -229,7 +262,12 @@ export default function AdminCatalogPage() {
                   <td className="p-4">
                     <div className="flex items-center gap-3">
                       <div className="relative w-10 h-12 rounded-lg overflow-hidden bg-surface-raised flex-shrink-0">
-                        <Image src={p.images[0]?.url} alt={p.title} fill className="object-cover" />
+                        <Image src={p.images[0]?.url || 'https://res.cloudinary.com/ha2fbiwt/image/upload/v1/muvera/products/placeholder'} alt={p.title} fill className="object-cover" />
+                        {p.images && p.images.length > 1 && (
+                          <span className="absolute bottom-0 right-0 bg-black/80 text-[9px] font-bold px-1 rounded-tl text-white">
+                            {p.images.length}
+                          </span>
+                        )}
                       </div>
                       <div>
                         <p className="font-headline font-bold text-text-primary text-xs">{p.title}</p>
@@ -269,7 +307,7 @@ export default function AdminCatalogPage() {
       {/* Add Product Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-surface-card border border-surface-border rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-surface-card border border-surface-border rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
             <div className="flex justify-between items-center pb-2 border-b border-surface-border">
               <h3 className="font-headline font-bold text-base text-text-primary">Add New Fashion Product</h3>
               <button onClick={() => setIsModalOpen(false)} className="p-1 rounded-full text-text-muted hover:text-text-primary hover:bg-surface-raised transition-colors text-sm">✕</button>
@@ -325,41 +363,118 @@ export default function AdminCatalogPage() {
                   className="w-full bg-surface-raised border border-surface-border rounded-xl p-2.5 text-text-primary" />
               </div>
 
-              {/* Cloudinary Image Upload */}
-              <div>
-                <label className="font-bold text-text-muted mb-2 block">Product Image *</label>
+              {/* Multi-Photo Cloudinary Upload Section */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-text-muted flex items-center gap-1.5">
+                    <Images className="w-3.5 h-3.5 text-primary" />
+                    <span>Product Photos (Upload Multiple) *</span>
+                  </label>
+                  <span className="text-[10px] text-text-muted">
+                    {imageUrls.length} {imageUrls.length === 1 ? 'photo' : 'photos'} added
+                  </span>
+                </div>
 
-                {imageUrl ? (
-                  <div className="relative w-full h-44 rounded-xl overflow-hidden bg-surface-raised border border-surface-border mb-2">
-                    <Image src={imageUrl} alt="Preview" fill className="object-cover" />
-                    <button type="button" onClick={() => setImageUrl('')}
-                      className="absolute top-2 right-2 bg-black/70 text-white rounded-full p-1 hover:bg-black/90">
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                    <span className="absolute bottom-2 left-2 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                      ✓ Uploaded to Cloudinary
-                    </span>
+                {/* Uploaded Photos Grid */}
+                {imageUrls.length > 0 && (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 p-3 rounded-2xl bg-surface-raised border border-surface-border">
+                    {imageUrls.map((url, idx) => (
+                      <div
+                        key={url}
+                        className={`relative aspect-[3/4] rounded-xl overflow-hidden bg-surface-card border-2 group transition-all ${
+                          idx === 0 ? 'border-primary shadow-gold-glow' : 'border-surface-border'
+                        }`}
+                      >
+                        <Image src={url} alt={`Upload ${idx + 1}`} fill className="object-cover" />
+
+                        {/* Primary Badge */}
+                        <div className="absolute top-1.5 left-1.5 z-10">
+                          {idx === 0 ? (
+                            <span className="bg-primary text-surface-base text-[9px] font-black uppercase px-1.5 py-0.5 rounded shadow">
+                              Cover
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleSetPrimaryImage(idx)}
+                              title="Set as Main Cover Photo"
+                              className="bg-black/70 hover:bg-primary hover:text-surface-base text-white text-[9px] font-bold px-1.5 py-0.5 rounded backdrop-blur-sm transition-colors opacity-80 group-hover:opacity-100 flex items-center gap-0.5"
+                            >
+                              <Star className="w-2.5 h-2.5 fill-current" /> Set Cover
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Delete Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(idx)}
+                          title="Remove photo"
+                          className="absolute top-1.5 right-1.5 z-10 bg-red-600/80 hover:bg-red-600 text-white rounded-full p-1 transition-all opacity-80 group-hover:opacity-100"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+
+                        <div className="absolute bottom-1 right-1.5 text-[9px] font-mono text-white/80 bg-black/60 px-1 rounded">
+                          #{idx + 1}
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Add More Photos compact button */}
+                    <div
+                      onClick={() => !uploading && fileInputRef.current?.click()}
+                      className="aspect-[3/4] rounded-xl border-2 border-dashed border-surface-border hover:border-primary bg-surface-card hover:bg-surface-raised flex flex-col items-center justify-center gap-1 cursor-pointer transition-colors text-text-muted p-2 text-center"
+                    >
+                      <Plus className="w-5 h-5 text-primary" />
+                      <span className="text-[10px] font-bold">Add More</span>
+                    </div>
                   </div>
-                ) : (
-                  <div onClick={() => !uploading && fileInputRef.current?.click()}
-                    className={`w-full h-32 rounded-xl border-2 border-dashed border-surface-border bg-surface-raised hover:border-primary transition-colors flex flex-col items-center justify-center gap-2 text-text-muted ${uploading ? 'cursor-wait' : 'cursor-pointer hover:bg-surface-raised/80'}`}>
+                )}
+
+                {/* Initial Empty Upload Dropzone */}
+                {imageUrls.length === 0 && (
+                  <div
+                    onClick={() => !uploading && fileInputRef.current?.click()}
+                    className={`w-full h-36 rounded-2xl border-2 border-dashed border-surface-border bg-surface-raised hover:border-primary transition-all flex flex-col items-center justify-center gap-2 text-text-muted p-4 text-center ${
+                      uploading ? 'cursor-wait' : 'cursor-pointer hover:bg-surface-raised/80'
+                    }`}
+                  >
                     {uploading ? (
                       <>
-                        <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                        <span className="text-[11px] font-semibold">Uploading to Cloudinary...</span>
+                        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                        <span className="text-xs font-semibold text-text-primary">
+                          Uploading {uploadCount} {uploadCount === 1 ? 'photo' : 'photos'} to Cloudinary...
+                        </span>
                       </>
                     ) : (
                       <>
-                        <Upload className="w-6 h-6" />
-                        <span className="text-[11px] font-semibold">Click to upload product photo</span>
-                        <span className="text-[10px]">JPG, PNG, WEBP · Max 10MB</span>
+                        <Upload className="w-6 h-6 text-primary" />
+                        <div>
+                          <p className="text-xs font-bold text-text-primary">Click to select product photos</p>
+                          <p className="text-[11px] text-text-muted mt-0.5">Select multiple photos at once (Front, Back, Detail, Flat Lay)</p>
+                        </div>
+                        <span className="text-[10px] font-mono text-text-muted bg-surface-card px-2 py-0.5 rounded border border-surface-border">
+                          JPG, PNG, WEBP · Max 10MB per image
+                        </span>
                       </>
                     )}
                   </div>
                 )}
 
-                <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); }} />
+                {/* Hidden multiple file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      handleImagesUpload(e.target.files);
+                    }
+                  }}
+                />
 
                 {uploadError && (
                   <p className="text-red-400 text-[11px] mt-1.5 flex items-center gap-1">
@@ -454,8 +569,8 @@ export default function AdminCatalogPage() {
 
               <div className="flex gap-2 pt-2">
                 <Button type="button" onClick={() => setIsModalOpen(false)} variant="outline" size="sm" fullWidth>Cancel</Button>
-                <Button type="submit" size="sm" fullWidth disabled={uploading || !imageUrl}>
-                  {uploading ? 'Uploading...' : 'Save Product & SKUs'}
+                <Button type="submit" size="sm" fullWidth disabled={uploading || imageUrls.length === 0}>
+                  {uploading ? `Uploading ${uploadCount} Photos...` : 'Save Product & SKUs'}
                 </Button>
               </div>
             </form>
