@@ -360,8 +360,9 @@ export const db = {
     const cleanEmail = email.toLowerCase().trim();
     const isConnected = await connectToMongo();
     if (isConnected) {
+      // Atlas is source of truth — don't fall back to in-memory when connected
       const doc = await UserModel.findOne({ email: cleanEmail }).lean();
-      if (doc) return { ...(doc as any), id: (doc as any)._id.toString() };
+      return doc ? { ...(doc as any), id: (doc as any)._id.toString() } : undefined;
     }
     return global._muveraDb!.users.find((u) => u.email.toLowerCase() === cleanEmail);
   },
@@ -370,17 +371,21 @@ export const db = {
     const cleanPhone = phone.replace(/\D/g, '');
     const isConnected = await connectToMongo();
     if (isConnected) {
+      // Atlas is source of truth — don't fall back to in-memory when connected
       const doc = await UserModel.findOne({ phone: cleanPhone }).lean();
-      if (doc) return { ...(doc as any), id: (doc as any)._id.toString() };
+      return doc ? { ...(doc as any), id: (doc as any)._id.toString() } : undefined;
     }
     return global._muveraDb!.users.find((u) => u.phone.replace(/\D/g, '') === cleanPhone);
   },
 
   async getUserById(id: string): Promise<UserRecord | undefined> {
     const isConnected = await connectToMongo();
-    if (isConnected && mongoose.isValidObjectId(id)) {
-      const doc = await UserModel.findById(id).lean();
-      if (doc) return { ...(doc as any), id: (doc as any)._id.toString() };
+    if (isConnected) {
+      if (mongoose.isValidObjectId(id)) {
+        const doc = await UserModel.findById(id).lean();
+        return doc ? { ...(doc as any), id: (doc as any)._id.toString() } : undefined;
+      }
+      return undefined; // Atlas is connected but id is not a valid ObjectId
     }
     return global._muveraDb!.users.find((u) => u.id === id);
   },
