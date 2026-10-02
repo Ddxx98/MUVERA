@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { initialProducts } from '@/lib/seed-data';
+import { Product } from '@/lib/types';
 import { ProductCard } from '@/components/store/ProductCard';
 import { siteConfig } from '@/config/site';
 import { SlidersHorizontal, ArrowUpDown, X, Zap } from 'lucide-react';
@@ -13,6 +13,9 @@ function ProductsContent() {
   const initialCategory = searchParams.get('category') || 'all';
   const initialBrand = searchParams.get('brand') || 'all';
 
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [selectedBrand, setSelectedBrand] = useState(initialBrand);
   const [selectedSize, setSelectedSize] = useState<string>('all');
@@ -21,13 +24,23 @@ function ProductsContent() {
   const [maxPrice, setMaxPrice] = useState<number>(10000);
 
   useEffect(() => {
+    fetch('/api/products')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.products) setProducts(d.products);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
     if (searchParams.get('category')) setSelectedCategory(searchParams.get('category')!);
     if (searchParams.get('brand')) setSelectedBrand(searchParams.get('brand')!);
   }, [searchParams]);
 
   // Filter & Sort Logic
   const filteredProducts = useMemo(() => {
-    return initialProducts
+    return products
       .filter((product) => {
         // Category
         if (selectedCategory !== 'all' && product.categorySlug !== selectedCategory) {
@@ -275,7 +288,12 @@ function ProductsContent() {
       )}
 
       {/* Product Grid */}
-      {filteredProducts.length === 0 ? (
+      {loading ? (
+        <div className="py-24 text-center space-y-3">
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-xs text-text-muted">Loading live drops from database...</p>
+        </div>
+      ) : filteredProducts.length === 0 ? (
         <div className="p-12 text-center bg-surface-card rounded-2xl border border-surface-border space-y-4">
           <p className="text-base text-white font-headline font-bold">No drops found matching these filters</p>
           <p className="text-xs text-text-muted max-w-sm mx-auto">

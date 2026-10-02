@@ -1,12 +1,23 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { initialProducts } from '@/lib/seed-data';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Product } from '@/lib/types';
 import { ProductCard } from '@/components/store/ProductCard';
 import { Search, X, Sparkles, TrendingUp, History } from 'lucide-react';
 
 export default function SearchPage() {
   const [query, setQuery] = useState('');
+  const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    fetch('/api/products')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.products) setProducts(d.products);
+      })
+      .catch(() => {});
+  }, []);
+
   const [recentSearches, setRecentSearches] = useState<string[]>([
     'Oversized T-Shirts',
     'Satin Bomber',
@@ -26,14 +37,14 @@ export default function SearchPage() {
   const results = useMemo(() => {
     if (!query.trim()) return [];
     const q = query.toLowerCase();
-    return initialProducts.filter(
+    return products.filter(
       (p) =>
         p.title.toLowerCase().includes(q) ||
         p.brand.toLowerCase().includes(q) ||
         p.category.toLowerCase().includes(q) ||
         p.tags.some((t) => t.toLowerCase().includes(q))
     );
-  }, [query]);
+  }, [query, products]);
 
   const handleTagClick = (tag: string) => {
     setQuery(tag);

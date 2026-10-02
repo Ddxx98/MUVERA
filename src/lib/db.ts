@@ -152,9 +152,7 @@ export const db = {
     const isConnected = await connectToMongo();
     if (isConnected) {
       const docs = await ProductModel.find().lean();
-      if (docs.length > 0) {
-        return docs.map((d: any) => ({ ...d, id: d._id.toString() }));
-      }
+      return docs.map((d: any) => ({ ...d, id: d._id.toString() }));
     }
     return global._muveraDb!.products;
   },
@@ -163,16 +161,19 @@ export const db = {
     const isConnected = await connectToMongo();
     if (isConnected) {
       const doc = await ProductModel.findOne({ slug }).lean();
-      if (doc) return { ...(doc as any), id: (doc as any)._id.toString() };
+      return doc ? { ...(doc as any), id: (doc as any)._id.toString() } : undefined;
     }
     return global._muveraDb!.products.find((p) => p.slug === slug);
   },
 
   async getProductById(id: string): Promise<Product | undefined> {
     const isConnected = await connectToMongo();
-    if (isConnected && mongoose.isValidObjectId(id)) {
-      const doc = await ProductModel.findById(id).lean();
-      if (doc) return { ...(doc as any), id: (doc as any)._id.toString() };
+    if (isConnected) {
+      if (mongoose.isValidObjectId(id)) {
+        const doc = await ProductModel.findById(id).lean();
+        return doc ? { ...(doc as any), id: (doc as any)._id.toString() } : undefined;
+      }
+      return undefined;
     }
     return global._muveraDb!.products.find((p) => p.id === id);
   },
@@ -197,7 +198,7 @@ export const db = {
     const isConnected = await connectToMongo();
     if (isConnected) {
       const docs = await InventoryModel.find().lean();
-      if (docs.length > 0) return docs as any;
+      return docs as any;
     }
     return global._muveraDb!.inventory;
   },
@@ -206,7 +207,7 @@ export const db = {
     const isConnected = await connectToMongo();
     if (isConnected) {
       const doc = await InventoryModel.findOne({ variantId, locationId }).lean();
-      if (doc) return doc as any;
+      return doc ? (doc as any) : undefined;
     }
     return global._muveraDb!.inventory.find(
       (item) => item.variantId === variantId && item.locationId === locationId
@@ -247,7 +248,7 @@ export const db = {
     const isConnected = await connectToMongo();
     if (isConnected) {
       const docs = await StockMovementModel.find().sort({ createdAt: -1 }).limit(50).lean();
-      if (docs.length > 0) return docs as any;
+      return docs as any;
     }
     return global._muveraDb!.stockMovements;
   },
@@ -257,9 +258,7 @@ export const db = {
     const isConnected = await connectToMongo();
     if (isConnected) {
       const docs = await OrderModel.find().sort({ createdAt: -1 }).lean();
-      if (docs.length > 0) {
-        return docs.map((d: any) => ({ ...d, id: d._id.toString() }));
-      }
+      return docs.map((d: any) => ({ ...d, id: d._id.toString() }));
     }
     return global._muveraDb!.orders;
   },
