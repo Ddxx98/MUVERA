@@ -388,10 +388,12 @@ export const db = {
   async saveUser(user: UserRecord): Promise<UserRecord> {
     const isConnected = await connectToMongo();
     if (isConnected) {
+      // Use $set to avoid Mongoose trying to write the custom `id` string field as `_id`
+      const { id: _ignored, ...mongoFields } = user;
       const savedDoc = await UserModel.findOneAndUpdate(
         { email: user.email.toLowerCase() },
-        user,
-        { upsert: true, new: true }
+        { $set: mongoFields },
+        { upsert: true, returnDocument: 'after' }
       );
       if (savedDoc) {
         user.id = savedDoc._id.toString();
