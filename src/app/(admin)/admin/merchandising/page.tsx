@@ -193,22 +193,32 @@ export default function AdminMerchandisingPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-border">
-                {coupons.map((c) => (
-                  <tr key={c.code} className="hover:bg-surface-raised/40 transition-colors">
-                    <td className="p-4 font-mono font-black text-sm text-primary">{c.code}</td>
-                    <td className="p-4 text-text-surface capitalize">{c.discountType}</td>
-                    <td className="p-4 font-bold text-text-primary">
-                      {c.discountType === 'percentage' ? `${c.value}% OFF` : `${formatPaise(c.value)} OFF`}
-                    </td>
-                    <td className="p-4 text-text-muted font-mono">{formatPaise(c.minOrderValuePaise)}</td>
-                    <td className="p-4 font-mono font-bold text-text-primary">{c.usageCount} orders</td>
-                    <td className="p-4">
-                      <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                        Active
-                      </span>
+                {coupons.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="p-12 text-center text-text-muted">
+                      <Tag className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                      <p className="font-bold text-text-primary">No coupons created yet</p>
+                      <p className="text-xs">Click "Create Coupon" above to launch a new discount code for your shoppers.</p>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  coupons.map((c) => (
+                    <tr key={c.code} className="hover:bg-surface-raised/40 transition-colors">
+                      <td className="p-4 font-mono font-black text-sm text-primary">{c.code}</td>
+                      <td className="p-4 text-text-surface capitalize">{c.discountType}</td>
+                      <td className="p-4 font-bold text-text-primary">
+                        {c.discountType === 'percentage' ? `${c.value}% OFF` : `${formatPaise(c.value)} OFF`}
+                      </td>
+                      <td className="p-4 text-text-muted font-mono">{formatPaise(c.minOrderValuePaise)}</td>
+                      <td className="p-4 font-mono font-bold text-text-primary">{c.usageCount} orders</td>
+                      <td className="p-4">
+                        <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                          Active
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

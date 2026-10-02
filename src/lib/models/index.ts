@@ -5,3 +5,4 @@ export * from './Coupon';
 export * from './User';
 export * from './SiteSettings';
 export * from './AuthToken';
+export * from './Return';

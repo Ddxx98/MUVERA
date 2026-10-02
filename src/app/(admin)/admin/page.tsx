@@ -11,13 +11,17 @@ import {
   ArrowRight,
   MessageCircle,
   Zap,
+  Users,
 } from 'lucide-react';
 import { generateAdminCustomerChatUrl } from '@/lib/whatsapp';
 
 export default async function AdminDashboardPage() {
-  const orders = await db.getOrders();
-  const inventory = await db.getInventory();
-  const products = await db.getProducts();
+  const [orders, inventory, products, users] = await Promise.all([
+    db.getOrders(),
+    db.getInventory(),
+    db.getProducts(),
+    db.getUsers(),
+  ]);
 
   // Metrics
   const totalGmvPaise = orders.reduce((sum, o) => sum + o.totalPaise, 0);
@@ -25,6 +29,7 @@ export default async function AdminDashboardPage() {
   const aovPaise = totalOrders > 0 ? Math.round(totalGmvPaise / totalOrders) : 0;
   const lowStockItems = inventory.filter((i) => i.available <= i.lowStockThreshold);
   const pendingWhatsAppOrders = orders.filter((o) => o.paymentStatus === 'pending_whatsapp');
+  const totalCustomers = users.filter((u) => u.role !== 'admin').length || users.length;
 
   return (
     <div className="space-y-8">
@@ -49,33 +54,33 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* GMV */}
         <div className="p-5 rounded-2xl bg-surface-card border border-surface-border space-y-2 shadow-lg">
           <div className="flex justify-between items-center text-text-muted">
-            <span className="text-xs font-bold uppercase tracking-wider">Gross Merchandise Value</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider">Gross Merchandise Value</span>
             <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center text-primary">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
             <span className="font-headline font-black text-2xl text-text-primary font-mono">{formatPaise(totalGmvPaise)}</span>
-            <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">+18.4%</span>
+            <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">Live</span>
           </div>
-          <p className="text-[11px] text-text-muted">Total sales across dark stores this month</p>
+          <p className="text-[11px] text-text-muted">Total sales across dark stores</p>
         </div>
 
         {/* Total Orders */}
         <div className="p-5 rounded-2xl bg-surface-card border border-surface-border space-y-2 shadow-lg">
           <div className="flex justify-between items-center text-text-muted">
-            <span className="text-xs font-bold uppercase tracking-wider">Total Orders</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider">Total Orders</span>
             <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center text-primary">
               <ShoppingBag className="w-4 h-4" />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
             <span className="font-headline font-black text-2xl text-text-primary font-mono">{totalOrders}</span>
-            <span className="text-xs font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">60-Min SLA 99.2%</span>
+            <span className="text-xs font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">60-Min SLA</span>
           </div>
           <p className="text-[11px] text-text-muted">Avg fulfillment speed: 28 mins</p>
         </div>
@@ -83,22 +88,37 @@ export default async function AdminDashboardPage() {
         {/* Average Order Value (AOV) */}
         <div className="p-5 rounded-2xl bg-surface-card border border-surface-border space-y-2 shadow-lg">
           <div className="flex justify-between items-center text-text-muted">
-            <span className="text-xs font-bold uppercase tracking-wider">Average Order Value (AOV)</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider">Average Order Value</span>
             <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center text-primary">
               <Zap className="w-4 h-4" />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
             <span className="font-headline font-black text-2xl text-text-primary font-mono">{formatPaise(aovPaise)}</span>
-            <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">+₹340</span>
+            <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">AOV</span>
           </div>
-          <p className="text-[11px] text-text-muted">Driven by multi-item streetwear bundles</p>
+          <p className="text-[11px] text-text-muted">Multi-item luxury carts</p>
         </div>
+
+        {/* Registered Customers */}
+        <Link href="/admin/customers" className="p-5 rounded-2xl bg-surface-card border border-surface-border space-y-2 shadow-lg hover:border-primary/50 transition-all block">
+          <div className="flex justify-between items-center text-text-muted">
+            <span className="text-[11px] font-bold uppercase tracking-wider">Registered Users</span>
+            <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center text-primary">
+              <Users className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="font-headline font-black text-2xl text-text-primary font-mono">{totalCustomers}</span>
+            <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">Atlas DB</span>
+          </div>
+          <p className="text-[11px] text-text-muted">Active accounts in MongoDB</p>
+        </Link>
 
         {/* Low Stock Alerts */}
         <div className="p-5 rounded-2xl bg-surface-card border border-surface-border space-y-2 shadow-lg">
           <div className="flex justify-between items-center text-text-muted">
-            <span className="text-xs font-bold uppercase tracking-wider">Critical Stock Alerts</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider">Stock Alerts</span>
             <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
               <AlertTriangle className="w-4 h-4" />
             </div>
@@ -107,9 +127,10 @@ export default async function AdminDashboardPage() {
             <span className="font-headline font-black text-2xl text-amber-400 font-mono">{lowStockItems.length}</span>
             <span className="text-xs font-bold text-amber-300 bg-amber-500/20 px-1.5 py-0.5 rounded">SKUs</span>
           </div>
-          <p className="text-[11px] text-text-muted">Below safe threshold (under 3 units)</p>
+          <p className="text-[11px] text-text-muted">Below safe threshold (3 units)</p>
         </div>
       </div>
+
 
       {/* Two Columns: Low Stock Table & Pending WhatsApp Orders */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

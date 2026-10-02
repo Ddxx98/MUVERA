@@ -6,7 +6,24 @@ import Image from 'next/image';
 import { Product, Variant, SizeOption } from '@/lib/types';
 import { formatPaise } from '@/lib/money';
 import { siteConfig } from '@/config/site';
-import { Plus, CheckCircle, Upload, X, Star, Layers, Boxes, Images } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import {
+  Plus,
+  CheckCircle,
+  Upload,
+  X,
+  Star,
+  Layers,
+  Boxes,
+  Images,
+  FileSpreadsheet,
+  Download,
+  Copy,
+  Check,
+  AlertCircle,
+  RefreshCw,
+  Eye,
+} from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 export default function AdminCatalogPage() {
@@ -14,6 +31,18 @@ export default function AdminCatalogPage() {
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [feedback, setFeedback] = useState('');
+
+  // Bulk Import State
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [bulkRows, setBulkRows] = useState<any[]>([]);
+  const [bulkFileName, setBulkFileName] = useState('');
+  const [bulkImporting, setBulkImporting] = useState(false);
+  const [bulkResult, setBulkResult] = useState<{ total: number; successCount: number; failureCount: number; results: any[] } | null>(null);
+  const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+  const bulkFileInputRef = useRef<HTMLInputElement>(null);
+  const bulkHelperPhotosRef = useRef<HTMLInputElement>(null);
+  const [bulkHelperPhotos, setBulkHelperPhotos] = useState<string[]>([]);
+  const [uploadingBulkHelper, setUploadingBulkHelper] = useState(false);
 
   // Form State
   const [title, setTitle] = useState('');
@@ -127,6 +156,159 @@ export default function AdminCatalogPage() {
     });
   };
 
+  const downloadSampleTemplate = () => {
+    const sampleData = [
+      {
+        title: 'Midnight Heavy French Terry Acid Wash Tee',
+        category: 'T-Shirts',
+        price: 2499,
+        mrp: 4999,
+        description: '450 GSM pure combed cotton, boxy dropped shoulder silhouette, distressed neck ribbing.',
+        sku_prefix: 'ACID-TEE',
+        stock_s: 10,
+        stock_m: 15,
+        stock_l: 20,
+        stock_xl: 10,
+        stock_xxl: 5,
+        image_urls: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=1200, https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=1200',
+        is_drop: true,
+        fabric: '100% Super Combed French Terry Cotton (450 GSM)',
+      },
+      {
+        title: 'Stealth Matte Nylon Technical Cargos',
+        category: 'Pants',
+        price: 3999,
+        mrp: 6999,
+        description: 'Water-repellent Japanese matte nylon streetwear cargos with magnetic buckle utility pockets.',
+        sku_prefix: 'TECH-CARGO',
+        stock_s: 8,
+        stock_m: 12,
+        stock_l: 12,
+        stock_xl: 6,
+        stock_xxl: 0,
+        image_urls: 'https://images.unsplash.com/photo-1517445312882-bc9910d016b7?w=1200',
+        is_drop: false,
+        fabric: 'Technical Matte Nylon & Ripstop Cordura',
+      },
+    ];
+
+    const worksheet = XLSX.utils.json_to_sheet(sampleData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Products');
+
+    worksheet['!cols'] = [
+      { wch: 40 },
+      { wch: 15 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 45 },
+      { wch: 15 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 60 },
+      { wch: 10 },
+      { wch: 35 },
+    ];
+
+    XLSX.writeFile(workbook, 'muvera_bulk_products_template.xlsx');
+  };
+
+  const handleBulkFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setBulkFileName(file.name);
+    setBulkResult(null);
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws);
+        setBulkRows(data);
+      } catch (err: any) {
+        setUploadError('Failed to parse spreadsheet. Ensure it is a valid .xlsx or .csv file.');
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const handleBulkImportSubmit = async () => {
+    if (bulkRows.length === 0) return;
+
+    setBulkImporting(true);
+    setBulkResult(null);
+
+    try {
+      const res = await fetch('/api/admin/products/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ products: bulkRows }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Bulk import failed');
+
+      setBulkResult(data);
+      setFeedback(`Imported ${data.successCount} of ${data.total} products with SKUs and inventory!`);
+      setTimeout(() => setFeedback(''), 5000);
+      loadProducts();
+    } catch (err: any) {
+      alert(err.message || 'Bulk import failed');
+    } finally {
+      setBulkImporting(false);
+    }
+  };
+
+  const handleBulkHelperPhotosUpload = async (files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    if (fileArray.length === 0) return;
+
+    setUploadingBulkHelper(true);
+    try {
+      const sigRes = await fetch('/api/admin/uploads/sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          folder: 'muvera/products',
+          adminSecret: 'muvera_admin_master_secret_2026',
+        }),
+      });
+      const sig = await sigRes.json();
+      if (!sig.success) throw new Error(sig.error || 'Signature generation failed');
+
+      const promises = fileArray.map(async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('api_key', sig.apiKey);
+        formData.append('timestamp', String(sig.timestamp));
+        formData.append('signature', sig.signature);
+        formData.append('folder', sig.folder);
+
+        const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`, {
+          method: 'POST',
+          body: formData,
+        });
+        const uploadData = await uploadRes.json();
+        return uploadData.secure_url as string;
+      });
+
+      const urls = await Promise.all(promises);
+      setBulkHelperPhotos((prev) => [...prev, ...urls]);
+    } catch (err: any) {
+      alert(err.message || 'Image upload failed');
+    } finally {
+      setUploadingBulkHelper(false);
+      if (bulkHelperPhotosRef.current) bulkHelperPhotosRef.current.value = '';
+    }
+  };
+
   const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -225,10 +407,16 @@ export default function AdminCatalogPage() {
           <h1 className="font-headline font-black text-2xl sm:text-3xl text-text-primary">Product Catalog &amp; Variants</h1>
           <p className="text-xs text-text-muted mt-0.5">Manage products, multi-photo lookbooks, automated SKU matrix per size &amp; pricing</p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)} size="sm">
-          <Plus className="w-4 h-4" />
-          <span>Add New Product</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setIsBulkModalOpen(true)} variant="outline" size="sm" className="border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10">
+            <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+            <span>Import Excel / CSV</span>
+          </Button>
+          <Button onClick={() => setIsModalOpen(true)} size="sm">
+            <Plus className="w-4 h-4" />
+            <span>Add New Product</span>
+          </Button>
+        </div>
       </div>
 
       {/* Search */}
@@ -574,6 +762,277 @@ export default function AdminCatalogPage() {
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Import Modal */}
+      {isBulkModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in overflow-y-auto">
+          <div className="bg-surface-card border border-surface-border rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden my-auto">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-surface-border flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase tracking-wider">
+                  <FileSpreadsheet className="w-4 h-4" />
+                  <span>Bulk Catalog Ingestion</span>
+                </div>
+                <h2 className="font-headline font-black text-xl text-text-primary mt-1">
+                  Import Products via Excel / CSV
+                </h2>
+                <p className="text-xs text-text-muted">
+                  Batch upload catalog items with per-size stock counts (`S`, `M`, `L`, `XL`, `XXL`) and multi-photo lookbooks
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsBulkModalOpen(false);
+                  setBulkRows([]);
+                  setBulkFileName('');
+                  setBulkResult(null);
+                }}
+                className="w-8 h-8 rounded-full bg-surface-raised border border-surface-border flex items-center justify-center text-text-muted hover:text-text-primary transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6 overflow-y-auto flex-1 text-xs">
+              {/* Step 1: Download Template & Instructions */}
+              <div className="p-4 rounded-xl bg-surface-raised border border-surface-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <p className="font-bold text-text-primary text-sm">Need the spreadsheet template?</p>
+                  <p className="text-text-muted mt-0.5">
+                    Download our pre-formatted template with sample products, size columns, and image formats.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={downloadSampleTemplate}
+                  className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-md flex-shrink-0"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download Sample (.xlsx)</span>
+                </button>
+              </div>
+
+              {/* Step 2: Cloudinary Multi-Photo Helper (Answers user: "with count images what we can do?") */}
+              <div className="p-4 rounded-xl bg-surface-raised/60 border border-surface-border space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <div className="flex items-center gap-1.5 text-primary font-bold">
+                      <Images className="w-4 h-4" />
+                      <span>Batch Image Uploader Helper</span>
+                    </div>
+                    <p className="text-text-muted text-[11px] mt-0.5">
+                      Upload multiple product photos directly to Cloudinary here, then copy their URLs to paste into your Excel file.
+                    </p>
+                  </div>
+                  <div>
+                    <input
+                      type="file"
+                      ref={bulkHelperPhotosRef}
+                      multiple
+                      accept="image/*"
+                      onChange={(e) => e.target.files && handleBulkHelperPhotosUpload(e.target.files)}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={uploadingBulkHelper}
+                      onClick={() => bulkHelperPhotosRef.current?.click()}
+                    >
+                      <Upload className="w-3.5 h-3.5 mr-1" />
+                      <span>{uploadingBulkHelper ? 'Uploading to Cloudinary...' : 'Upload Photos'}</span>
+                    </Button>
+                  </div>
+                </div>
+
+                {bulkHelperPhotos.length > 0 && (
+                  <div className="p-3 bg-surface-card rounded-xl border border-surface-border space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-text-primary text-[11px]">
+                        Uploaded Cloudinary Assets ({bulkHelperPhotos.length}):
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(bulkHelperPhotos.join(', '));
+                          setCopiedUrl('all');
+                          setTimeout(() => setCopiedUrl(null), 2000);
+                        }}
+                        className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1"
+                      >
+                        {copiedUrl === 'all' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span>{copiedUrl === 'all' ? 'Copied All URLs!' : 'Copy All URLs (comma-separated)'}</span>
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-36 overflow-y-auto p-1">
+                      {bulkHelperPhotos.map((url, idx) => (
+                        <div key={idx} className="relative group rounded-lg overflow-hidden border border-surface-border bg-black/40 p-1 flex items-center justify-between">
+                          <img src={url} alt={`Upload ${idx + 1}`} className="w-8 h-8 rounded object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(url);
+                              setCopiedUrl(url);
+                              setTimeout(() => setCopiedUrl(null), 2000);
+                            }}
+                            className="text-[10px] font-mono px-2 py-1 rounded bg-surface-raised hover:bg-surface-border text-text-muted hover:text-text-primary flex items-center gap-1"
+                          >
+                            {copiedUrl === url ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                            <span>{copiedUrl === url ? 'Copied' : 'Copy'}</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Step 3: File Drop / Selection */}
+              <div>
+                <label className="font-bold text-text-muted uppercase tracking-wider block mb-2">
+                  Select Excel or CSV File
+                </label>
+                <input
+                  type="file"
+                  ref={bulkFileInputRef}
+                  accept=".xlsx, .xls, .csv"
+                  onChange={handleBulkFileSelect}
+                  className="hidden"
+                />
+
+                <div
+                  onClick={() => bulkFileInputRef.current?.click()}
+                  className="border-2 border-dashed border-surface-border hover:border-primary/50 rounded-2xl p-8 text-center cursor-pointer transition-all bg-surface-raised/40 hover:bg-surface-raised space-y-2"
+                >
+                  <FileSpreadsheet className="w-10 h-10 text-emerald-400 mx-auto opacity-75" />
+                  <div>
+                    <p className="font-bold text-text-primary text-sm">
+                      {bulkFileName ? `Selected: ${bulkFileName}` : 'Click to browse or drop .xlsx / .csv spreadsheet'}
+                    </p>
+                    <p className="text-text-muted text-[11px] mt-0.5">
+                      Supports Excel 2007+ (.xlsx), older Excel (.xls), and standard CSV formats
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 4: Parsed Data Preview Table */}
+              {bulkRows.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-text-primary">
+                      Parsed Products ({bulkRows.length} items ready for import):
+                    </span>
+                    <span className="text-[11px] text-text-muted">
+                      Brand automatically set to <strong>MUVERA</strong>
+                    </span>
+                  </div>
+
+                  <div className="rounded-xl border border-surface-border overflow-hidden max-h-56 overflow-y-auto bg-surface-base">
+                    <table className="w-full text-[11px] text-left">
+                      <thead>
+                        <tr className="bg-surface-raised text-text-muted border-b border-surface-border font-bold">
+                          <th className="p-2.5">Title</th>
+                          <th className="p-2.5">Category</th>
+                          <th className="p-2.5">Price</th>
+                          <th className="p-2.5">SKU Prefix</th>
+                          <th className="p-2.5 text-center">Stock S/M/L/XL/XXL</th>
+                          <th className="p-2.5">Images</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-surface-border">
+                        {bulkRows.map((row, idx) => {
+                          const title = row.title || row.Title || 'Untitled';
+                          const cat = row.category || row.Category || 'Streetwear';
+                          const price = row.price || row.Price || 0;
+                          const skuPfx = (row.sku_prefix || row.SKUPrefix || title.slice(0, 3)).toUpperCase();
+                          const s = row.stock_s ?? row.Stock_S ?? 10;
+                          const m = row.stock_m ?? row.Stock_M ?? 15;
+                          const l = row.stock_l ?? row.Stock_L ?? 20;
+                          const xl = row.stock_xl ?? row.Stock_XL ?? 10;
+                          const xxl = row.stock_xxl ?? row.Stock_XXL ?? 5;
+                          const totalStock = Number(s) + Number(m) + Number(l) + Number(xl) + Number(xxl);
+
+                          return (
+                            <tr key={idx} className="hover:bg-surface-card/60">
+                              <td className="p-2.5 font-bold text-text-primary">{title}</td>
+                              <td className="p-2.5 text-text-muted">{cat}</td>
+                              <td className="p-2.5 font-mono text-primary font-bold">₹{price}</td>
+                              <td className="p-2.5 font-mono text-text-muted">{skuPfx}</td>
+                              <td className="p-2.5 text-center font-mono">
+                                <span className="text-text-primary font-bold">{totalStock} units</span>
+                                <span className="text-[9px] text-text-muted ml-1">({s}/{m}/{l}/{xl}/{xxl})</span>
+                              </td>
+                              <td className="p-2.5 text-text-muted">
+                                {row.image_urls ? (
+                                  <span className="text-emerald-400 font-bold">Custom Lookbook</span>
+                                ) : (
+                                  <span className="text-amber-400">Default Luxury Fallback</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Result Summary */}
+              {bulkResult && (
+                <div className={`p-4 rounded-xl border space-y-1 ${
+                  bulkResult.failureCount === 0
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                    : 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                }`}>
+                  <p className="font-bold text-sm">
+                    {bulkResult.failureCount === 0 ? '✓ Import Successful' : 'Import Partially Completed'}
+                  </p>
+                  <p className="text-xs text-text-muted">
+                    Successfully imported <strong>{bulkResult.successCount}</strong> of <strong>{bulkResult.total}</strong> products with variant SKUs and live inventory to MongoDB Atlas.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-surface-border bg-surface-raised flex items-center justify-between gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setIsBulkModalOpen(false);
+                  setBulkRows([]);
+                  setBulkFileName('');
+                  setBulkResult(null);
+                }}
+              >
+                Close
+              </Button>
+
+              <Button
+                type="button"
+                size="sm"
+                disabled={bulkRows.length === 0 || bulkImporting}
+                onClick={handleBulkImportSubmit}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+              >
+                {bulkImporting
+                  ? 'Importing into Atlas...'
+                  : `Confirm & Import ${bulkRows.length} Products`}
+              </Button>
+            </div>
           </div>
         </div>
       )}

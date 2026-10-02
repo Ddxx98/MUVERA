@@ -11,7 +11,7 @@ if (typeof window === 'undefined') {
   }
 }
 import { initialProducts, initialInventory, initialOrders, initialCoupons } from './seed-data';
-import { ProductModel, InventoryModel, StockMovementModel, OrderModel, CouponModel, UserModel, SiteSettingsModel, AuthTokenModel } from './models';
+import { ProductModel, InventoryModel, StockMovementModel, OrderModel, CouponModel, UserModel, SiteSettingsModel, AuthTokenModel, ReturnModel } from './models';
 import { env } from '@/config/env';
 import { UserRecord } from '@/modules/auth/types';
 import { SiteSettingsData } from './models/SiteSettings';
@@ -298,8 +298,8 @@ export const db = {
   async getCoupons(): Promise<Coupon[]> {
     const isConnected = await connectToMongo();
     if (isConnected) {
-      const docs = await CouponModel.find({ active: true }).lean();
-      if (docs.length > 0) return docs as any;
+      const docs = await CouponModel.find().sort({ createdAt: -1 }).lean();
+      return docs as any;
     }
     return global._muveraDb!.coupons;
   },
@@ -330,17 +330,57 @@ export const db = {
 
   // Returns
   async getReturns(): Promise<ReturnRequest[]> {
+    const isConnected = await connectToMongo();
+    if (isConnected) {
+      const docs = await ReturnModel.find().sort({ createdAt: -1 }).lean();
+      return docs.map((d: any) => ({ ...d, id: d._id.toString() }));
+    }
     return global._muveraDb!.returns;
   },
 
   async saveReturn(returnReq: ReturnRequest): Promise<ReturnRequest> {
-    const index = global._muveraDb!.returns.findIndex((r) => r.id === returnReq.id);
+    const isConnected = await connectToMongo();
+    if (isConnected) {
+      const savedDoc = await ReturnModel.findOneAndUpdate(
+        { returnNo: returnReq.returnNo },
+        returnReq,
+        { upsert: true, new: true }
+      );
+      if (savedDoc) {
+        returnReq.id = savedDoc._id.toString();
+      }
+    }
+
+    const index = global._muveraDb!.returns.findIndex((r) => r.id === returnReq.id || r.returnNo === returnReq.returnNo);
     if (index >= 0) {
       global._muveraDb!.returns[index] = returnReq;
     } else {
       global._muveraDb!.returns.unshift(returnReq);
     }
     return returnReq;
+  },
+
+  async updateReturnStatus(
+    id: string,
+    status: ReturnRequest['status'],
+    inspectionDecision?: 'restock' | 'damaged_write_off'
+  ): Promise<ReturnRequest | null> {
+    const isConnected = await connectToMongo();
+    if (isConnected) {
+      const query = mongoose.isValidObjectId(id) ? { _id: id } : { returnNo: id };
+      const updateData: any = { status };
+      if (inspectionDecision) {
+        updateData['items.0.inspectionDecision'] = inspectionDecision;
+      }
+      const doc = await ReturnModel.findOneAndUpdate(query, { $set: updateData }, { new: true }).lean();
+      if (doc) return { ...(doc as any), id: (doc as any)._id.toString() };
+    }
+    const target = global._muveraDb!.returns.find((r) => r.id === id || r.returnNo === id);
+    if (target) {
+      target.status = status;
+      return target;
+    }
+    return null;
   },
 
   // Users
