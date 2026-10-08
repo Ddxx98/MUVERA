@@ -31,7 +31,7 @@ export default function SearchPage() {
     'Satin Bomber',
     'Club & Party Fits',
     'Tactical Cargoes',
-    'Indiranagar 60-Min',
+    'Express Delivery Drops',
   ];
 
   const results = useMemo(() => {

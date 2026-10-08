@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <radialGradient id="ogBgGlow" cx="50%" cy="45%" r="60%">
+      <stop offset="0%" stop-color="#1F1D14" />
+      <stop offset="60%" stop-color="#0A0A0B" />
+      <stop offset="100%" stop-color="#040405" />
+    </radialGradient>
+    <linearGradient id="ogGoldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FDE047" />
+      <stop offset="50%" stop-color="#F4CE76" />
+      <stop offset="100%" stop-color="#B38F34" />
+    </linearGradient>
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F4CE76" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#B38F34" stop-opacity="0.05" />
+    </linearGradient>
+    <filter id="ogGoldGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="16" flood-color="#F4CE76" flood-opacity="0.3" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#ogBgGlow)" />
+  <rect x="24" y="24" width="1152" height="582" rx="28" fill="none" stroke="url(#borderGrad)" stroke-width="2" />
+
+  <!-- Top Decorative Pill -->
+  <g transform="translate(460, 80)">
+    <rect width="280" height="34" rx="17" fill="#F4CE76" fill-opacity="0.1" stroke="#F4CE76" stroke-opacity="0.3" stroke-width="1.5" />
+    <text x="140" y="22" fill="#FDE047" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="800" text-anchor="middle" letter-spacing="4">
+      MIDNIGHT BLITZ DROPS
+    </text>
+  </g>
+
+  <!-- Center Logo Lockup (Scaled and centered for 1200x630) -->
+  <g transform="translate(190, 160) scale(0.72)" filter="url(#ogGoldGlow)">
+    <!-- Emblem -->
+    <g transform="translate(-80, 50)" fill="url(#ogGoldGrad)" fill-rule="evenodd">
+      <path d="M 612,65 L 602,65 L 575,69 L 533,81 L 495,97 L 427,134 L 428,135 L 435,132 L 450,129 L 468,130 L 473,136 L 473,143 L 429,222 L 377,306 L 375,305 L 375,272 L 379,257 L 385,246 L 385,232 L 406,231 L 413,218 L 386,216 L 386,188 L 429,187 L 436,173 L 386,172 L 386,141 L 388,132 L 395,120 L 402,113 L 408,110 L 408,107 L 387,41 L 383,24 L 376,4 L 376,0 L 341,109 L 353,118 L 359,128 L 361,135 L 360,277 L 343,257 L 320,221 L 296,179 L 277,142 L 277,136 L 283,130 L 299,129 L 323,134 L 282,110 L 244,91 L 218,80 L 196,73 L 169,67 L 154,65 L 138,65 L 152,67 L 165,71 L 193,84 L 218,102 L 238,122 L 248,135 L 263,159 L 311,244 L 355,304 L 375,334 L 405,289 L 420,273 L 426,269 L 442,265 L 488,265 L 496,262 L 505,254 L 515,233 L 504,242 L 486,248 L 438,248 L 437,246 L 499,140 L 521,112 L 538,97 L 562,82 L 584,72 Z"/>
+    </g>
+    <!-- Text -->
+    <g transform="translate(620, -510) scale(1.7)" fill="url(#ogGoldGrad)" fill-rule="evenodd">
+      <path d="M 0,405 L 0,463 L 7,463 L 7,420 L 8,419 L 10,420 L 12,425 L 16,430 L 21,440 L 30,454 L 35,454 L 42,441 L 51,428 L 54,422 L 56,421 L 57,422 L 57,463 L 64,463 L 64,405 L 57,405 L 45,425 L 38,435 L 37,438 L 33,443 L 32,443 L 27,437 L 8,405 Z"/>
+      <path d="M 156,405 L 155,406 L 155,441 L 156,442 L 156,447 L 159,454 L 165,460 L 176,464 L 186,464 L 187,463 L 190,463 L 195,461 L 199,458 L 203,453 L 206,446 L 206,405 L 200,405 L 200,440 L 199,441 L 198,448 L 192,455 L 183,458 L 174,457 L 170,455 L 165,450 L 162,441 L 162,405 Z"/>
+      <path d="M 294,405 L 318,462 L 319,463 L 327,463 L 331,454 L 331,452 L 338,438 L 340,431 L 344,424 L 344,422 L 352,405 L 345,405 L 341,412 L 341,414 L 337,421 L 337,423 L 334,428 L 334,430 L 330,437 L 326,449 L 323,454 L 321,453 L 320,448 L 314,436 L 311,426 L 307,419 L 307,417 L 305,414 L 302,405 Z"/>
+      <path d="M 441,394 L 447,390 L 452,389 L 453,390 L 456,390 L 466,395 L 472,395 L 478,391 L 480,387 L 480,383 L 474,388 L 466,388 L 460,384 L 454,382 L 451,382 L 444,386 Z"/>
+      <path d="M 441,405 L 440,406 L 441,407 L 441,418 L 440,419 L 440,426 L 441,427 L 441,461 L 440,463 L 482,463 L 482,457 L 449,457 L 447,452 L 448,438 L 449,437 L 478,437 L 478,431 L 449,431 L 448,430 L 448,412 L 449,411 L 482,411 L 482,405 Z"/>
+      <path d="M 571,405 L 571,410 L 570,411 L 571,414 L 571,452 L 570,453 L 571,463 L 577,463 L 577,445 L 578,444 L 596,444 L 600,449 L 608,463 L 617,463 L 603,443 L 604,441 L 606,441 L 613,435 L 616,428 L 616,420 L 615,419 L 615,416 L 613,413 L 608,408 L 600,405 Z"/>
+      <path d="M 577,412 L 578,411 L 596,411 L 597,412 L 601,412 L 607,416 L 609,420 L 609,427 L 607,432 L 600,437 L 596,437 L 595,438 L 578,438 L 577,437 Z"/>
+      <path d="M 721,405 L 715,418 L 715,420 L 711,427 L 711,429 L 707,436 L 707,438 L 703,445 L 703,447 L 700,452 L 700,454 L 697,459 L 696,463 L 703,463 L 704,462 L 706,455 L 713,441 L 713,439 L 721,422 L 723,415 L 725,414 L 729,422 L 730,427 L 734,434 L 737,444 L 740,449 L 740,451 L 742,454 L 745,463 L 751,464 L 752,463 L 752,460 L 749,455 L 745,443 L 741,436 L 741,434 L 738,429 L 738,427 L 736,424 L 736,422 L 733,417 L 733,415 L 728,405 Z"/>
+    </g>
+  </g>
+
+  <!-- Tagline -->
+  <text x="600" y="475" fill="#FFFFFF" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="800" text-anchor="middle" letter-spacing="6">
+    LUXURY STREETWEAR &amp; NOCTURNE CLUBWEAR
+  </text>
+  <text x="600" y="515" fill="#9CA3AF" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" text-anchor="middle" letter-spacing="3">
+    CURATED STATEMENTS • TRY &amp; BUY • EXPRESS DOORSTEP DISPATCH
+  </text>
+
+  <!-- Bottom URL Pill -->
+  <g transform="translate(485, 545)">
+    <rect width="230" height="28" rx="14" fill="#0A0A0B" stroke="#F4CE76" stroke-opacity="0.2" stroke-width="1" />
+    <text x="115" y="18" fill="#F4CE76" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" text-anchor="middle" letter-spacing="2">
+      WWW.MUVERA.CLUB
+    </text>
+  </g>
+</svg>

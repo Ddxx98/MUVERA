@@ -1,10 +1,25 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import type { Metadata } from 'next';
 import { db } from '@/lib/db';
 import { ChevronRight, Sparkles } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'Curated Apparel Categories — Luxury Streetwear & Club Fits',
+  description: 'Explore curated luxury streetwear categories: Oversized Tees, Heavyweight Hoodies, Parachute Cargoes, Satin Bombers, and Midnight Club Fits with express delivery.',
+  alternates: {
+    canonical: '/categories',
+  },
+  openGraph: {
+    title: 'Curated Apparel Categories | MUVERA',
+    description: 'Explore curated luxury streetwear categories with express delivery.',
+    url: '/categories',
+    images: ['/og-image.svg'],
+  },
+};
 
 export default async function CategoriesPage() {
   const categories = await db.getCategories();

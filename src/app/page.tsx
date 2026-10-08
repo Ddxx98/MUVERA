@@ -6,6 +6,15 @@ import { ProductCard } from '@/components/store/ProductCard';
 import { siteConfig } from '@/config/site';
 import { Zap, ArrowRight, Timer, Sparkles, Flame, ShieldCheck, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'MUVERA | Luxury Streetwear & Midnight Nocturne Club Drops',
+  description: 'Curated luxury fashion, oversized statement tees, heavyweight hoodies, and nocturne party fits delivered with express courier speed across India.',
+  alternates: {
+    canonical: '/',
+  },
+};
 
 export default async function HomePage() {
   const [products, settings, categories] = await Promise.all([
