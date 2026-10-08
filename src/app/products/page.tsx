@@ -5,17 +5,20 @@ import { useSearchParams } from 'next/navigation';
 import { Product } from '@/lib/types';
 import { ProductCard } from '@/components/store/ProductCard';
 import { siteConfig } from '@/config/site';
-import { SlidersHorizontal, ArrowUpDown, X, Zap } from 'lucide-react';
+import { SlidersHorizontal, ArrowUpDown, X, Zap, Search } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 function ProductsContent() {
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get('category') || 'all';
   const initialBrand = searchParams.get('brand') || 'all';
+  const initialQuery = searchParams.get('q') || '';
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string; slug: string; count?: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [selectedBrand, setSelectedBrand] = useState(initialBrand);
   const [selectedSize, setSelectedSize] = useState<string>('all');
@@ -24,24 +27,44 @@ function ProductsContent() {
   const [maxPrice, setMaxPrice] = useState<number>(10000);
 
   useEffect(() => {
-    fetch('/api/products')
-      .then((r) => r.json())
-      .then((d) => {
-        if (d?.products) setProducts(d.products);
+    Promise.all([
+      fetch('/api/products').then((r) => r.json()).catch(() => ({ products: [] })),
+      fetch('/api/categories').then((r) => r.json()).catch(() => ({ categories: [] })),
+    ])
+      .then(([prodData, catData]) => {
+        if (prodData?.products) setProducts(prodData.products);
+        if (catData?.categories && catData.categories.length > 0) {
+          setCategories(catData.categories);
+        } else {
+          setCategories(siteConfig.categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug, count: c.count })));
+        }
       })
-      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
     if (searchParams.get('category')) setSelectedCategory(searchParams.get('category')!);
     if (searchParams.get('brand')) setSelectedBrand(searchParams.get('brand')!);
+    if (searchParams.get('q')) setSearchQuery(searchParams.get('q')!);
   }, [searchParams]);
 
   // Filter & Sort Logic
   const filteredProducts = useMemo(() => {
     return products
       .filter((product) => {
+        // Keyword Search
+        const q = searchQuery.toLowerCase().trim();
+        if (q) {
+          const matchTitle = product.title.toLowerCase().includes(q);
+          const matchBrand = product.brand.toLowerCase().includes(q);
+          const matchCategory = product.category.toLowerCase().includes(q);
+          const matchDesc = product.description.toLowerCase().includes(q);
+          const matchTags = product.tags.some((t) => t.toLowerCase().includes(q));
+          if (!matchTitle && !matchBrand && !matchCategory && !matchDesc && !matchTags) {
+            return false;
+          }
+        }
+
         // Category
         if (selectedCategory !== 'all' && product.categorySlug !== selectedCategory) {
           return false;
@@ -68,9 +91,10 @@ function ProductsContent() {
         if (sortBy === 'discount') return b.discountPercentage - a.discountPercentage;
         return 0; // featured
       });
-  }, [selectedCategory, selectedBrand, selectedSize, maxPrice, sortBy]);
+  }, [products, searchQuery, selectedCategory, selectedBrand, selectedSize, maxPrice, sortBy]);
 
   const clearAllFilters = () => {
+    setSearchQuery('');
     setSelectedCategory('all');
     setSelectedBrand('all');
     setSelectedSize('all');
@@ -79,7 +103,15 @@ function ProductsContent() {
   };
 
   const hasActiveFilters =
-    selectedCategory !== 'all' || selectedBrand !== 'all' || selectedSize !== 'all' || maxPrice < 10000;
+    searchQuery.trim() !== '' ||
+    selectedCategory !== 'all' ||
+    selectedBrand !== 'all' ||
+    selectedSize !== 'all' ||
+    maxPrice < 10000;
+
+  const currentCategoryName =
+    categories.find((c) => c.slug === selectedCategory)?.name ||
+    siteConfig.categories.find((c) => c.slug === selectedCategory)?.name;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
@@ -88,9 +120,11 @@ function ProductsContent() {
         <div>
           <h1 className="font-headline font-black text-2xl sm:text-3xl text-white">
             {selectedCategory !== 'all'
-              ? siteConfig.categories.find((c) => c.slug === selectedCategory)?.name || 'Catalog'
+              ? currentCategoryName || 'Catalog'
               : selectedBrand !== 'all'
               ? siteConfig.brands.find((b) => b.slug === selectedBrand)?.name || 'Brand Drops'
+              : searchQuery
+              ? `Search: "${searchQuery}"`
               : 'All MUVERA Drops'}
           </h1>
           <p className="text-xs text-text-muted mt-0.5">
@@ -131,6 +165,27 @@ function ProductsContent() {
         </div>
       </div>
 
+      {/* Live Keyword Search Filter Bar */}
+      <div className="relative w-full">
+        <Search className="w-4 h-4 text-primary absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search apparel drops by keyword, fit, style, fabric, or brand..."
+          className="w-full bg-surface-card border border-surface-border focus:border-primary rounded-2xl pl-11 pr-10 py-3 text-xs sm:text-sm text-text-primary placeholder:text-text-muted focus:outline-none shadow-md transition-colors"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1 rounded-full text-xs"
+            title="Clear search"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
       {/* Category Quick Filter Chips Rail */}
       <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
         <button
@@ -143,9 +198,9 @@ function ProductsContent() {
         >
           All Drops
         </button>
-        {siteConfig.categories.map((c) => (
+        {categories.map((c) => (
           <button
-            key={c.id}
+            key={c.id || c.slug}
             onClick={() => setSelectedCategory(c.slug)}
             className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-headline font-bold transition-all shadow-sm whitespace-nowrap ${
               selectedCategory === c.slug
@@ -186,8 +241,8 @@ function ProductsContent() {
                 className="w-full bg-surface-raised border border-surface-border text-text-primary text-xs rounded-xl p-2.5 focus:outline-none focus:border-primary"
               >
                 <option value="all">All Categories</option>
-                {siteConfig.categories.map((c) => (
-                  <option key={c.id} value={c.slug}>
+                {categories.map((c) => (
+                  <option key={c.id || c.slug} value={c.slug}>
                     {c.name}
                   </option>
                 ))}
@@ -242,9 +297,21 @@ function ProductsContent() {
       {hasActiveFilters && (
         <div className="flex items-center gap-1.5 flex-wrap text-xs">
           <span className="text-text-muted font-bold text-[11px] mr-1">Active Filters:</span>
+          {searchQuery && (
+            <span className="inline-flex items-center gap-1.5 bg-primary/10 border border-primary/30 text-primary px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap shadow-sm">
+              <span>Search: "{searchQuery}"</span>
+              <button
+                onClick={() => setSearchQuery('')}
+                aria-label="Remove search filter"
+                className="hover:text-red-400 p-0.5 rounded-full hover:bg-surface-raised transition-colors"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
           {selectedCategory !== 'all' && (
             <span className="inline-flex items-center gap-1.5 bg-surface-card border border-surface-border px-2.5 py-1 rounded-full text-text-primary text-xs font-medium whitespace-nowrap shadow-sm">
-              <span>Category: {siteConfig.categories.find((c) => c.slug === selectedCategory)?.name || selectedCategory}</span>
+              <span>Category: {currentCategoryName || selectedCategory}</span>
               <button
                 onClick={() => setSelectedCategory('all')}
                 aria-label="Remove category filter"

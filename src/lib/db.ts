@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
-import { Product, InventoryItem, StockMovement, OrderSnapshot, Coupon, ReturnRequest } from './types';
+import { Product, InventoryItem, StockMovement, OrderSnapshot, Coupon, ReturnRequest, Category } from './types';
+import { siteConfig } from '@/config/site';
 
 // Enforce reliable DNS resolvers on Windows Node environment to prevent querySrv ECONNREFUSED
 if (typeof window === 'undefined') {
@@ -11,7 +12,7 @@ if (typeof window === 'undefined') {
   }
 }
 import { initialProducts, initialInventory, initialOrders, initialCoupons } from './seed-data';
-import { ProductModel, InventoryModel, StockMovementModel, OrderModel, CouponModel, UserModel, SiteSettingsModel, AuthTokenModel, ReturnModel } from './models';
+import { ProductModel, InventoryModel, StockMovementModel, OrderModel, CouponModel, UserModel, SiteSettingsModel, AuthTokenModel, ReturnModel, CategoryModel } from './models';
 import { env } from '@/config/env';
 import { UserRecord } from '@/modules/auth/types';
 import { SiteSettingsData } from './models/SiteSettings';
@@ -90,6 +91,7 @@ declare global {
     users: UserRecord[];
     siteSettings: SiteSettingsData;
     authTokens: any[];
+    categories: Category[];
   } | undefined;
 }
 
@@ -104,6 +106,14 @@ if (!global._muveraDb) {
     users: [...initialUsers],
     siteSettings: { ...initialSiteSettings },
     authTokens: [],
+    categories: siteConfig.categories.map((c, i) => ({
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+      image: c.image,
+      count: c.count,
+      order: i,
+    })),
   };
 }
 
@@ -606,5 +616,142 @@ export const db = {
         t.usedAt = new Date();
       }
     }
+  },
+
+  // Categories
+  async getCategories(): Promise<Category[]> {
+    const isConnected = await connectToMongo();
+    if (isConnected) {
+      let docs = await CategoryModel.find().sort({ order: 1, createdAt: 1 }).lean();
+      if (!docs || docs.length === 0) {
+        try {
+          // Pre-populate default luxury apparel categories into Atlas idempotently
+          const bulkOps = siteConfig.categories.map((c, i) => ({
+            updateOne: {
+              filter: { slug: c.slug },
+              update: {
+                $setOnInsert: {
+                  name: c.name,
+                  slug: c.slug,
+                  image: c.image,
+                  order: i,
+                  createdAt: new Date().toISOString(),
+                },
+              },
+              upsert: true,
+            },
+          }));
+          await CategoryModel.bulkWrite(bulkOps, { ordered: false });
+        } catch {
+          // Ignore concurrent race condition if another worker seeded simultaneously
+        }
+        docs = await CategoryModel.find().sort({ order: 1, createdAt: 1 }).lean();
+      }
+
+      // Count products per category
+      const products = await ProductModel.find().select('category categorySlug').lean();
+
+      return docs.map((d: any) => {
+        const catCount = products.filter(
+          (p: any) =>
+            p.categorySlug === d.slug ||
+            (p.category && p.category.toLowerCase() === d.name.toLowerCase())
+        ).length;
+
+        return {
+          id: d._id.toString(),
+          name: d.name,
+          slug: d.slug,
+          image: d.image || siteConfig.categories.find((sc) => sc.slug === d.slug)?.image || '',
+          description: d.description || '',
+          count: catCount,
+          order: d.order,
+          createdAt: d.createdAt,
+        };
+      });
+    }
+
+    return global._muveraDb?.categories || siteConfig.categories.map((c, i) => ({
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+      image: c.image,
+      count: c.count,
+      order: i,
+    }));
+  },
+
+  async saveCategory(category: {
+    id?: string;
+    name: string;
+    slug?: string;
+    image?: string;
+    description?: string;
+    order?: number;
+  }): Promise<Category> {
+    const isConnected = await connectToMongo();
+    const slug = (category.slug || category.name)
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+
+    const payload = {
+      name: category.name.trim(),
+      slug,
+      image: category.image || '',
+      description: category.description || '',
+      order: typeof category.order === 'number' ? category.order : 0,
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (isConnected) {
+      let doc: any;
+      if (category.id && mongoose.isValidObjectId(category.id)) {
+        doc = await CategoryModel.findByIdAndUpdate(category.id, payload, { new: true, upsert: true }).lean();
+      } else {
+        doc = await CategoryModel.findOneAndUpdate({ slug }, payload, { new: true, upsert: true }).lean();
+      }
+      return {
+        id: (doc as any)._id.toString(),
+        name: (doc as any).name,
+        slug: (doc as any).slug,
+        image: (doc as any).image,
+        description: (doc as any).description,
+        order: (doc as any).order,
+      };
+    }
+
+    const newCat: Category = {
+      id: category.id || `cat_${Date.now()}`,
+      ...payload,
+      count: 0,
+    };
+    if (global._muveraDb) {
+      const idx = global._muveraDb.categories.findIndex((c) => c.slug === slug || c.id === category.id);
+      if (idx >= 0) {
+        global._muveraDb.categories[idx] = newCat;
+      } else {
+        global._muveraDb.categories.push(newCat);
+      }
+    }
+    return newCat;
+  },
+
+  async deleteCategory(idOrSlug: string): Promise<boolean> {
+    const isConnected = await connectToMongo();
+    if (isConnected) {
+      if (mongoose.isValidObjectId(idOrSlug)) {
+        await CategoryModel.findByIdAndDelete(idOrSlug);
+      } else {
+        await CategoryModel.findOneAndDelete({ slug: idOrSlug });
+      }
+    }
+    if (global._muveraDb) {
+      global._muveraDb.categories = global._muveraDb.categories.filter(
+        (c) => c.id !== idOrSlug && c.slug !== idOrSlug
+      );
+    }
+    return true;
   },
 };

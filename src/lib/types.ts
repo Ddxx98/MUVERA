@@ -204,3 +204,14 @@ export interface ReturnRequest {
   refundAmountPaise: number;
   createdAt: string;
 }
+
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  image?: string;
+  description?: string;
+  count?: number;
+  order?: number;
+  createdAt?: string;
+}

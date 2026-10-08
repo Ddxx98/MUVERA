@@ -26,14 +26,29 @@ import {
   Edit3,
   Trash2,
   ExternalLink,
+  FolderPlus,
+  Tag,
+  Filter,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 export default function AdminCatalogPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string; slug: string; image?: string; count?: number }[]>([]);
   const [search, setSearch] = useState('');
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
+  const [stockStatusFilter, setStockStatusFilter] = useState<'all' | 'in_stock' | 'out_of_stock'>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [feedback, setFeedback] = useState('');
+
+  // Category Modal State
+  const [isCatModalOpen, setIsCatModalOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatImage, setNewCatImage] = useState('');
+  const [newCatDescription, setNewCatDescription] = useState('');
+  const [savingCat, setSavingCat] = useState(false);
+  const [uploadingCatImage, setUploadingCatImage] = useState(false);
+  const catFileInputRef = useRef<HTMLInputElement>(null);
 
   // Bulk Import State
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
@@ -82,8 +97,26 @@ export default function AdminCatalogPage() {
     }
   };
 
+  const loadCategories = async () => {
+    try {
+      const res = await fetch('/api/categories');
+      const data = await res.json();
+      if (data.categories && data.categories.length > 0) {
+        setCategories(data.categories);
+        if (!category && data.categories[0]) {
+          setCategory(data.categories[0].name);
+        }
+      } else {
+        setCategories(siteConfig.categories.map((c, i) => ({ id: c.id, name: c.name, slug: c.slug, image: c.image, count: c.count })));
+      }
+    } catch {
+      setCategories(siteConfig.categories.map((c, i) => ({ id: c.id, name: c.name, slug: c.slug, image: c.image, count: c.count })));
+    }
+  };
+
   useEffect(() => {
     loadProducts();
+    loadCategories();
   }, []);
 
   // Edit Product State
@@ -274,6 +307,73 @@ export default function AdminCatalogPage() {
       setFeedback(`❌ Delete failed: ${err.message}`);
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleCategoryPhotoUpload = async (file: File) => {
+    setUploadingCatImage(true);
+    try {
+      const sigRes = await fetch('/api/admin/uploads/sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          folder: 'muvera/categories',
+          adminSecret: 'muvera_admin_master_secret_2026',
+        }),
+      });
+      const sig = await sigRes.json();
+      if (!sig.success) throw new Error(sig.error || 'Signature generation failed');
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('api_key', sig.apiKey);
+      formData.append('timestamp', String(sig.timestamp));
+      formData.append('signature', sig.signature);
+      formData.append('folder', sig.folder);
+
+      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      const uploadData = await uploadRes.json();
+      setNewCatImage(uploadData.secure_url || uploadData.url);
+    } catch (err: any) {
+      alert(err.message || 'Category photo upload failed');
+    } finally {
+      setUploadingCatImage(false);
+      if (catFileInputRef.current) catFileInputRef.current.value = '';
+    }
+  };
+
+  const handleCreateCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCatName.trim()) return;
+    setSavingCat(true);
+    try {
+      const res = await fetch('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newCatName.trim(),
+          image: newCatImage,
+          description: newCatDescription,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create category');
+
+      setFeedback(`✅ Category "${data.category.name}" added successfully!`);
+      setTimeout(() => setFeedback(''), 4000);
+      setCategory(data.category.name);
+      setNewCatName('');
+      setNewCatImage('');
+      setNewCatDescription('');
+      setIsCatModalOpen(false);
+      await loadCategories();
+    } catch (err: any) {
+      alert(err.message || 'Failed to create category');
+    } finally {
+      setSavingCat(false);
     }
   };
 
@@ -579,11 +679,36 @@ export default function AdminCatalogPage() {
     setSkuPrefix('');
   };
 
-  const filtered = products.filter(
-    (p) =>
-      p.title.toLowerCase().includes(search.toLowerCase()) ||
-      p.brand.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = products.filter((p) => {
+    // 1. Keyword search (title, brand, slug, or SKU)
+    const q = search.toLowerCase().trim();
+    if (q) {
+      const matchTitle = p.title.toLowerCase().includes(q);
+      const matchBrand = p.brand.toLowerCase().includes(q);
+      const matchSlug = p.slug.toLowerCase().includes(q);
+      const matchSku = p.variants?.some((v) => v.sku?.toLowerCase().includes(q));
+      if (!matchTitle && !matchBrand && !matchSlug && !matchSku) return false;
+    }
+
+    // 2. Category Filter
+    if (selectedCategoryFilter !== 'all') {
+      const matchCategory =
+        p.categorySlug === selectedCategoryFilter ||
+        p.category?.toLowerCase() === selectedCategoryFilter.toLowerCase();
+      if (!matchCategory) return false;
+    }
+
+    // 3. Stock Status Filter
+    if (stockStatusFilter !== 'all') {
+      const totalStock = p.variants?.reduce((sum, v) => sum + ((v as any).stock || (v as any).initialStock || 0), 0) || 0;
+      if (stockStatusFilter === 'in_stock' && totalStock <= 0) return false;
+      if (stockStatusFilter === 'out_of_stock' && totalStock > 0) return false;
+    }
+
+    return true;
+  });
+
+  const hasActiveCatalogFilters = search !== '' || selectedCategoryFilter !== 'all' || stockStatusFilter !== 'all';
 
   return (
     <div className="space-y-8">
@@ -599,9 +724,18 @@ export default function AdminCatalogPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-headline font-black text-2xl sm:text-3xl text-text-primary">Product Catalog &amp; Variants</h1>
-          <p className="text-xs text-text-muted mt-0.5">Manage products, multi-photo lookbooks, automated SKU matrix per size &amp; pricing</p>
+          <p className="text-xs text-text-muted mt-0.5">Manage products, custom categories, lookbooks &amp; live SKU inventory matrix</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            onClick={() => setIsCatModalOpen(true)}
+            variant="outline"
+            size="sm"
+            className="border-primary/40 text-primary hover:bg-primary/10"
+          >
+            <FolderPlus className="w-4 h-4" />
+            <span>+ Add Category</span>
+          </Button>
           <Button onClick={() => setIsBulkModalOpen(true)} variant="outline" size="sm" className="border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10">
             <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
             <span>Import Excel / CSV</span>
@@ -613,15 +747,82 @@ export default function AdminCatalogPage() {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="p-4 rounded-2xl bg-surface-card border border-surface-border">
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search products by title or brand..."
-          className="w-full bg-surface-raised border border-surface-border rounded-xl px-4 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary max-w-sm"
-        />
+      {/* Search & Multi-Criteria Filter Bar */}
+      <div className="p-4 rounded-2xl bg-surface-card border border-surface-border space-y-3 shadow-lg">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          {/* Keyword Search */}
+          <div className="relative flex-1 max-w-md">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search products by title, brand, or SKU..."
+              className="w-full bg-surface-raised border border-surface-border rounded-xl pl-9 pr-8 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary"
+            />
+            <Filter className="w-3.5 h-3.5 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary text-xs"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Filter Dropdowns */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Category Filter */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-bold text-text-muted hidden sm:inline">Category:</span>
+              <select
+                value={selectedCategoryFilter}
+                onChange={(e) => setSelectedCategoryFilter(e.target.value)}
+                className="bg-surface-raised border border-surface-border rounded-xl px-3 py-1.5 text-xs text-text-primary focus:outline-none focus:border-primary font-medium"
+              >
+                <option value="all">All Categories ({categories.length})</option>
+                {categories.map((c) => (
+                  <option key={c.id || c.slug} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Stock Filter */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-bold text-text-muted hidden sm:inline">Stock:</span>
+              <select
+                value={stockStatusFilter}
+                onChange={(e) => setStockStatusFilter(e.target.value as any)}
+                className="bg-surface-raised border border-surface-border rounded-xl px-3 py-1.5 text-xs text-text-primary focus:outline-none focus:border-primary font-medium"
+              >
+                <option value="all">All Stock Status</option>
+                <option value="in_stock">In Stock Only</option>
+                <option value="out_of_stock">Out of Stock</option>
+              </select>
+            </div>
+
+            {/* Active Filters Reset */}
+            {hasActiveCatalogFilters && (
+              <button
+                onClick={() => {
+                  setSearch('');
+                  setSelectedCategoryFilter('all');
+                  setStockStatusFilter('all');
+                }}
+                className="text-[11px] font-bold text-primary hover:underline px-2 py-1"
+              >
+                Reset
+              </button>
+            )}
+
+            {/* Count Badge */}
+            <span className="text-[11px] font-mono text-text-muted bg-surface-raised px-2.5 py-1 rounded-lg border border-surface-border">
+              {filtered.length} of {products.length} products
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Mobile Products Card List (Phones & Small Tablets) */}
@@ -830,10 +1031,36 @@ export default function AdminCatalogPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="font-bold text-text-muted mb-1 block">Category *</label>
-                  <select value={category} onChange={(e) => setCategory(e.target.value)}
-                    className="w-full bg-surface-raised border border-surface-border rounded-xl p-2.5 text-text-primary">
-                    {siteConfig.categories.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-bold text-text-muted block">Category *</label>
+                    <button
+                      type="button"
+                      onClick={() => setIsCatModalOpen(true)}
+                      className="text-[10px] text-primary font-bold hover:underline flex items-center gap-0.5"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>New Category</span>
+                    </button>
+                  </div>
+                  <select
+                    value={category}
+                    onChange={(e) => {
+                      if (e.target.value === '__add_new__') {
+                        setIsCatModalOpen(true);
+                      } else {
+                        setCategory(e.target.value);
+                      }
+                    }}
+                    className="w-full bg-surface-raised border border-surface-border rounded-xl p-2.5 text-text-primary focus:border-primary focus:outline-none"
+                  >
+                    {categories.map((c) => (
+                      <option key={c.id || c.slug} value={c.name}>
+                        {c.name}
+                      </option>
+                    ))}
+                    <option value="__add_new__" className="text-primary font-bold">
+                      + Add New Category...
+                    </option>
                   </select>
                 </div>
               </div>
@@ -1404,17 +1631,36 @@ export default function AdminCatalogPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="font-bold text-text-muted mb-1 block">Category *</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-bold text-text-muted block">Category *</label>
+                    <button
+                      type="button"
+                      onClick={() => setIsCatModalOpen(true)}
+                      className="text-[10px] text-primary font-bold hover:underline flex items-center gap-0.5"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>New Category</span>
+                    </button>
+                  </div>
                   <select
                     value={editCategory}
-                    onChange={(e) => setEditCategory(e.target.value)}
+                    onChange={(e) => {
+                      if (e.target.value === '__add_new__') {
+                        setIsCatModalOpen(true);
+                      } else {
+                        setEditCategory(e.target.value);
+                      }
+                    }}
                     className="w-full bg-surface-raised border border-surface-border rounded-xl p-2.5 text-text-primary focus:border-primary focus:outline-none"
                   >
-                    {siteConfig.categories.map((c) => (
-                      <option key={c.id} value={c.name}>
+                    {categories.map((c) => (
+                      <option key={c.id || c.slug} value={c.name}>
                         {c.name}
                       </option>
                     ))}
+                    <option value="__add_new__" className="text-primary font-bold">
+                      + Add New Category...
+                    </option>
                   </select>
                 </div>
               </div>
@@ -1688,6 +1934,122 @@ export default function AdminCatalogPage() {
                 {deleting ? 'Deleting...' : 'Yes, Delete Permanently'}
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add New Category Modal */}
+      {isCatModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-surface-card border border-surface-border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-surface-border">
+              <h3 className="font-headline font-bold text-base text-text-primary flex items-center gap-2">
+                <FolderPlus className="w-4 h-4 text-primary" />
+                <span>Add New Apparel Category</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsCatModalOpen(false)}
+                className="p-1 rounded-full text-text-muted hover:text-text-primary hover:bg-surface-raised transition-colors text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateCategory} className="space-y-4 text-xs">
+              <div>
+                <label className="font-bold text-text-muted mb-1 block">Category Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={newCatName}
+                  onChange={(e) => setNewCatName(e.target.value)}
+                  placeholder="e.g. Acid-Wash Denims, Club Corsets, Varsity Jackets..."
+                  className="w-full bg-surface-raised border border-surface-border rounded-xl p-2.5 text-text-primary focus:border-primary focus:outline-none"
+                />
+                {newCatName.trim() && (
+                  <p className="text-[10px] font-mono text-text-muted mt-1">
+                    Slug: {newCatName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="font-bold text-text-muted mb-1 block">Category Description (Optional)</label>
+                <textarea
+                  rows={2}
+                  value={newCatDescription}
+                  onChange={(e) => setNewCatDescription(e.target.value)}
+                  placeholder="Editorial styling notes, silhouette description..."
+                  className="w-full bg-surface-raised border border-surface-border rounded-xl p-2.5 text-text-primary focus:border-primary focus:outline-none"
+                />
+              </div>
+
+              {/* Category Cover Image */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-text-muted">Cover Photo (Optional)</label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      ref={catFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => e.target.files?.[0] && handleCategoryPhotoUpload(e.target.files[0])}
+                    />
+                    <button
+                      type="button"
+                      disabled={uploadingCatImage}
+                      onClick={() => catFileInputRef.current?.click()}
+                      className="text-[11px] text-primary hover:underline flex items-center gap-1 font-bold"
+                    >
+                      <Upload className="w-3 h-3" />
+                      <span>{uploadingCatImage ? 'Uploading...' : 'Upload Image'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <input
+                  type="url"
+                  value={newCatImage}
+                  onChange={(e) => setNewCatImage(e.target.value)}
+                  placeholder="https://... or upload image"
+                  className="w-full bg-surface-raised border border-surface-border rounded-xl p-2 text-text-primary focus:border-primary focus:outline-none"
+                />
+
+                {newCatImage && (
+                  <div className="relative w-full h-28 rounded-xl overflow-hidden bg-black border border-surface-border">
+                    <Image src={newCatImage} alt="Category preview" fill className="object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setNewCatImage('')}
+                      className="absolute top-1 right-1 bg-black/80 hover:bg-black text-white p-1 rounded-full text-xs"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-surface-border">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsCatModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={savingCat || !newCatName.trim()}
+                  className="bg-primary text-black font-bold hover:bg-primary/90"
+                >
+                  {savingCat ? 'Saving Category...' : 'Save Category'}
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}

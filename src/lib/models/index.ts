@@ -6,3 +6,4 @@ export * from './User';
 export * from './SiteSettings';
 export * from './AuthToken';
 export * from './Return';
+export * from './Category';

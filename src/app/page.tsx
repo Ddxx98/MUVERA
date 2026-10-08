@@ -8,10 +8,12 @@ import { Zap, ArrowRight, Timer, Sparkles, Flame, ShieldCheck, ChevronRight } fr
 import { Badge } from '@/components/ui/Badge';
 
 export default async function HomePage() {
-  const [products, settings] = await Promise.all([
+  const [products, settings, categories] = await Promise.all([
     db.getProducts(),
     db.getSiteSettings(),
+    db.getCategories(),
   ]);
+  const displayCategories = categories.length > 0 ? categories : siteConfig.categories;
   const blitzDrops = products.filter((p) => p.isBlitzDrop);
   const dealOfTheHour = products.find((p) => p.isDealOfTheHour) || products[0];
 
@@ -113,9 +115,9 @@ export default async function HomePage() {
           </Link>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-          {siteConfig.categories.map((cat) => (
+          {displayCategories.map((cat) => (
             <Link
-              key={cat.id}
+              key={cat.id || cat.slug}
               href={`/products?category=${cat.slug}`}
               className="flex-shrink-0 bg-surface-card hover:bg-surface-raised border border-surface-border hover:border-primary/50 px-3.5 py-1.5 rounded-full text-xs font-headline font-bold text-text-primary tracking-wide transition-all shadow-sm whitespace-nowrap"
             >
@@ -176,25 +178,31 @@ export default async function HomePage() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {siteConfig.categories.map((cat) => (
+          {displayCategories.slice(0, 6).map((cat) => (
             <Link
-              key={cat.id}
+              key={cat.id || cat.slug}
               href={`/products?category=${cat.slug}`}
               className="group relative h-40 rounded-2xl overflow-hidden border border-surface-border hover:border-primary/50 transition-all duration-300"
             >
-              <Image
-                src={cat.image}
-                alt={cat.name}
-                fill
-                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
-                className="object-cover object-center group-hover:scale-110 transition-transform duration-500"
-              />
+              {cat.image ? (
+                <Image
+                  src={cat.image}
+                  alt={cat.name}
+                  fill
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
+                  className="object-cover object-center group-hover:scale-110 transition-transform duration-500"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-surface-raised flex items-center justify-center">
+                  <span className="text-xs font-headline font-bold text-primary">{cat.name}</span>
+                </div>
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-surface-base via-surface-base/40 to-transparent" />
               <div className="absolute bottom-2.5 left-2.5 right-2.5">
                 <h3 className="font-headline font-black text-xs text-text-primary leading-tight group-hover:text-primary transition-colors">
                   {cat.name}
                 </h3>
-                <span className="text-[10px] text-text-muted font-bold">{cat.count} Fits</span>
+                <span className="text-[10px] text-text-muted font-bold">{cat.count ?? 0} Fits</span>
               </div>
             </Link>
           ))}

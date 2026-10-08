@@ -70,7 +70,7 @@ export function StoreHeader() {
             >
               <MapPin className="w-3.5 h-3.5 text-primary" />
               <span className="font-semibold max-w-[130px] truncate">{activeLocation}</span>
-              <span className="text-primary font-bold text-[11px]">⚡ 60m</span>
+              <span className="text-primary font-bold text-[11px]">⚡ Express</span>
               <ChevronDown className="w-3 h-3 text-text-muted" />
             </button>
           </div>
