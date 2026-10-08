@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
@@ -38,13 +39,19 @@ export function AdminSidebar() {
       <div>
         <div className="p-6 border-b border-surface-border flex items-center justify-between">
           <div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-headline text-xl font-black text-primary tracking-wider">MUVERA</span>
+            <div className="flex items-center gap-2">
+              <Image
+                src="/logo.svg"
+                alt="MUVERA"
+                width={110}
+                height={30}
+                className="h-6 w-auto object-contain"
+              />
               <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-surface-card text-emerald-400 border border-emerald-500/30">
                 Admin
               </span>
             </div>
-            <p className="text-[11px] text-text-muted mt-0.5">Dark Store Inventory Control</p>
+            <p className="text-[11px] text-text-muted mt-1">Dark Store Operations</p>
           </div>
         </div>
 

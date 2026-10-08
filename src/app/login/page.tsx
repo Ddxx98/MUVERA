@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { loginAction, loginWithOtpAction } from '@/modules/auth/actions';
@@ -96,32 +97,22 @@ function LoginFormContent() {
     }
   };
 
-  const fillDemoAdmin = () => {
-    setMode('password');
-    setEmail('admin@muvera.club');
-    setPassword('AdminPassword2026!');
-    setErrorMessage(null);
-  };
-
-  const fillDemoCustomer = () => {
-    setMode('password');
-    setEmail('customer@muvera.club');
-    setPassword('CustomerPassword2026!');
-    setErrorMessage(null);
-  };
-
   return (
     <div className="max-w-md mx-auto px-4 py-12 space-y-6">
       <div className="p-8 rounded-3xl bg-surface-card border border-surface-border shadow-2xl space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="flex items-center justify-center gap-1.5">
-            <span className="font-headline text-3xl font-black tracking-wider text-primary">MUVERA</span>
-            <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-surface-raised text-text-muted border border-surface-border">
-              Secure Auth
-            </span>
+          <div className="flex items-center justify-center gap-2">
+            <Image
+              src="/logo.svg"
+              alt="MUVERA"
+              width={140}
+              height={38}
+              className="h-8 w-auto object-contain mx-auto"
+              priority
+            />
           </div>
-          <h1 className="font-headline font-bold text-xl text-text-primary">Sign In to MUVERA</h1>
+          <h1 className="font-headline font-bold text-xl text-text-primary">Sign In to Your Account</h1>
           <p className="text-xs text-text-muted">
             Access VIP drops, express tracking &amp; inventory operations
           </p>
@@ -187,7 +178,7 @@ function LoginFormContent() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@muvera.club or customer@muvera.club"
+                  placeholder="name@example.com"
                   className="w-full bg-transparent text-xs text-text-primary font-medium focus:outline-none placeholder:text-text-muted/60"
                 />
               </div>
@@ -266,12 +257,9 @@ function LoginFormContent() {
                     maxLength={4}
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
-                    placeholder="1234"
+                    placeholder="••••"
                     className="w-full bg-surface-raised border border-surface-border focus-within:border-primary rounded-xl p-3 text-center text-xl font-mono font-black text-primary tracking-widest focus:outline-none"
                   />
-                  <p className="text-[11px] text-text-muted text-center mt-1">
-                    Demo OTP code: enter 1234 or any 4 digits
-                  </p>
                 </div>
 
                 <Button type="submit" size="lg" fullWidth disabled={loading || otp.length < 4}>
@@ -281,30 +269,6 @@ function LoginFormContent() {
             )}
           </div>
         )}
-
-        {/* 1-Click Demo Login Shortcuts */}
-        <div className="p-3.5 rounded-2xl bg-surface-raised/70 border border-surface-border space-y-2">
-          <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-primary" />
-            <span>1-Click Test Credentials</span>
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={fillDemoAdmin}
-              className="p-2 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/30 text-[11px] font-black text-primary text-center transition-colors"
-            >
-              👑 Fill Admin
-            </button>
-            <button
-              type="button"
-              onClick={fillDemoCustomer}
-              className="p-2 rounded-xl bg-surface-card hover:bg-surface-bright border border-surface-border text-[11px] font-bold text-text-primary text-center transition-colors"
-            >
-              🛍️ Fill Customer
-            </button>
-          </div>
-        </div>
 
         {/* Links to Register */}
         <div className="text-center pt-2 border-t border-surface-border">

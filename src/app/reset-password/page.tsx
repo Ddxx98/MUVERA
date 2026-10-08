@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { validateResetTokenAction, resetPasswordAction } from '@/modules/auth/actions';
@@ -103,11 +104,15 @@ function ResetPasswordForm() {
       <div className="p-8 rounded-3xl bg-surface-card border border-surface-border shadow-2xl space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="flex items-center justify-center gap-1.5">
-            <span className="font-headline text-3xl font-black tracking-wider text-primary">MUVERA</span>
-            <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-surface-raised text-text-muted border border-surface-border">
-              Security
-            </span>
+          <div className="flex items-center justify-center gap-2">
+            <Image
+              src="/logo.svg"
+              alt="MUVERA"
+              width={140}
+              height={38}
+              className="h-8 w-auto object-contain mx-auto"
+              priority
+            />
           </div>
           <h1 className="font-headline font-bold text-xl text-text-primary">Create New Password</h1>
           <p className="text-xs text-text-muted">

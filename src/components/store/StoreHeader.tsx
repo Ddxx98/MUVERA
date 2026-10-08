@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useStore } from '@/lib/store-context';
 import { Search, Heart, ShoppingBag, MapPin, Zap, ChevronDown, ShieldCheck, User } from 'lucide-react';
@@ -48,10 +49,15 @@ export function StoreHeader() {
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
           {/* Brand Logo & Location */}
           <div className="flex items-center gap-4">
-            <Link href="/" className="flex items-center gap-1.5 group">
-              <span className="font-headline text-2xl font-black tracking-wider text-primary group-hover:opacity-90 transition-opacity">
-                MUVERA
-              </span>
+            <Link href="/" className="flex items-center gap-2 group">
+              <Image
+                src="/logo.svg"
+                alt="MUVERA"
+                width={130}
+                height={35}
+                className="h-7 sm:h-8 w-auto object-contain group-hover:opacity-90 transition-opacity"
+                priority
+              />
               <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-surface-card text-text-muted border border-surface-border">
                 Club
               </span>

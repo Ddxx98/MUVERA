@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { requestPasswordResetAction, resetPasswordWithOtpAction } from '@/modules/auth/actions';
@@ -122,22 +123,20 @@ export default function ForgotPasswordPage() {
       setLoading(false);
     }
   };
-
-  const fillDemoEmail = (target: string) => {
-    setEmail(target);
-    setErrorMessage(null);
-  };
-
   return (
     <div className="max-w-md mx-auto px-4 py-12 space-y-6">
       <div className="p-8 rounded-3xl bg-surface-card border border-surface-border shadow-2xl space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="flex items-center justify-center gap-1.5">
-            <span className="font-headline text-3xl font-black tracking-wider text-primary">MUVERA</span>
-            <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-surface-raised text-text-muted border border-surface-border">
-              Security
-            </span>
+          <div className="flex items-center justify-center gap-2">
+            <Image
+              src="/logo.svg"
+              alt="MUVERA"
+              width={140}
+              height={38}
+              className="h-8 w-auto object-contain mx-auto"
+              priority
+            />
           </div>
           <h1 className="font-headline font-bold text-xl text-text-primary">
             {step === 'request_otp' && 'Password Recovery'}
@@ -184,35 +183,6 @@ export default function ForgotPasswordPage() {
             <Button type="submit" size="lg" fullWidth disabled={loading}>
               {loading ? 'Dispatching 6-Digit OTP...' : 'Send Verification OTP'}
             </Button>
-
-            {/* Quick Demo Helpers */}
-            <div className="pt-2 border-t border-surface-border/50">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-primary" />
-                  Quick Demo Accounts
-                </span>
-                <span className="text-[10px] text-text-muted font-mono">1-Click Fill</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => fillDemoEmail('customer@muvera.club')}
-                  className="text-left px-3 py-2 rounded-xl bg-surface-raised hover:bg-surface-border/40 border border-surface-border text-[11px] transition-colors"
-                >
-                  <div className="font-bold text-text-primary flex items-center gap-1">🛍️ Customer</div>
-                  <div className="text-[10px] text-text-muted truncate">customer@muvera.club</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => fillDemoEmail('admin@muvera.club')}
-                  className="text-left px-3 py-2 rounded-xl bg-surface-raised hover:bg-surface-border/40 border border-surface-border text-[11px] transition-colors"
-                >
-                  <div className="font-bold text-primary flex items-center gap-1">👑 Admin</div>
-                  <div className="text-[10px] text-text-muted truncate">admin@muvera.club</div>
-                </button>
-              </div>
-            </div>
 
             <div className="text-center pt-2">
               <Link

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { env } from '@/config/env';
 import { Zap, RotateCcw, ShieldCheck, MessageCircle, Heart } from 'lucide-react';
@@ -60,12 +61,18 @@ export function Footer() {
       <div className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
         {/* Brand Info */}
         <div className="space-y-3">
-          <div className="flex items-center gap-1.5">
-            <span className="font-headline text-2xl font-black text-primary tracking-wider">MUVERA</span>
+          <Link href="/" className="inline-flex items-center gap-2">
+            <Image
+              src="/logo.svg"
+              alt="MUVERA"
+              width={140}
+              height={38}
+              className="h-8 w-auto object-contain"
+            />
             <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-surface-card text-text-muted border border-surface-border">
               Club
             </span>
-          </div>
+          </Link>
           <p className="text-xs text-text-muted leading-relaxed">
             Midnight Quick-Glam luxury fashion & streetwear commerce. Engineered for high-speed delivery from dark stores straight to your wardrobe in 60 minutes.
           </p>
