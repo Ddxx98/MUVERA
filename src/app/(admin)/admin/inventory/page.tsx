@@ -138,8 +138,103 @@ export default function AdminInventoryPage() {
         </div>
       </div>
 
-      {/* Inventory Table */}
-      <div className="rounded-2xl bg-surface-card border border-surface-border overflow-hidden shadow-xl">
+      {/* Mobile Inventory Cards (Phones & Small Tablets) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:hidden">
+        {filteredInventory.length === 0 ? (
+          <div className="col-span-full p-8 text-center text-text-muted bg-surface-card rounded-2xl border border-surface-border">
+            {loading ? 'Loading inventory data...' : 'No inventory items match your search.'}
+          </div>
+        ) : (
+          filteredInventory.map((item) => {
+            const isLow = item.available <= item.lowStockThreshold && item.available > 0;
+            const isOut = item.available <= 0;
+
+            return (
+              <div
+                key={`${item.sku}-${item.variantId}`}
+                className="p-4 rounded-2xl bg-surface-card border border-surface-border space-y-3 shadow-md"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="relative w-14 h-16 rounded-xl overflow-hidden bg-surface-raised border border-surface-border flex-shrink-0">
+                    {item.image ? (
+                      <Image
+                        src={item.image}
+                        alt={item.productTitle || item.sku}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-text-muted">
+                        <Shirt className="w-5 h-5 opacity-40" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-headline font-bold text-text-primary text-xs line-clamp-1">
+                      {item.productTitle || 'Streetwear Fashion Item'}
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                      {item.brand && (
+                        <span className="text-[10px] text-text-muted font-bold uppercase">
+                          {item.brand}
+                        </span>
+                      )}
+                      {item.size && (
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
+                          Size {item.size}
+                        </span>
+                      )}
+                    </div>
+                    <p className="font-mono text-[10px] text-text-muted mt-1 truncate">
+                      SKU: <span className="text-text-primary font-bold">{item.sku}</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Stock Stats Grid */}
+                <div className="grid grid-cols-3 gap-2 bg-surface-raised/40 p-2.5 rounded-xl border border-surface-border text-center">
+                  <div>
+                    <span className="text-[10px] text-text-muted block">On Hand</span>
+                    <span className="font-mono font-bold text-xs text-text-primary">{item.onHand}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-text-muted block">Reserved</span>
+                    <span className="font-mono font-bold text-xs text-amber-400">{item.reserved}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-text-muted block">Available</span>
+                    <span className="font-mono font-black text-xs text-primary">{item.available}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-surface-border">
+                  <div>
+                    {isOut ? (
+                      <span className="text-[10px] font-bold text-red-400 bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20">
+                        Out of Stock
+                      </span>
+                    ) : isLow ? (
+                      <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 animate-pulse">
+                        Low ({item.available})
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                        Optimal ({item.available})
+                      </span>
+                    )}
+                  </div>
+                  <Button onClick={() => handleOpenAdjust(item)} variant="outline" size="sm" className="h-7 text-xs">
+                    Adjust Stock
+                  </Button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Desktop Inventory Table */}
+      <div className="hidden md:block rounded-2xl bg-surface-card border border-surface-border overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
             <thead>

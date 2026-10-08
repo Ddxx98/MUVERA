@@ -77,8 +77,8 @@ export default function OrderSuccessPage() {
         </div>
 
         <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/30 px-4 py-1.5 rounded-full text-xs font-bold text-primary">
-          <Zap className="w-4 h-4 fill-current animate-pulse" />
-          <span>⚡ Estimated Delivery: Within 60 Minutes</span>
+          <Truck className="w-4 h-4" />
+          <span>📦 Estimated Delivery: 2-4 Business Days</span>
         </div>
       </div>
 

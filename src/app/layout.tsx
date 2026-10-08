@@ -9,8 +9,8 @@ import { CartDrawer } from '@/components/store/CartDrawer';
 import { Footer } from '@/components/store/Footer';
 
 export const metadata: Metadata = {
-  title: 'MUVERA — 60-Minute Luxury Streetwear & Fashion Commerce',
-  description: 'Midnight Quick-Glam luxury fashion & streetwear commerce delivered from dark stores in 60 minutes.',
+  title: 'MUVERA — Luxury Streetwear & Fashion Commerce',
+  description: 'Midnight Quick-Glam luxury fashion & streetwear commerce with express doorstep courier delivery.',
 };
 
 export const viewport: Viewport = {

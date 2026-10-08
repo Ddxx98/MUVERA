@@ -121,19 +121,72 @@ export default function AdminReturnsPage() {
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left">
-              <thead>
-                <tr className="border-b border-surface-border text-text-muted font-bold uppercase tracking-wider bg-surface-raised/50">
-                  <th className="p-4">Return ID</th>
-                  <th className="p-4">Order Reference</th>
-                  <th className="p-4">Customer</th>
-                  <th className="p-4">Item &amp; Reason</th>
-                  <th className="p-4">Refund Amount</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4 text-right">Actions</th>
-                </tr>
-              </thead>
+          <>
+            {/* Mobile Returns Cards (Phones & Small Tablets) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 md:hidden">
+              {returns.map((ret) => (
+                <div
+                  key={ret.id || ret.returnNo}
+                  className="p-4 rounded-2xl bg-surface-card border border-surface-border space-y-3 shadow-md"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-mono font-bold text-xs text-text-primary">#{ret.returnNo}</span>
+                      <span className="text-[10px] text-text-muted ml-2">Order #{ret.orderNo}</span>
+                    </div>
+                    <span
+                      className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                        ret.status === 'closed'
+                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                          : 'bg-amber-500/10 text-amber-400 border border-amber-500/30 animate-pulse'
+                      }`}
+                    >
+                      {ret.status === 'closed' ? 'Refunded' : 'Pending QC'}
+                    </span>
+                  </div>
+
+                  <div className="bg-surface-raised/40 p-2.5 rounded-xl border border-surface-border text-xs space-y-1">
+                    <p className="font-bold text-text-primary">{ret.items[0]?.productName}</p>
+                    <div className="flex items-center justify-between text-[11px] text-text-muted">
+                      <span>Size: {ret.items[0]?.size}</span>
+                      <span className="font-mono font-bold text-primary">{formatPaise(ret.refundAmountPaise)}</span>
+                    </div>
+                    <p className="text-[10px] text-amber-400/90 pt-1 border-t border-surface-border/50">
+                      Reason: {ret.items[0]?.reason}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 pt-1">
+                    <span className="font-mono text-[11px] text-text-muted">{ret.customerPhone}</span>
+                    {ret.status !== 'closed' ? (
+                      <Button onClick={() => handleInspect(ret)} size="sm" className="h-7 text-xs">
+                        Inspect &amp; Refund
+                      </Button>
+                    ) : (
+                      <span className="text-[11px] text-emerald-400 font-bold flex items-center gap-1">
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        <span>Closed</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Returns Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead>
+                  <tr className="border-b border-surface-border text-text-muted font-bold uppercase tracking-wider bg-surface-raised/50">
+                    <th className="p-4">Return ID</th>
+                    <th className="p-4">Order Reference</th>
+                    <th className="p-4">Customer</th>
+                    <th className="p-4">Item &amp; Reason</th>
+                    <th className="p-4">Refund Amount</th>
+                    <th className="p-4">Status</th>
+                    <th className="p-4 text-right">Actions</th>
+                  </tr>
+                </thead>
               <tbody className="divide-y divide-surface-border">
                 {returns.map((ret) => (
                   <tr key={ret.id || ret.returnNo} className="hover:bg-surface-raised/40 transition-colors">
@@ -177,6 +230,7 @@ export default function AdminReturnsPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 

@@ -1,7 +1,7 @@
 export const siteConfig = {
   name: 'MUVERA',
   tagline: 'Midnight Quick-Glam Luxury Streetwear',
-  description: 'Ultra-fast 60-minute luxury fashion & streetwear commerce delivered from dark stores.',
+  description: 'Ultra-fast luxury fashion & streetwear commerce delivered from dark stores with express courier dispatch.',
   currency: 'INR',
   currencySymbol: '₹',
   navLinks: [

@@ -31,7 +31,7 @@ export function generateWhatsAppOrderUrl(order: OrderSnapshot): string {
     order.shippingAddress.landmark ? `• *Landmark:* ${order.shippingAddress.landmark}` : null,
     `• *City/State:* ${order.shippingAddress.city}, ${order.shippingAddress.state}`,
     `• *Pincode:* ${order.shippingAddress.pincode}`,
-    `• *Delivery Mode:* ${order.deliveryMethod === 'express_60' ? '⚡ Express 60-Minute Delivery' : '📦 Standard Courier'}`,
+    `• *Delivery Mode:* 📦 Express Courier Delivery`,
     ``,
     `━━━━━━━━━━━━━━━━━━━━━━`,
     `📦 *ITEMIZED PRODUCTS:*`,
@@ -60,9 +60,9 @@ export function generateAdminCustomerChatUrl(order: OrderSnapshot, messageType: 
 
   let message = '';
   if (messageType === 'confirm') {
-    message = `Hi ${order.customerName}! 👋 Your order #${order.orderNo} for ${formatPaise(order.totalPaise)} is received at MUVERA. We are currently verifying payment and preparing your package at Indiranagar Dark Store.`;
+    message = `Hi ${order.customerName}! 👋 Your order #${order.orderNo} for ${formatPaise(order.totalPaise)} is received at MUVERA. We are currently verifying payment and preparing your package.`;
   } else if (messageType === 'dispatch') {
-    message = `⚡ Great news ${order.customerName}! Your MUVERA order #${order.orderNo} is packed and rider is out for 60-minute express delivery!`;
+    message = `📦 Great news ${order.customerName}! Your MUVERA order #${order.orderNo} is packed and handed over for express courier delivery!`;
   } else {
     message = `🎉 Order Delivered! Your order #${order.orderNo} from MUVERA has been delivered. Enjoy your fits! Reach out if you need size exchanges within 7 days.`;
   }

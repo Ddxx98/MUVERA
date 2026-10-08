@@ -104,18 +104,67 @@ export default function AdminCustomersPage() {
             <p className="text-xs text-text-muted">When customers register and place orders, they appear here live.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left">
-              <thead>
-                <tr className="border-b border-surface-border text-text-muted font-bold uppercase tracking-wider bg-surface-raised/50">
-                  <th className="p-4">Customer Name</th>
-                  <th className="p-4">Contact &amp; Hub</th>
-                  <th className="p-4">Orders Placed</th>
-                  <th className="p-4">Lifetime Spend (LTV)</th>
-                  <th className="p-4">Club Status</th>
-                  <th className="p-4 text-right">Actions</th>
-                </tr>
-              </thead>
+          <>
+            {/* Mobile Customers Cards (Phones & Small Tablets) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 md:hidden">
+              {filteredCustomers.map((c) => (
+                <div
+                  key={c.id}
+                  className="p-4 rounded-2xl bg-surface-card border border-surface-border space-y-3 shadow-md"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-primary/20 text-primary font-black text-xs flex items-center justify-center">
+                        {c.name.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-bold text-text-primary text-xs">{c.name}</p>
+                        <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.2 rounded border border-primary/20">
+                          {c.tier}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="font-mono font-black text-xs text-primary">{formatPaise(c.ltvPaise)}</span>
+                  </div>
+
+                  <div className="text-[11px] text-text-muted space-y-0.5 bg-surface-raised/40 p-2.5 rounded-xl border border-surface-border">
+                    <p className="font-mono text-text-primary font-bold">{c.phone ? `+91 ${c.phone}` : 'No phone'}</p>
+                    {c.email && <p className="truncate text-text-muted">{c.email}</p>}
+                    <p className="text-text-muted">
+                      {c.city} • {c.hub} • {c.ordersCount} {c.ordersCount === 1 ? 'order' : 'orders'}
+                    </p>
+                  </div>
+
+                  {c.phone && (
+                    <div className="pt-1">
+                      <a
+                        href={`https://wa.me/91${c.phone}?text=${encodeURIComponent(`Hi ${c.name}! This is the MUVERA dark store VIP team.`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full flex items-center justify-center gap-1.5 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 border border-emerald-500/30 px-3 py-2 rounded-xl text-xs font-bold transition-colors"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5 fill-current" />
+                        <span>WhatsApp Chat</span>
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Customers Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead>
+                  <tr className="border-b border-surface-border text-text-muted font-bold uppercase tracking-wider bg-surface-raised/50">
+                    <th className="p-4">Customer Name</th>
+                    <th className="p-4">Contact &amp; Hub</th>
+                    <th className="p-4">Orders Placed</th>
+                    <th className="p-4">Lifetime Spend (LTV)</th>
+                    <th className="p-4">Club Status</th>
+                    <th className="p-4 text-right">Actions</th>
+                  </tr>
+                </thead>
               <tbody className="divide-y divide-surface-border">
                 {filteredCustomers.map((c) => (
                   <tr key={c.id} className="hover:bg-surface-raised/40 transition-colors">
@@ -165,6 +214,7 @@ export default function AdminCustomersPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>

@@ -94,7 +94,7 @@ function ProductsContent() {
               : 'All MUVERA Drops'}
           </h1>
           <p className="text-xs text-text-muted mt-0.5">
-            Showing <strong className="text-text-primary font-mono">{filteredProducts.length}</strong> drops available with 60-min express fulfillment
+            Showing <strong className="text-text-primary font-mono">{filteredProducts.length}</strong> curated drops ready for dispatch
           </p>
         </div>
 

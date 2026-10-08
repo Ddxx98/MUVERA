@@ -70,6 +70,22 @@ export const catalogService = {
     return saved;
   },
 
+  async deleteProduct(id: string, actor = 'Catalog Admin'): Promise<boolean> {
+    const existing = await db.getProductById(id);
+    if (!existing) return false;
+    await db.deleteProduct(id);
+
+    await auditService.recordAudit({
+      action: 'PRODUCT_DELETE',
+      entity: 'product',
+      entityId: id,
+      actor,
+      before: existing as any,
+    });
+
+    return true;
+  },
+
   async getCategories(): Promise<string[]> {
     const products = await db.getProducts();
     const categories = new Set(products.map((p) => p.category));

@@ -20,8 +20,8 @@ export function Footer() {
               <Zap className="w-5 h-5 fill-current" />
             </div>
             <div>
-              <h4 className="font-headline font-bold text-text-primary text-sm">60-Min Delivery</h4>
-              <p className="text-[11px] text-text-muted">From Dark Stores in Bengaluru</p>
+              <h4 className="font-headline font-bold text-text-primary text-sm">Express Delivery</h4>
+              <p className="text-[11px] text-text-muted">Fast courier dispatch across India</p>
             </div>
           </div>
 
@@ -74,7 +74,7 @@ export function Footer() {
             </span>
           </Link>
           <p className="text-xs text-text-muted leading-relaxed">
-            Midnight Quick-Glam luxury fashion & streetwear commerce. Engineered for high-speed delivery from dark stores straight to your wardrobe in 60 minutes.
+            Midnight Quick-Glam luxury fashion &amp; streetwear commerce. Engineered for high-speed delivery straight to your wardrobe with express courier shipping.
           </p>
           <a
             href={`https://wa.me/${env.whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent('Hello MUVERA VIP Concierge! I have a question about drops.')}`}
@@ -105,7 +105,7 @@ export function Footer() {
           <ul className="space-y-2 text-xs text-text-muted">
             <li>100% In-House Luxury Design</li>
             <li>Heavyweight Japanese &amp; French Fabrics</li>
-            <li>60-Min Bengaluru Dark Store Dispatch</li>
+            <li>Fast Express Courier Dispatch</li>
             <li>Zero-Risk WhatsApp Concierge Booking</li>
             <li>Limited Edition Numbered Drops</li>
           </ul>

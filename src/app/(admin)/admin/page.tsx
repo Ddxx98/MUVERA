@@ -38,7 +38,7 @@ export default async function AdminDashboardPage() {
         <div>
           <h1 className="font-headline font-black text-2xl sm:text-3xl text-text-primary">Executive Operations Dashboard</h1>
           <p className="text-xs text-text-muted mt-0.5">
-            Real-time telemetry • Indiranagar Hub • 60-Minute Dark Store Operations
+            Real-time telemetry • Indiranagar Hub • Express Dark Store Operations
           </p>
         </div>
 
@@ -80,9 +80,9 @@ export default async function AdminDashboardPage() {
           </div>
           <div className="flex items-baseline gap-2">
             <span className="font-headline font-black text-2xl text-text-primary font-mono">{totalOrders}</span>
-            <span className="text-xs font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">60-Min SLA</span>
+            <span className="text-xs font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">Express SLA</span>
           </div>
-          <p className="text-[11px] text-text-muted">Avg fulfillment speed: 28 mins</p>
+          <p className="text-[11px] text-text-muted">Fast courier fulfillment dispatch</p>
         </div>
 
         {/* Average Order Value (AOV) */}
@@ -153,7 +153,7 @@ export default async function AdminDashboardPage() {
               {pendingWhatsAppOrders.map((o) => (
                 <div
                   key={o.id}
-                  className="p-3.5 rounded-xl bg-surface-raised border border-surface-border flex items-center justify-between gap-4"
+                  className="p-3.5 rounded-xl bg-surface-raised border border-surface-border flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                 >
                   <div>
                     <div className="flex items-center gap-2">
@@ -171,7 +171,7 @@ export default async function AdminDashboardPage() {
                     href={generateAdminCustomerChatUrl(o, 'confirm')}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 transition-all shadow-md flex-shrink-0"
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-2 rounded-full flex items-center justify-center gap-1.5 transition-all shadow-md self-start sm:self-auto"
                   >
                     <MessageCircle className="w-3.5 h-3.5 fill-current" />
                     <span>Open WhatsApp</span>

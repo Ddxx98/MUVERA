@@ -18,7 +18,7 @@ import { SiteSettingsData } from './models/SiteSettings';
 
 export const initialSiteSettings: SiteSettingsData = {
   businessName: 'MUVERA Luxury Streetwear',
-  tagline: '60-Minute Luxury Fashion & Streetwear Commerce',
+  tagline: 'Luxury Fashion & Streetwear Commerce',
   supportEmail: 'support@muvera.club',
   supportPhone: '+91 93809 33170',
   whatsappNumber: '919380933170',
@@ -26,18 +26,29 @@ export const initialSiteSettings: SiteSettingsData = {
   expressDeliveryFeePaise: 9900,
   holdExpiryMinutes: 15,
   returnWindowDays: 7,
-  defaultLocationName: 'Indiranagar Quick-Glam Dark Store Hub (Bengaluru)',
+  defaultLocationName: 'Indiranagar Dark Store Hub (Bengaluru)',
   defaultLocationPincode: '560038',
   businessUpiId: 'muvera.store@upi',
   businessUpiMerchantName: 'MUVERA Luxury Streetwear',
-  topAnnouncementText: '⚡ EXPRESS 60-MINUTES • Dark Stores in Bengaluru • Free Express Shipping above ₹999',
+  topAnnouncementText: '⚡ FAST DISPATCH • Free Express Shipping above ₹999',
   topAnnouncementActive: true,
   blitzDropHeadline: 'MIDNIGHT QUICK-GLAM BLITZ DROPS',
-  blitzDropSubheadline: 'Curated high-street statement pieces ready for dispatch in 60 minutes.',
+  blitzDropSubheadline: 'Curated high-street statement pieces ready for express dispatch.',
   defaultTheme: 'dark',
   upiEnabled: true,
   codEnabled: true,
   razorpayEnabled: false,
+  heroActive: true,
+  heroBackgroundImage: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=1600&auto=format&fit=crop&q=80',
+  heroTagBadge: 'Blitz Drop 04',
+  heroSecondaryBadge: 'Try & Buy Available',
+  heroEyebrow: 'Instant Nightlife Glamour',
+  heroTitleLine1: 'PARTY TONIGHT?',
+  heroTitleLine2: 'EXPRESS STREETWEAR',
+  heroSubtitle: 'Curated luxury streetwear, statement drops & limited club editions delivered with express speed.',
+  heroCtaText: 'Explore Drops',
+  heroCtaLink: '/products',
+  heroDeliveryTicker: 'Dispatches today',
 };
 
 export const initialUsers: UserRecord[] = [
@@ -61,29 +72,6 @@ export const initialUsers: UserRecord[] = [
       },
     ],
     createdAt: '2026-09-01T00:00:00.000Z',
-  },
-  {
-    id: 'user_cust_01',
-    name: 'Rohan Verma',
-    email: 'customer@muvera.club',
-    phone: '9916054321',
-    passwordHash: '4088f0cf82373d1536274478a4f82e8b:a6b0b5148f56afb78ff3ed3e8d0b0e64cdb2c0642d5e00b145170f67c9119e4896898ad83fc236af105184ae351bfa5dcb3ea18fd1ffafef2a1970b6facb2c6f',
-    role: 'customer',
-    loyaltyTier: 'Streetwear Insider',
-    addresses: [
-      {
-        fullName: 'Rohan Verma',
-        phone: '9916054321',
-        street: '12th Main Road, HAL 2nd Stage, Indiranagar',
-        apartment: 'Penthouse 4B',
-        landmark: 'Near Toit Pub',
-        city: 'Bengaluru',
-        state: 'Karnataka',
-        pincode: '560038',
-        isDefault: true,
-      },
-    ],
-    createdAt: '2026-09-15T00:00:00.000Z',
   },
 ];
 
@@ -181,16 +169,47 @@ export const db = {
   async saveProduct(product: Product): Promise<Product> {
     const isConnected = await connectToMongo();
     if (isConnected) {
-      await ProductModel.findOneAndUpdate({ slug: product.slug }, product, { upsert: true, new: true });
+      if (product.id && mongoose.isValidObjectId(product.id)) {
+        await ProductModel.findByIdAndUpdate(product.id, product, { upsert: true, new: true });
+      } else {
+        await ProductModel.findOneAndUpdate({ slug: product.slug }, product, { upsert: true, new: true });
+      }
     }
 
-    const existingIndex = global._muveraDb!.products.findIndex((p) => p.id === product.id);
+    const existingIndex = global._muveraDb!.products.findIndex((p) => p.id === product.id || p.slug === product.slug);
     if (existingIndex >= 0) {
       global._muveraDb!.products[existingIndex] = product;
     } else {
       global._muveraDb!.products.unshift(product);
     }
     return product;
+  },
+
+  async deleteProduct(idOrSlug: string): Promise<boolean> {
+    const isConnected = await connectToMongo();
+    if (isConnected) {
+      let productDoc: any = null;
+      if (mongoose.isValidObjectId(idOrSlug)) {
+        productDoc = await ProductModel.findByIdAndDelete(idOrSlug);
+      } else {
+        productDoc = await ProductModel.findOneAndDelete({ slug: idOrSlug });
+      }
+
+      // Also clean up any associated inventory units
+      if (productDoc && Array.isArray(productDoc.variants)) {
+        const variantIds = productDoc.variants.map((v: any) => v._id?.toString() || v.id);
+        const skus = productDoc.variants.map((v: any) => v.sku);
+        await InventoryModel.deleteMany({
+          $or: [{ variantId: { $in: variantIds } }, { sku: { $in: skus } }],
+        });
+      }
+    }
+
+    const idx = global._muveraDb!.products.findIndex((p) => p.id === idOrSlug || p.slug === idOrSlug);
+    if (idx >= 0) {
+      global._muveraDb!.products.splice(idx, 1);
+    }
+    return true;
   },
 
   // Inventory

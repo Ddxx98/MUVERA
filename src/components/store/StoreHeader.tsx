@@ -13,7 +13,7 @@ export function StoreHeader() {
   const pathname = usePathname();
   const { cart, wishlist, activeLocation, setActiveLocation, setIsCartDrawerOpen } = useStore();
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
-  const [announcement, setAnnouncement] = useState('⚡ EXPRESS 60-MINUTES • Dark Stores in Bengaluru • Free Express Shipping above ₹999');
+  const [announcement, setAnnouncement] = useState('⚡ FAST DISPATCH • Free Express Shipping above ₹999');
   const [announcementActive, setAnnouncementActive] = useState(true);
 
   React.useEffect(() => {
@@ -185,13 +185,13 @@ export function StoreHeader() {
                     <p className="text-xs text-text-muted">{loc.city}</p>
                   </div>
                   <span className="text-xs font-bold text-primary bg-primary/20 px-2 py-0.5 rounded-full">
-                    {loc.expressEtaMinutes <= 60 ? '⚡ 60-MIN EXPRESS' : '2-DAY COURIER'}
+                    {loc.expressEtaMinutes <= 60 ? '⚡ EXPRESS DISPATCH' : 'STANDARD COURIER'}
                   </span>
                 </button>
               ))}
             </div>
             <p className="text-[11px] text-text-muted text-center pt-2">
-              Orders from Indiranagar Hub qualify for 60-Minute lightning dispatch.
+              Orders qualify for rapid courier dispatch and live tracking across India.
             </p>
           </div>
         </div>

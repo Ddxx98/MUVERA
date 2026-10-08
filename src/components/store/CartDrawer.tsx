@@ -109,7 +109,7 @@ export function CartDrawer() {
                   </span>
                 ) : (
                   <span className="text-text-surface">
-                    Add <strong className="text-primary">{formatPaise(amountNeededForFreeShipping)}</strong> more for FREE 60-min delivery
+                    Add <strong className="text-primary">{formatPaise(amountNeededForFreeShipping)}</strong> more for FREE Express Delivery
                   </span>
                 )}
                 <span className="text-text-muted font-mono">{freeShippingProgress}%</span>
@@ -133,7 +133,7 @@ export function CartDrawer() {
                 <div>
                   <h3 className="font-headline font-bold text-lg text-text-primary">Your bag is empty</h3>
                   <p className="text-xs text-text-muted mt-1 max-w-xs">
-                    Explore our latest 60-min drops and party fits to fill your bag.
+                    Explore our latest curated drops and party fits to fill your bag.
                   </p>
                 </div>
                 <Button
@@ -273,7 +273,7 @@ export function CartDrawer() {
                   </div>
                 )}
                 <div className="flex justify-between text-text-muted">
-                  <span>Express 60-Min Delivery</span>
+                  <span>Express Delivery</span>
                   <span className="font-mono text-text-primary font-bold">
                     {delivery === 0 ? <span className="text-primary font-bold">FREE</span> : formatPaise(delivery)}
                   </span>

@@ -23,6 +23,9 @@ import {
   AlertCircle,
   RefreshCw,
   Eye,
+  Edit3,
+  Trash2,
+  ExternalLink,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
@@ -82,6 +85,197 @@ export default function AdminCatalogPage() {
   useEffect(() => {
     loadProducts();
   }, []);
+
+  // Edit Product State
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editBrand, setEditBrand] = useState('MUVERA');
+  const [editCategory, setEditCategory] = useState('Oversized Tees');
+  const [editMrp, setEditMrp] = useState(2999);
+  const [editSellingPrice, setEditSellingPrice] = useState(1799);
+  const [editDescription, setEditDescription] = useState('');
+  const [editFabricDetails, setEditFabricDetails] = useState('');
+  const [editIsBlitzDrop, setEditIsBlitzDrop] = useState(false);
+  const [editIsDealOfTheHour, setEditIsDealOfTheHour] = useState(false);
+  const [editImages, setEditImages] = useState<{ url: string; alt: string; order: number }[]>([]);
+  const [editVariants, setEditVariants] = useState<any[]>([]);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [uploadingEditImages, setUploadingEditImages] = useState(false);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Delete Product State
+  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleOpenEdit = (p: Product) => {
+    setEditingProduct(p);
+    setEditTitle(p.title);
+    setEditBrand(p.brand);
+    setEditCategory(p.category);
+    setEditMrp(p.mrpPaise ? Math.round(p.mrpPaise / 100) : 2999);
+    setEditSellingPrice(p.sellingPricePaise ? Math.round(p.sellingPricePaise / 100) : 1799);
+    setEditDescription(p.description || '');
+    setEditFabricDetails(p.fabricDetails || '');
+    setEditIsBlitzDrop(!!p.isBlitzDrop);
+    setEditIsDealOfTheHour(!!p.isDealOfTheHour);
+    setEditImages(
+      p.images
+        ? p.images.map((img, i) => ({
+            url: img.url,
+            alt: img.alt || p.title,
+            order: typeof img.order === 'number' ? img.order : i,
+          }))
+        : []
+    );
+    setEditVariants(
+      p.variants
+        ? p.variants.map((v) => ({
+            ...v,
+            price: v.pricePaise ? Math.round(v.pricePaise / 100) : Math.round(p.sellingPricePaise / 100),
+            mrp: v.mrpPaise ? Math.round(v.mrpPaise / 100) : Math.round(p.mrpPaise / 100),
+            stock: (v as any).stock ?? 10,
+          }))
+        : []
+    );
+    setEditError('');
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct) return;
+    setSavingEdit(true);
+    setEditError('');
+
+    try {
+      const mrpPaise = Math.round(Number(editMrp) * 100);
+      const sellingPricePaise = Math.round(Number(editSellingPrice) * 100);
+      const discountPercentage =
+        mrpPaise > sellingPricePaise
+          ? Math.round(((mrpPaise - sellingPricePaise) / mrpPaise) * 100)
+          : 0;
+
+      const updatedPayload: Product = {
+        ...editingProduct,
+        title: editTitle,
+        brand: editBrand,
+        brandSlug: editBrand.toLowerCase().replace(/\s+/g, '-'),
+        category: editCategory,
+        categorySlug: editCategory.toLowerCase().replace(/\s+/g, '-'),
+        description: editDescription,
+        fabricDetails: editFabricDetails,
+        mrpPaise,
+        sellingPricePaise,
+        discountPercentage,
+        isBlitzDrop: editIsBlitzDrop,
+        isDealOfTheHour: editIsDealOfTheHour,
+        images:
+          editImages.length > 0
+            ? editImages.map((img, i) => ({
+                url: img.url,
+                alt: img.alt || `${editTitle} view ${i + 1}`,
+                order: typeof img.order === 'number' ? img.order : i,
+              }))
+            : editingProduct.images,
+        variants: editVariants.map((v) => ({
+          ...v,
+          pricePaise: v.price ? Math.round(Number(v.price) * 100) : sellingPricePaise,
+          mrpPaise: v.mrp ? Math.round(Number(v.mrp) * 100) : mrpPaise,
+          stock: typeof v.stock === 'number' ? v.stock : 10,
+        })),
+      };
+
+      const res = await fetch('/api/products', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedPayload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update product');
+
+      // Update state in place
+      setProducts((prev) =>
+        prev.map((item) => (item.id === editingProduct.id ? data.product || updatedPayload : item))
+      );
+      setFeedback(`✅ Product "${editTitle}" updated successfully!`);
+      setTimeout(() => setFeedback(''), 4000);
+      setEditingProduct(null);
+    } catch (err: any) {
+      setEditError(err.message || 'Failed to save product');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleEditImagesUpload = async (files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    if (fileArray.length === 0) return;
+    setUploadingEditImages(true);
+
+    try {
+      const sigRes = await fetch('/api/admin/uploads/sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          folder: 'muvera/products',
+          adminSecret: 'muvera_admin_master_secret_2026',
+        }),
+      });
+      const sig = await sigRes.json();
+      if (!sig.success) throw new Error(sig.error || 'Signature generation failed');
+
+      const uploadPromises = fileArray.map(async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('api_key', sig.apiKey);
+        formData.append('timestamp', String(sig.timestamp));
+        formData.append('signature', sig.signature);
+        formData.append('folder', sig.folder);
+
+        const upRes = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`, {
+          method: 'POST',
+          body: formData,
+        });
+        const d = await upRes.json();
+        return d.secure_url || d.url;
+      });
+
+      const urls = await Promise.all(uploadPromises);
+      const newItems = urls.filter(Boolean).map((url, i) => ({
+        url,
+        alt: `${editTitle} photo`,
+        order: editImages.length + i,
+      }));
+      setEditImages((prev) => [...prev, ...newItems]);
+    } catch (err: any) {
+      setEditError(err.message || 'Image upload failed');
+    } finally {
+      setUploadingEditImages(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingProduct) return;
+    setDeleting(true);
+
+    try {
+      const res = await fetch(`/api/products?id=${deletingProduct.id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete product');
+
+      setProducts((prev) => prev.filter((p) => p.id !== deletingProduct.id));
+      setFeedback(`🗑️ Product "${deletingProduct.title}" deleted permanently!`);
+      setTimeout(() => setFeedback(''), 4000);
+      setDeletingProduct(null);
+    } catch (err: any) {
+      setFeedback(`❌ Delete failed: ${err.message}`);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   // Auto-generate suggested SKU Prefix when title changes
   const handleTitleChange = (val: string) => {
@@ -430,8 +624,96 @@ export default function AdminCatalogPage() {
         />
       </div>
 
-      {/* Products Table */}
-      <div className="rounded-2xl bg-surface-card border border-surface-border overflow-hidden shadow-xl">
+      {/* Mobile Products Card List (Phones & Small Tablets) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:hidden">
+        {filtered.length === 0 ? (
+          <div className="col-span-full p-8 text-center text-text-muted bg-surface-card rounded-2xl border border-surface-border">
+            No products match your search.
+          </div>
+        ) : (
+          filtered.map((p) => (
+            <div
+              key={p.id}
+              className="p-4 rounded-2xl bg-surface-card border border-surface-border space-y-3 shadow-md hover:border-primary/40 transition-colors"
+            >
+              <div className="flex items-start gap-3">
+                <div className="relative w-16 h-20 rounded-xl overflow-hidden bg-surface-raised flex-shrink-0 border border-surface-border">
+                  <Image
+                    src={p.images[0]?.url || 'https://res.cloudinary.com/ha2fbiwt/image/upload/v1/muvera/products/placeholder'}
+                    alt={p.title}
+                    fill
+                    className="object-cover"
+                  />
+                  {p.images && p.images.length > 1 && (
+                    <span className="absolute bottom-0 right-0 bg-black/80 text-[9px] font-bold px-1 rounded-tl text-white">
+                      {p.images.length}
+                    </span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-black uppercase text-primary tracking-wider">{p.brand}</p>
+                  <h3 className="font-headline font-bold text-text-primary text-xs line-clamp-2 leading-tight">
+                    {p.title}
+                  </h3>
+                  <p className="text-[10px] text-text-muted font-mono truncate mt-0.5">{p.slug}</p>
+                  <div className="flex items-baseline gap-2 mt-1.5">
+                    <span className="font-mono font-bold text-xs text-text-primary">
+                      {formatPaise(p.sellingPricePaise)}
+                    </span>
+                    <span className="text-[10px] text-text-muted line-through font-mono">
+                      {formatPaise(p.mrpPaise)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Variant SKUs */}
+              <div className="flex flex-wrap items-center gap-1">
+                <span className="text-[10px] text-text-muted font-bold mr-1">Sizes:</span>
+                {p.variants.map((v) => (
+                  <span
+                    key={v.sku}
+                    className="font-mono text-[9px] font-bold bg-surface-raised px-1.5 py-0.5 rounded border border-surface-border text-text-surface"
+                  >
+                    {v.size}
+                  </span>
+                ))}
+              </div>
+
+              {/* Mobile Actions */}
+              <div className="flex items-center justify-between gap-2 pt-2 border-t border-surface-border">
+                <Link
+                  href={`/product/${p.slug}`}
+                  className="flex-1 text-center py-2 px-2.5 rounded-xl border border-surface-border text-primary hover:bg-primary/10 transition-colors text-xs font-bold inline-flex items-center justify-center gap-1"
+                  target="_blank"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Live</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => handleOpenEdit(p)}
+                  className="flex-1 text-center py-2 px-2.5 rounded-xl border border-surface-border bg-surface-raised text-text-primary hover:border-primary hover:text-primary transition-colors text-xs font-bold inline-flex items-center justify-center gap-1"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Edit</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeletingProduct(p)}
+                  className="p-2 rounded-xl border border-surface-border text-text-muted hover:border-red-500/50 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                  title="Delete Product"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop Products Table (hidden on mobile) */}
+      <div className="hidden md:block rounded-2xl bg-surface-card border border-surface-border overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
             <thead>
@@ -481,9 +763,34 @@ export default function AdminCatalogPage() {
                     </div>
                   </td>
                   <td className="p-4 text-right">
-                    <Link href={`/product/${p.slug}`} className="text-primary hover:underline font-bold text-xs" target="_blank">
-                      View Live
-                    </Link>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Link
+                        href={`/product/${p.slug}`}
+                        className="p-1.5 rounded-lg border border-surface-border text-primary hover:bg-primary/10 transition-colors inline-flex items-center gap-1 text-xs font-bold"
+                        target="_blank"
+                        title="View Live Product Page"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span className="hidden xl:inline">Live</span>
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEdit(p)}
+                        className="p-1.5 rounded-lg border border-surface-border text-text-primary hover:border-primary hover:text-primary transition-colors inline-flex items-center gap-1 text-xs font-bold"
+                        title="Edit Product"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span className="hidden xl:inline">Edit</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeletingProduct(p)}
+                        className="p-1.5 rounded-lg border border-surface-border text-text-muted hover:border-red-500/50 hover:text-red-400 hover:bg-red-500/10 transition-colors inline-flex items-center gap-1 text-xs font-bold"
+                        title="Delete Product"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -1031,6 +1338,354 @@ export default function AdminCatalogPage() {
                 {bulkImporting
                   ? 'Importing into Atlas...'
                   : `Confirm & Import ${bulkRows.length} Products`}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Product Modal */}
+      {editingProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-surface-card border border-surface-border rounded-2xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+            <div className="flex justify-between items-center pb-3 border-b border-surface-border">
+              <div>
+                <h3 className="font-headline font-bold text-base text-text-primary flex items-center gap-2">
+                  <Edit3 className="w-4 h-4 text-primary" />
+                  <span>Edit Product</span>
+                </h3>
+                <p className="text-[11px] font-mono text-text-muted mt-0.5">
+                  ID: {editingProduct.id} • Slug: {editingProduct.slug}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingProduct(null)}
+                className="p-1.5 rounded-full text-text-muted hover:text-text-primary hover:bg-surface-raised transition-colors text-sm"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {editError && (
+              <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{editError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveEdit} className="space-y-4 text-xs">
+              {/* Title */}
+              <div>
+                <label className="font-bold text-text-muted mb-1 block">Product Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full bg-surface-raised border border-surface-border rounded-xl p-2.5 text-text-primary focus:border-primary focus:outline-none font-medium"
+                />
+              </div>
+
+              {/* Brand & Category */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-text-muted mb-1 block">Brand *</label>
+                  <select
+                    value={editBrand}
+                    onChange={(e) => setEditBrand(e.target.value)}
+                    className="w-full bg-surface-raised border border-surface-border rounded-xl p-2.5 text-text-primary focus:border-primary focus:outline-none"
+                  >
+                    {siteConfig.brands.map((b) => (
+                      <option key={b.slug} value={b.name}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="font-bold text-text-muted mb-1 block">Category *</label>
+                  <select
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value)}
+                    className="w-full bg-surface-raised border border-surface-border rounded-xl p-2.5 text-text-primary focus:border-primary focus:outline-none"
+                  >
+                    {siteConfig.categories.map((c) => (
+                      <option key={c.id} value={c.name}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Pricing */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-surface-raised/40 p-3 rounded-xl border border-surface-border">
+                <div>
+                  <label className="font-bold text-text-muted mb-1 block">MRP (₹) *</label>
+                  <input
+                    type="number"
+                    required
+                    min={1}
+                    value={editMrp}
+                    onChange={(e) => setEditMrp(Number(e.target.value))}
+                    className="w-full bg-surface-raised border border-surface-border rounded-xl p-2.5 text-text-primary font-mono focus:border-primary focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-text-muted mb-1 block">Selling Price (₹) *</label>
+                  <input
+                    type="number"
+                    required
+                    min={1}
+                    value={editSellingPrice}
+                    onChange={(e) => setEditSellingPrice(Number(e.target.value))}
+                    className="w-full bg-surface-raised border border-surface-border rounded-xl p-2.5 text-text-primary font-mono focus:border-primary focus:outline-none"
+                  />
+                  {editMrp > editSellingPrice && (
+                    <span className="text-[10px] text-emerald-400 font-bold mt-1 inline-block">
+                      {Math.round(((editMrp - editSellingPrice) / editMrp) * 100)}% Discount applied
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Badges / Highlights */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="flex items-center gap-2 p-3 bg-surface-raised/50 border border-surface-border rounded-xl cursor-pointer hover:border-primary/50 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={editIsBlitzDrop}
+                    onChange={(e) => setEditIsBlitzDrop(e.target.checked)}
+                    className="rounded border-surface-border text-primary focus:ring-0"
+                  />
+                  <div>
+                    <span className="font-bold text-text-primary block text-xs">⚡ Blitz Drop</span>
+                    <span className="text-[10px] text-text-muted">Feature prominently as limited blitz release</span>
+                  </div>
+                </label>
+                <label className="flex items-center gap-2 p-3 bg-surface-raised/50 border border-surface-border rounded-xl cursor-pointer hover:border-primary/50 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={editIsDealOfTheHour}
+                    onChange={(e) => setEditIsDealOfTheHour(e.target.checked)}
+                    className="rounded border-surface-border text-primary focus:ring-0"
+                  />
+                  <div>
+                    <span className="font-bold text-text-primary block text-xs">🔥 Deal of the Hour</span>
+                    <span className="text-[10px] text-text-muted">Showcase in hourly flash sale highlight</span>
+                  </div>
+                </label>
+              </div>
+
+              {/* Description & Fabric */}
+              <div>
+                <label className="font-bold text-text-muted mb-1 block">Description *</label>
+                <textarea
+                  required
+                  rows={3}
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  className="w-full bg-surface-raised border border-surface-border rounded-xl p-2.5 text-text-primary focus:border-primary focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-text-muted mb-1 block">Fabric &amp; Care Details</label>
+                <input
+                  type="text"
+                  value={editFabricDetails}
+                  onChange={(e) => setEditFabricDetails(e.target.value)}
+                  placeholder="e.g. 260 GSM 100% Combed French Terry Cotton • Cold Machine Wash"
+                  className="w-full bg-surface-raised border border-surface-border rounded-xl p-2.5 text-text-primary focus:border-primary focus:outline-none"
+                />
+              </div>
+
+              {/* Product Photos */}
+              <div className="space-y-2 pt-2 border-t border-surface-border">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-text-muted flex items-center gap-1.5">
+                    <Images className="w-3.5 h-3.5 text-primary" />
+                    <span>Product Lookbook Images ({editImages.length})</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      ref={editFileInputRef}
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => e.target.files && handleEditImagesUpload(e.target.files)}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={uploadingEditImages}
+                      onClick={() => editFileInputRef.current?.click()}
+                      className="h-7 text-[11px] gap-1"
+                    >
+                      <Upload className="w-3 h-3" />
+                      <span>{uploadingEditImages ? 'Uploading...' : 'Upload Photos'}</span>
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  {editImages.map((img, idx) => (
+                    <div
+                      key={idx}
+                      className="relative aspect-[3/4] rounded-xl overflow-hidden bg-surface-raised border border-surface-border group"
+                    >
+                      <Image src={img.url} alt={`Photo ${idx + 1}`} fill className="object-cover" />
+                      <div className="absolute top-1 left-1 bg-black/70 text-[9px] font-bold px-1.5 py-0.5 rounded text-white font-mono">
+                        #{idx + 1}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setEditImages((prev) => prev.filter((_, i) => i !== idx))}
+                        className="absolute top-1 right-1 bg-red-600/90 hover:bg-red-600 text-white p-1 rounded-full opacity-80 group-hover:opacity-100 transition-opacity"
+                        title="Remove photo"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Variants & Inventory */}
+              <div className="space-y-2 pt-2 border-t border-surface-border">
+                <label className="font-bold text-text-muted flex items-center gap-1.5">
+                  <Boxes className="w-3.5 h-3.5 text-primary" />
+                  <span>Size Variants &amp; Live Stock</span>
+                </label>
+                <div className="space-y-2">
+                  {editVariants.map((v, index) => (
+                    <div
+                      key={v.sku || index}
+                      className="flex flex-wrap items-center gap-2 p-2.5 bg-surface-raised/40 border border-surface-border rounded-xl"
+                    >
+                      <span className="font-mono font-bold text-xs bg-primary/20 text-primary px-2 py-1 rounded">
+                        {v.size}
+                      </span>
+                      <span className="font-mono text-[11px] text-text-muted flex-1 min-w-[120px]">
+                        {v.sku}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-text-muted">Stock:</span>
+                          <input
+                            type="number"
+                            min={0}
+                            value={v.stock}
+                            onChange={(e) => {
+                              const val = Math.max(0, parseInt(e.target.value) || 0);
+                              setEditVariants((prev) =>
+                                prev.map((item, i) => (i === index ? { ...item, stock: val } : item))
+                              );
+                            }}
+                            className="w-16 bg-surface-raised border border-surface-border rounded-lg px-2 py-1 font-mono text-center text-xs text-text-primary"
+                          />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-text-muted">Price ₹:</span>
+                          <input
+                            type="number"
+                            min={1}
+                            value={v.price}
+                            onChange={(e) => {
+                              const val = Math.max(1, parseInt(e.target.value) || 0);
+                              setEditVariants((prev) =>
+                                prev.map((item, i) => (i === index ? { ...item, price: val } : item))
+                              );
+                            }}
+                            className="w-20 bg-surface-raised border border-surface-border rounded-lg px-2 py-1 font-mono text-center text-xs text-text-primary"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-surface-border">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditingProduct(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={savingEdit}
+                  className="bg-primary text-black font-bold hover:bg-primary/90"
+                >
+                  {savingEdit ? 'Saving Changes...' : 'Save Product Changes'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-surface-card border border-surface-border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-red-400">
+              <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-headline font-bold text-base text-text-primary">Delete Product</h3>
+                <p className="text-xs text-text-muted">This action is permanent and cannot be undone</p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-surface-raised border border-surface-border rounded-xl space-y-2 text-xs">
+              <div className="flex items-center gap-3">
+                <div className="relative w-12 h-14 rounded-lg overflow-hidden bg-black flex-shrink-0 border border-surface-border">
+                  <Image
+                    src={deletingProduct.images[0]?.url || 'https://res.cloudinary.com/ha2fbiwt/image/upload/v1/muvera/products/placeholder'}
+                    alt={deletingProduct.title}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-text-primary truncate">{deletingProduct.title}</p>
+                  <p className="text-text-muted text-[11px]">{deletingProduct.brand} • {deletingProduct.category}</p>
+                  <p className="font-mono text-[10px] text-text-muted truncate mt-0.5">{deletingProduct.slug}</p>
+                </div>
+              </div>
+              <p className="text-text-muted text-[11px] pt-1 border-t border-surface-border/50">
+                Deleting will remove this product and all associated SKU inventory records ({deletingProduct.variants.length} variants) from MongoDB Atlas.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={deleting}
+                onClick={() => setDeletingProduct(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={deleting}
+                onClick={handleConfirmDelete}
+                className="bg-red-600 hover:bg-red-500 text-white font-bold"
+              >
+                {deleting ? 'Deleting...' : 'Yes, Delete Permanently'}
               </Button>
             </div>
           </div>

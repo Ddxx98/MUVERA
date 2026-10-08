@@ -83,7 +83,7 @@ export default function AdminOrdersPage() {
             Order Fulfillment &amp; WhatsApp Desk
           </h1>
           <p className="text-xs text-text-muted mt-0.5">
-            Manage live 60-min express dispatches, payment verification &amp; customer communication
+            Manage live express courier dispatches, payment verification &amp; customer communication
           </p>
         </div>
 
@@ -97,10 +97,10 @@ export default function AdminOrdersPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex bg-surface-card p-1 rounded-full border border-surface-border text-xs font-bold w-fit">
+      <div className="flex bg-surface-card p-1 rounded-full border border-surface-border text-xs font-bold w-full sm:w-fit overflow-x-auto no-scrollbar whitespace-nowrap">
         <button
           onClick={() => setActiveTab('all')}
-          className={`px-4 py-1.5 rounded-full transition-all ${
+          className={`px-4 py-1.5 rounded-full transition-all flex-shrink-0 ${
             activeTab === 'all' ? 'bg-primary text-surface-base shadow-sm' : 'text-text-muted hover:text-text-primary'
           }`}
         >
@@ -108,7 +108,7 @@ export default function AdminOrdersPage() {
         </button>
         <button
           onClick={() => setActiveTab('pending')}
-          className={`px-4 py-1.5 rounded-full transition-all ${
+          className={`px-4 py-1.5 rounded-full transition-all flex-shrink-0 ${
             activeTab === 'pending' ? 'bg-primary text-surface-base shadow-sm' : 'text-text-muted hover:text-text-primary'
           }`}
         >
@@ -116,7 +116,7 @@ export default function AdminOrdersPage() {
         </button>
         <button
           onClick={() => setActiveTab('allocated')}
-          className={`px-4 py-1.5 rounded-full transition-all ${
+          className={`px-4 py-1.5 rounded-full transition-all flex-shrink-0 ${
             activeTab === 'allocated' ? 'bg-primary text-surface-base shadow-sm' : 'text-text-muted hover:text-text-primary'
           }`}
         >
@@ -124,7 +124,7 @@ export default function AdminOrdersPage() {
         </button>
         <button
           onClick={() => setActiveTab('shipped')}
-          className={`px-4 py-1.5 rounded-full transition-all ${
+          className={`px-4 py-1.5 rounded-full transition-all flex-shrink-0 ${
             activeTab === 'shipped' ? 'bg-primary text-surface-base shadow-sm' : 'text-text-muted hover:text-text-primary'
           }`}
         >
@@ -143,11 +143,11 @@ export default function AdminOrdersPage() {
           return (
             <div
               key={order.id}
-              className="p-6 rounded-2xl bg-surface-card border border-surface-border shadow-xl space-y-4"
+              className="p-4 sm:p-6 rounded-2xl bg-surface-card border border-surface-border shadow-xl space-y-4"
             >
               {/* Top Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-surface-border gap-2">
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   <span className="font-headline font-black text-lg text-text-primary">#{order.orderNo}</span>
                   <span className="text-xs font-mono text-text-muted">
                     {new Date(order.createdAt).toLocaleTimeString('en-IN', {
@@ -165,7 +165,7 @@ export default function AdminOrdersPage() {
                   )}
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0">
                   <span className="font-headline font-black text-base text-text-primary font-mono">
                     {formatPaise(order.totalPaise)}
                   </span>
@@ -176,6 +176,7 @@ export default function AdminOrdersPage() {
                     }}
                     variant="outline"
                     size="sm"
+                    className="text-xs"
                   >
                     <Printer className="w-3.5 h-3.5" />
                     <span>Print GST Invoice</span>
@@ -213,7 +214,7 @@ export default function AdminOrdersPage() {
                     <span>Method &amp; Hub</span>
                   </div>
                   <p className="font-bold text-text-primary">
-                    {order.deliveryMethod === 'express_60' ? '⚡ 60-Min Express Drop' : 'Standard Delivery'}
+                    ⚡ Express Courier Delivery
                   </p>
                   <p className="text-emerald-400 font-bold">Payment: {order.paymentStatus.toUpperCase()}</p>
                 </div>
@@ -273,7 +274,7 @@ export default function AdminOrdersPage() {
                   {isPacked && (
                     <Button onClick={() => handleUpdateStatus(order.id, 'shipped')} size="sm">
                       <Truck className="w-3.5 h-3.5" />
-                      <span>Dispatch 60-Min Rider</span>
+                      <span>Dispatch Courier / Rider</span>
                     </Button>
                   )}
 

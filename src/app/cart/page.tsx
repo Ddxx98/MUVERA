@@ -37,7 +37,7 @@ export default function CartPage() {
       <div className="border-b border-surface-border pb-4">
         <h1 className="font-headline font-black text-2xl sm:text-3xl text-text-primary">Your Shopping Bag</h1>
         <p className="text-xs text-text-muted mt-0.5">
-          {cart.reduce((s, i) => s + i.quantity, 0)} items reserved for 60-min express delivery
+          {cart.reduce((s, i) => s + i.quantity, 0)} items in your shopping bag
         </p>
       </div>
 
@@ -154,7 +154,7 @@ export default function CartPage() {
                   </div>
                 )}
                 <div className="flex justify-between text-text-muted">
-                  <span>Express 60-Min Delivery</span>
+                  <span>Express Delivery</span>
                   <span className="font-mono text-text-primary">
                     {delivery === 0 ? <span className="text-primary font-bold">FREE</span> : formatPaise(delivery)}
                   </span>
@@ -175,7 +175,7 @@ export default function CartPage() {
 
               <div className="flex items-center justify-center gap-1.5 text-[11px] text-text-muted text-center pt-2">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>60-Min Express • Doorstep Try &amp; Buy Supported</span>
+                <span>Express Delivery • Doorstep Try &amp; Buy Supported</span>
               </div>
             </div>
           </div>

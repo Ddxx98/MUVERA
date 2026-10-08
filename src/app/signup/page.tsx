@@ -99,7 +99,7 @@ export default function CustomerSignUpPage() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Rohan Verma"
+                placeholder="Your Full Name"
                 className="w-full bg-transparent text-xs text-text-primary font-medium focus:outline-none placeholder:text-text-muted/60"
               />
             </div>
@@ -115,7 +115,7 @@ export default function CustomerSignUpPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="rohan@example.com"
+                placeholder="your.email@example.com"
                 className="w-full bg-transparent text-xs text-text-primary font-medium focus:outline-none placeholder:text-text-muted/60"
               />
             </div>

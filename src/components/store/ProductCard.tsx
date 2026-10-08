@@ -76,13 +76,6 @@ export function ProductCard({ product }: ProductCardProps) {
           />
         </button>
 
-        {/* 60-Min Express Strip on bottom of image */}
-        <div className="absolute bottom-2 left-2 z-10 pointer-events-none">
-          <span className="bg-surface-base/85 backdrop-blur-md px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold text-primary flex items-center gap-1 border border-primary/20 shadow-sm whitespace-nowrap">
-            <Zap className="w-2.5 h-2.5 fill-current" />
-            60-MIN
-          </span>
-        </div>
 
         {/* Quick Size Selector Strip on Hover (Desktop) */}
         <div className="absolute inset-x-2 bottom-2 hidden sm:flex items-center justify-center gap-1 bg-surface-card/95 backdrop-blur-md p-1.5 rounded-xl border border-surface-border opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20 shadow-lg">

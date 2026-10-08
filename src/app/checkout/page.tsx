@@ -45,7 +45,7 @@ export default function CheckoutPage() {
     pincode: '560038',
   });
 
-  const [deliveryMethod, setDeliveryMethod] = useState<'express_60' | 'standard'>('express_60');
+  const [deliveryMethod, setDeliveryMethod] = useState<'express_60' | 'standard'>('standard');
   const [paymentPreference, setPaymentPreference] = useState<'upi_whatsapp' | 'cod_whatsapp'>('upi_whatsapp');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -249,51 +249,22 @@ export default function CheckoutPage() {
               <h2 className="font-headline font-bold text-base text-text-primary">2. Delivery Speed</h2>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <label
-                onClick={() => setDeliveryMethod('express_60')}
-                className={`p-3.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-                  deliveryMethod === 'express_60'
-                    ? 'border-primary bg-primary/10 text-text-primary shadow-gold-glow'
-                    : 'border-surface-border bg-surface-raised text-text-muted hover:border-text-muted'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-4 h-4 rounded-full border border-primary flex items-center justify-center">
-                    {deliveryMethod === 'express_60' && <div className="w-2 h-2 rounded-full bg-primary" />}
-                  </div>
-                  <div>
-                    <p className="font-bold text-xs text-text-primary flex items-center gap-1">
-                      <Zap className="w-3.5 h-3.5 text-primary fill-current" />
-                      60-Minute Express
-                    </p>
-                    <p className="text-[11px] text-text-muted">Indiranagar Dark Store Hub</p>
-                  </div>
+            <div className="p-3.5 rounded-xl border border-primary bg-primary/10 text-text-primary shadow-gold-glow flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-4 h-4 rounded-full border border-primary flex items-center justify-center">
+                  <div className="w-2 h-2 rounded-full bg-primary" />
                 </div>
-                <span className="text-xs font-bold text-primary">
-                  {delivery === 0 ? 'FREE' : formatPaise(delivery)}
-                </span>
-              </label>
-
-              <label
-                onClick={() => setDeliveryMethod('standard')}
-                className={`p-3.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-                  deliveryMethod === 'standard'
-                    ? 'border-primary bg-primary/10 text-text-primary shadow-gold-glow'
-                    : 'border-surface-border bg-surface-raised text-text-muted hover:border-text-muted'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-4 h-4 rounded-full border border-primary flex items-center justify-center">
-                    {deliveryMethod === 'standard' && <div className="w-2 h-2 rounded-full bg-primary" />}
-                  </div>
-                  <div>
-                    <p className="font-bold text-xs text-text-primary">Standard Courier</p>
-                    <p className="text-[11px] text-text-muted">2-3 Business Days</p>
-                  </div>
+                <div>
+                  <p className="font-bold text-xs text-text-primary flex items-center gap-1">
+                    <Truck className="w-3.5 h-3.5 text-primary" />
+                    Express Courier Delivery
+                  </p>
+                  <p className="text-[11px] text-text-muted">Fast Doorstep Dispatch Across India • 2-4 Business Days</p>
                 </div>
-                <span className="text-xs font-bold text-text-muted">FREE</span>
-              </label>
+              </div>
+              <span className="text-xs font-bold text-primary">
+                {delivery === 0 ? 'FREE' : formatPaise(delivery)}
+              </span>
             </div>
           </div>
 

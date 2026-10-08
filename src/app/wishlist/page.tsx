@@ -1,18 +1,32 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useStore } from '@/lib/store-context';
-import { initialProducts } from '@/lib/seed-data';
+import { Product } from '@/lib/types';
 import { formatPaise } from '@/lib/money';
 import { Heart, Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 export default function WishlistPage() {
   const { wishlist, toggleWishlist, addToCart } = useStore();
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const savedProducts = initialProducts.filter((p) => wishlist.includes(p.id));
+  useEffect(() => {
+    fetch('/api/products')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.products) {
+          setAllProducts(data.products);
+        }
+      })
+      .catch((err) => console.error('Failed to load products for wishlist:', err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const savedProducts = allProducts.filter((p) => wishlist.includes(p.id));
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
@@ -33,7 +47,7 @@ export default function WishlistPage() {
           <div>
             <h3 className="font-headline font-bold text-lg text-text-primary">Your wishlist is empty</h3>
             <p className="text-xs text-text-muted mt-1">
-              Explore our latest 60-min drops and tap the heart icon on any fit you want to save.
+              Explore our latest curated drops and tap the heart icon on any fit you want to save.
             </p>
           </div>
           <Link
@@ -56,7 +70,7 @@ export default function WishlistPage() {
               >
                 <div className="relative aspect-[3/4] w-full bg-surface-raised">
                   <Image
-                    src={product.images[0]?.url}
+                    src={product.images[0]?.url || 'https://res.cloudinary.com/ha2fbiwt/image/upload/v1/muvera/products/placeholder'}
                     alt={product.title}
                     fill
                     className="object-cover object-center group-hover:scale-105 transition-transform duration-300"
@@ -79,7 +93,7 @@ export default function WishlistPage() {
                   </div>
 
                   <Button
-                    onClick={() => addToCart(product, defaultVariant, 1)}
+                    onClick={() => defaultVariant && addToCart(product, defaultVariant, 1)}
                     size="sm"
                     fullWidth
                   >
