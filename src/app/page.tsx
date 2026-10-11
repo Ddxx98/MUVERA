@@ -43,33 +43,34 @@ export default async function HomePage() {
       {/* 1. Hero Drop Banner (Theatrical Midnight Glamour) */}
       {isHeroActive && (
         <section className="max-w-7xl mx-auto px-3 sm:px-4 pt-2">
-          <div className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-surface-raised shadow-2xl border border-surface-border">
-            <div className="relative min-h-[440px] sm:min-h-[480px] md:h-[500px] w-full flex flex-col justify-between p-5 sm:p-10">
-              {/* Background Image with Dark Glamour Gradients */}
+          <div className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-zinc-950 shadow-2xl border border-zinc-800">
+            <div className="relative min-h-[440px] sm:min-h-[480px] md:h-[520px] w-full flex flex-col justify-between p-6 sm:p-10 md:p-12">
+              {/* Background Image with Cinematic Editorial Gradients */}
               <Image
                 src={heroImage}
                 alt="MUVERA Midnight Glamour Editorial"
                 fill
                 priority
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 90vw, 1200px"
-                quality={80}
-                className="object-cover object-right sm:object-center"
+                quality={85}
+                className="object-cover object-right md:object-center"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-surface-base via-surface-base/80 sm:via-surface-base/60 to-surface-base/20 sm:to-transparent" />
-              <div className="absolute inset-0 bg-gradient-to-r from-surface-base/95 via-surface-base/70 sm:via-surface-base/40 to-transparent" />
+              {/* Fixed dark cinematic vignette so text remains razor-sharp without washing out in light mode */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent sm:via-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/55 to-transparent sm:w-3/4 md:w-3/5" />
 
               {/* Top Tag Pills */}
               <div className="relative z-10 flex items-center justify-between w-full gap-2">
                 {heroTagBadge && (
-                  <div className="flex items-center gap-1.5 bg-secondary/90 backdrop-blur-md px-2.5 sm:px-3 py-1 rounded-full shadow-md shrink-0">
-                    <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
+                  <div className="flex items-center gap-1.5 bg-red-600/90 backdrop-blur-md px-3 py-1 rounded-full shadow-md shrink-0">
+                    <span className="w-2 h-2 rounded-full bg-amber-300 animate-ping" />
                     <span className="text-[10px] sm:text-[11px] font-black uppercase text-white tracking-wider">
                       {heroTagBadge}
                     </span>
                   </div>
                 )}
                 {heroSecondaryBadge && (
-                  <span className="bg-surface-base/80 backdrop-blur-md text-primary text-[10px] sm:text-[11px] font-bold px-2.5 sm:px-3 py-1 rounded-full border border-primary/30 flex items-center gap-1 shrink-0 ml-auto">
+                  <span className="bg-black/60 backdrop-blur-md text-amber-300 text-[10px] sm:text-[11px] font-bold px-3 py-1 rounded-full border border-amber-400/30 flex items-center gap-1 shrink-0 ml-auto">
                     <Sparkles className="w-3.5 h-3.5" />
                     {heroSecondaryBadge}
                   </span>
@@ -77,34 +78,34 @@ export default async function HomePage() {
               </div>
 
               {/* Hero Headlines & CTA */}
-              <div className="relative z-10 max-w-xl space-y-2.5 sm:space-y-3 mt-auto pt-6">
+              <div className="relative z-10 max-w-xl space-y-3 mt-auto pt-6">
                 {heroEyebrow && (
-                  <span className="text-[11px] sm:text-xs font-headline font-black text-primary uppercase tracking-widest flex items-center gap-1.5">
-                    <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current text-primary" />
+                  <span className="text-[11px] sm:text-xs font-headline font-black text-amber-400 uppercase tracking-widest flex items-center gap-1.5 drop-shadow">
+                    <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current text-amber-400" />
                     {heroEyebrow}
                   </span>
                 )}
-                <h1 className="font-headline font-black text-2xl sm:text-4xl md:text-5xl text-text-primary leading-[1.15] drop-shadow-md">
+                <h1 className="font-headline font-black text-2xl sm:text-4xl md:text-5xl text-white leading-[1.12] drop-shadow-lg">
                   {heroTitleLine1}<br />
-                  <span className="text-primary">{heroTitleLine2}</span>
+                  <span className="text-amber-400 drop-shadow">{heroTitleLine2}</span>
                 </h1>
                 {heroSubtitle && (
-                  <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed line-clamp-3 sm:line-clamp-none max-w-md">
+                  <p className="text-xs sm:text-sm text-zinc-200 leading-relaxed line-clamp-3 sm:line-clamp-none max-w-md drop-shadow">
                     {heroSubtitle}
                   </p>
                 )}
 
-                <div className="flex flex-wrap items-center gap-3 pt-1 sm:pt-2">
+                <div className="flex flex-wrap items-center gap-3 pt-2">
                   <Link
                     href={heroCtaLink}
-                    className="bg-primary hover:bg-primary-hover text-white dark:text-slate-950 px-5 sm:px-6 py-2.5 sm:py-3 rounded-full font-headline font-black text-xs sm:text-sm flex items-center gap-2 shadow-[0_4px_24px_rgba(250,204,21,0.35)] transition-all active:scale-95 shrink-0"
+                    className="bg-amber-400 hover:bg-amber-300 text-black px-6 py-3 rounded-full font-headline font-black text-xs sm:text-sm flex items-center gap-2 shadow-[0_4px_24px_rgba(251,191,36,0.4)] transition-all active:scale-95 shrink-0"
                   >
                     <span>{heroCtaText}</span>
                     <ArrowRight className="w-4 h-4" />
                   </Link>
                   {heroDeliveryTicker && (
-                    <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-zinc-300 font-medium">
-                      <Timer className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary shrink-0" />
+                    <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-zinc-200 font-medium drop-shadow">
+                      <Timer className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
                       <span>{heroDeliveryTicker}</span>
                     </div>
                   )}
