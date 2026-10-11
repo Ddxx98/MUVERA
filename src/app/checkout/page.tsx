@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useStore } from '@/lib/store-context';
@@ -19,6 +19,8 @@ import {
   Truck,
   ArrowRight,
   Info,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
@@ -49,6 +51,43 @@ export default function CheckoutPage() {
   const [paymentPreference, setPaymentPreference] = useState<'upi_whatsapp' | 'cod_whatsapp'>('upi_whatsapp');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Dynamic Live Payment & WhatsApp variables from Admin Settings (MongoDB)
+  const [businessUpiId, setBusinessUpiId] = useState<string>(env.businessUpiId || 'muvera.store@upi');
+  const [businessUpiMerchantName, setBusinessUpiMerchantName] = useState<string>(env.businessName || 'MUVERA Luxury Streetwear');
+  const [businessWhatsAppNumber, setBusinessWhatsAppNumber] = useState<string>(env.whatsappNumber || '919380933170');
+  const [copiedUpi, setCopiedUpi] = useState<boolean>(false);
+
+  useEffect(() => {
+    async function loadLiveSiteSettings() {
+      try {
+        const res = await fetch('/api/settings');
+        const data = await res.json();
+        if (data?.settings) {
+          if (data.settings.businessUpiId && data.settings.businessUpiId.trim()) {
+            setBusinessUpiId(data.settings.businessUpiId.trim());
+          }
+          if (data.settings.businessUpiMerchantName && data.settings.businessUpiMerchantName.trim()) {
+            setBusinessUpiMerchantName(data.settings.businessUpiMerchantName.trim());
+          }
+          if (data.settings.whatsappNumber) {
+            setBusinessWhatsAppNumber(data.settings.whatsappNumber.replace(/\D/g, ''));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load live settings for checkout:', err);
+      }
+    }
+    loadLiveSiteSettings();
+  }, []);
+
+  const handleCopyUpi = () => {
+    if (typeof navigator !== 'undefined' && businessUpiId) {
+      navigator.clipboard.writeText(businessUpiId);
+      setCopiedUpi(true);
+      setTimeout(() => setCopiedUpi(false), 2000);
+    }
+  };
+
   const subtotal = getCartSubtotalPaise();
   const discount = getDiscountPaise();
   const delivery = getDeliveryFeePaise();
@@ -57,8 +96,8 @@ export default function CheckoutPage() {
 
   // Generate a random temporary order number
   const tempOrderNo = `MUV-${Math.floor(1000 + Math.random() * 9000)}`;
-  const qrUrl = generateUpiQrCodeUrl(amountRupees, tempOrderNo);
-  const upiIntentUrl = generateUpiPaymentUrl(amountRupees, tempOrderNo);
+  const qrUrl = generateUpiQrCodeUrl(amountRupees, tempOrderNo, businessUpiId, businessUpiMerchantName);
+  const upiIntentUrl = generateUpiPaymentUrl(amountRupees, tempOrderNo, businessUpiId, businessUpiMerchantName);
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,8 +148,8 @@ export default function CheckoutPage() {
       const data = await res.json();
       const savedOrder: OrderSnapshot = data.order || { ...orderPayload, id: `ord_${Date.now()}` };
 
-      // Build WhatsApp deep link URL
-      const whatsappUrl = generateWhatsAppOrderUrl(savedOrder);
+      // Build WhatsApp deep link URL with dynamic live settings
+      const whatsappUrl = generateWhatsAppOrderUrl(savedOrder, businessWhatsAppNumber, businessUpiMerchantName);
 
       // Open WhatsApp in a new window/tab
       if (typeof window !== 'undefined') {
@@ -325,15 +364,37 @@ export default function CheckoutPage() {
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <p className="text-xs font-mono font-bold text-primary">
-                    UPI ID: {env.businessUpiId}
-                  </p>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="flex items-center gap-2 bg-surface-card px-3.5 py-1.5 rounded-full border border-surface-border">
+                    <span className="text-xs font-mono font-bold text-primary select-all">
+                      {businessUpiId}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleCopyUpi}
+                      className="p-1 hover:text-primary transition-colors text-text-muted text-[11px] flex items-center gap-1 font-sans font-bold"
+                      title="Copy UPI ID"
+                    >
+                      {copiedUpi ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="text-emerald-400">Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Copy</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
                   <a
                     href={upiIntentUrl}
-                    className="inline-block sm:hidden text-xs text-primary underline font-bold"
+                    className="inline-flex sm:hidden items-center gap-1.5 text-xs text-primary bg-primary/10 border border-primary/30 px-3.5 py-1.5 rounded-full font-bold shadow-sm"
                   >
-                    Tap to Open UPI App directly
+                    <Zap className="w-3.5 h-3.5" />
+                    <span>Tap to Pay with any UPI App</span>
                   </a>
                 </div>
 

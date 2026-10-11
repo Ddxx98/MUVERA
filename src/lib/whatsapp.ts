@@ -5,8 +5,9 @@ import { env } from '@/config/env';
 /**
  * Generates an automated WhatsApp booking deep link with structured order details.
  */
-export function generateWhatsAppOrderUrl(order: OrderSnapshot): string {
-  const cleanPhone = env.whatsappNumber.replace(/\D/g, '');
+export function generateWhatsAppOrderUrl(order: OrderSnapshot, customPhone?: string, customBusinessName?: string): string {
+  const cleanPhone = (customPhone || env.whatsappNumber).replace(/\D/g, '');
+  const bizName = (customBusinessName || env.businessName).toUpperCase();
 
   const itemsList = order.items
     .map(
@@ -16,7 +17,7 @@ export function generateWhatsAppOrderUrl(order: OrderSnapshot): string {
     .join('\n\n');
 
   const lines = [
-    `🛍️ *NEW ORDER BOOKING — ${env.businessName.toUpperCase()}*`,
+    `🛍️ *NEW ORDER BOOKING — ${bizName}*`,
     `━━━━━━━━━━━━━━━━━━━━━━`,
     `🧾 *Order ID:* #${order.orderNo}`,
     `📅 *Date:* ${new Date(order.createdAt).toLocaleDateString('en-IN', { dateStyle: 'medium' })}`,
