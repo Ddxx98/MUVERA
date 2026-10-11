@@ -42,32 +42,32 @@ export default async function HomePage() {
     <div className="pb-16 space-y-8">
       {/* 1. Hero Drop Banner (Theatrical Midnight Glamour) */}
       {isHeroActive && (
-        <section className="max-w-7xl mx-auto px-4 pt-2">
+        <section className="max-w-7xl mx-auto px-3 sm:px-4 pt-2">
           <div className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-surface-raised shadow-2xl border border-surface-border">
-            <div className="relative h-[380px] sm:h-[460px] w-full flex flex-col justify-between p-6 sm:p-10">
+            <div className="relative min-h-[440px] sm:min-h-[480px] md:h-[500px] w-full flex flex-col justify-between p-5 sm:p-10">
               {/* Background Image with Dark Glamour Gradients */}
               <Image
                 src={heroImage}
                 alt="MUVERA Midnight Glamour Editorial"
                 fill
                 priority
-                className="object-cover object-center"
+                className="object-cover object-right sm:object-center"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-surface-base via-surface-base/60 to-transparent" />
-              <div className="absolute inset-0 bg-gradient-to-r from-surface-base/90 via-surface-base/40 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-surface-base via-surface-base/80 sm:via-surface-base/60 to-surface-base/20 sm:to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-r from-surface-base/95 via-surface-base/70 sm:via-surface-base/40 to-transparent" />
 
               {/* Top Tag Pills */}
-              <div className="relative z-10 flex items-center justify-between w-full flex-wrap gap-2">
+              <div className="relative z-10 flex items-center justify-between w-full gap-2">
                 {heroTagBadge && (
-                  <div className="flex items-center gap-1.5 bg-secondary/90 backdrop-blur-md px-3 py-1 rounded-full shadow-md">
+                  <div className="flex items-center gap-1.5 bg-secondary/90 backdrop-blur-md px-2.5 sm:px-3 py-1 rounded-full shadow-md shrink-0">
                     <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
-                    <span className="text-[11px] font-black uppercase text-white tracking-wider">
+                    <span className="text-[10px] sm:text-[11px] font-black uppercase text-white tracking-wider">
                       {heroTagBadge}
                     </span>
                   </div>
                 )}
                 {heroSecondaryBadge && (
-                  <span className="bg-surface-base/80 backdrop-blur-md text-primary text-[11px] font-bold px-3 py-1 rounded-full border border-primary/30 flex items-center gap-1">
+                  <span className="bg-surface-base/80 backdrop-blur-md text-primary text-[10px] sm:text-[11px] font-bold px-2.5 sm:px-3 py-1 rounded-full border border-primary/30 flex items-center gap-1 shrink-0 ml-auto">
                     <Sparkles className="w-3.5 h-3.5" />
                     {heroSecondaryBadge}
                   </span>
@@ -75,34 +75,34 @@ export default async function HomePage() {
               </div>
 
               {/* Hero Headlines & CTA */}
-              <div className="relative z-10 max-w-xl space-y-3 mt-auto">
+              <div className="relative z-10 max-w-xl space-y-2.5 sm:space-y-3 mt-auto pt-6">
                 {heroEyebrow && (
-                  <span className="text-xs font-headline font-black text-primary uppercase tracking-widest flex items-center gap-1.5">
-                    <Zap className="w-4 h-4 fill-current text-primary" />
+                  <span className="text-[11px] sm:text-xs font-headline font-black text-primary uppercase tracking-widest flex items-center gap-1.5">
+                    <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current text-primary" />
                     {heroEyebrow}
                   </span>
                 )}
-                <h1 className="font-headline font-black text-3xl sm:text-5xl text-text-primary leading-tight drop-shadow-md">
+                <h1 className="font-headline font-black text-2xl sm:text-4xl md:text-5xl text-text-primary leading-[1.15] drop-shadow-md">
                   {heroTitleLine1}<br />
                   <span className="text-primary">{heroTitleLine2}</span>
                 </h1>
                 {heroSubtitle && (
-                  <p className="text-xs sm:text-sm text-text-muted leading-relaxed">
+                  <p className="text-xs sm:text-sm text-text-muted leading-relaxed line-clamp-3 sm:line-clamp-none max-w-md">
                     {heroSubtitle}
                   </p>
                 )}
 
-                <div className="flex items-center gap-4 pt-2">
+                <div className="flex flex-wrap items-center gap-3 pt-1 sm:pt-2">
                   <Link
                     href={heroCtaLink}
-                    className="bg-primary hover:bg-primary-hover text-surface-base px-6 py-3 rounded-full font-headline font-black text-xs sm:text-sm flex items-center gap-2 shadow-[0_4px_24px_rgba(250,204,21,0.35)] transition-all active:scale-95"
+                    className="bg-primary hover:bg-primary-hover text-surface-base px-5 sm:px-6 py-2.5 sm:py-3 rounded-full font-headline font-black text-xs sm:text-sm flex items-center gap-2 shadow-[0_4px_24px_rgba(250,204,21,0.35)] transition-all active:scale-95 shrink-0"
                   >
                     <span>{heroCtaText}</span>
                     <ArrowRight className="w-4 h-4" />
                   </Link>
                   {heroDeliveryTicker && (
-                    <div className="flex items-center gap-1.5 text-xs text-text-muted">
-                      <Timer className="w-4 h-4 text-primary" />
+                    <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-text-muted font-medium">
+                      <Timer className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary shrink-0" />
                       <span>{heroDeliveryTicker}</span>
                     </div>
                   )}
