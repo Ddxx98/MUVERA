@@ -5,7 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useStore } from '@/lib/store-context';
-import { Search, Heart, ShoppingBag, MapPin, Zap, ChevronDown, ShieldCheck, User } from 'lucide-react';
+import { Search, Heart, ShoppingBag, MapPin, Zap, ChevronDown, ShieldCheck, User, LogOut } from 'lucide-react';
+import { getCurrentUserAction, logoutAction } from '@/modules/auth/actions';
 import { siteConfig } from '@/config/site';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
@@ -15,6 +16,8 @@ export function StoreHeader() {
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [announcement, setAnnouncement] = useState('⚡ FAST DISPATCH • Free Express Shipping above ₹999');
   const [announcementActive, setAnnouncementActive] = useState(true);
+
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   React.useEffect(() => {
     fetch('/api/settings')
@@ -27,6 +30,16 @@ export function StoreHeader() {
       })
       .catch(() => {});
   }, []);
+
+  React.useEffect(() => {
+    getCurrentUserAction().then((u) => setCurrentUser(u)).catch(() => {});
+  }, [pathname]);
+
+  const handleStoreLogout = async () => {
+    await logoutAction();
+    setCurrentUser(null);
+    window.location.href = '/login';
+  };
 
   if (pathname.startsWith('/admin')) return null;
 
@@ -100,15 +113,6 @@ export function StoreHeader() {
               <Search className="w-4 h-4" />
             </Link>
 
-            {/* Admin Portal Shortcut */}
-            <Link
-              href="/admin"
-              className="hidden lg:flex items-center gap-1 text-xs font-bold text-text-muted hover:text-primary px-2.5 py-1 rounded-full border border-surface-border hover:border-primary/50 transition-colors"
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Admin</span>
-            </Link>
-
             {/* Wishlist Link */}
             <Link
               href="/wishlist"
@@ -142,10 +146,24 @@ export function StoreHeader() {
             <Link
               href="/account"
               aria-label="Account"
-              className="w-9 h-9 flex items-center justify-center rounded-full text-text-surface hover:bg-surface-raised"
+              className="w-9 h-9 flex items-center justify-center rounded-full text-text-surface hover:bg-surface-raised transition-colors"
+              title={currentUser ? `Signed in as ${currentUser.name}` : 'My Account'}
             >
               <User className="w-4 h-4" />
             </Link>
+
+            {/* Sign Out (Visible when logged in) */}
+            {currentUser && (
+              <button
+                type="button"
+                onClick={handleStoreLogout}
+                aria-label="Sign Out"
+                className="w-9 h-9 flex items-center justify-center rounded-full text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                title="Sign Out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
       </header>

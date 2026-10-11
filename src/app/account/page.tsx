@@ -93,35 +93,6 @@ export default function AccountPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-      {/* Admin Executive Launch Banner (if role === 'admin') */}
-      {isAdmin && (
-        <div className="p-5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-primary/10 to-surface-card border border-primary/40 shadow-gold-glow flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3 text-center sm:text-left">
-            <div className="w-10 h-10 rounded-xl bg-primary text-surface-base font-black flex items-center justify-center flex-shrink-0">
-              <Crown className="w-5 h-5 fill-current" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 justify-center sm:justify-start">
-                <h2 className="font-headline font-black text-base text-text-primary">Executive Admin Privileges Active</h2>
-                <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-primary text-surface-base">
-                  MASTER ACCESS
-                </span>
-              </div>
-              <p className="text-xs text-text-muted mt-0.5">
-                Full control over real-time inventory, dark store routing, orders, and dynamic site CMS variables.
-              </p>
-            </div>
-          </div>
-
-          <Link
-            href="/admin"
-            className="flex-shrink-0 px-5 py-2.5 rounded-xl bg-primary text-surface-base font-black text-xs hover:bg-[#FDE047] transition-all flex items-center gap-1.5 shadow-md"
-          >
-            <span>Open Admin Portal</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-      )}
 
       {/* Profile Overview Card */}
       <div className="p-6 rounded-3xl bg-surface-card border border-surface-border shadow-xl flex flex-col sm:flex-row items-center gap-6 justify-between">
@@ -188,35 +159,17 @@ export default function AccountPage() {
           <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-primary transition-colors" />
         </Link>
 
-        {isAdmin ? (
-          <Link
-            href="/admin/settings"
-            className="p-5 rounded-2xl bg-surface-card border border-surface-border hover:border-primary/40 transition-all flex items-center justify-between group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
-                <SlidersHorizontal className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-headline font-bold text-sm text-text-primary">Site Variables CMS</h3>
-                <p className="text-[11px] text-text-muted">Dynamic site settings</p>
-              </div>
+        <div className="p-5 rounded-2xl bg-surface-card border border-surface-border flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+              <ShieldCheck className="w-5 h-5" />
             </div>
-            <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-primary transition-colors" />
-          </Link>
-        ) : (
-          <div className="p-5 rounded-2xl bg-surface-card border border-surface-border flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-headline font-bold text-sm text-text-primary">VIP Member Status</h3>
-                <p className="text-[11px] text-text-muted">Free returns &amp; 60m SLA</p>
-              </div>
+            <div>
+              <h3 className="font-headline font-bold text-sm text-text-primary">VIP Member Status</h3>
+              <p className="text-[11px] text-text-muted">Free returns &amp; Express SLA</p>
             </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Saved Addresses Section */}

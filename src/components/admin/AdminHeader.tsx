@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Menu } from 'lucide-react';
+import { Menu, LogOut } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { logoutAction } from '@/modules/auth/actions';
 
 interface AdminHeaderProps {
   user?: {
@@ -23,6 +24,11 @@ export function AdminHeader({ user, onMenuToggle }: AdminHeaderProps) {
     .slice(0, 2)
     .map((w) => w[0].toUpperCase())
     .join('') || 'AD';
+
+  const handleLogout = async () => {
+    await logoutAction();
+    window.location.href = '/login';
+  };
 
   return (
     <header className="h-16 bg-surface-base border-b border-surface-border px-3 sm:px-6 flex items-center justify-between sticky top-0 z-30">
@@ -46,13 +52,13 @@ export function AdminHeader({ user, onMenuToggle }: AdminHeaderProps) {
         </span>
       </div>
 
-      {/* Right: Admin Profile & Theme Toggle */}
-      <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+      {/* Right: Admin Profile, Theme Toggle & Logout */}
+      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
         <ThemeToggle />
         <div className="text-right hidden sm:block">
           <div className="flex items-center justify-end gap-1.5">
             <p className="text-xs font-bold text-text-primary truncate max-w-[140px]">{displayName}</p>
-            <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-primary/10 text-primary border border-primary/20">
+            <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
               {user?.role || 'Admin'}
             </span>
           </div>
@@ -61,6 +67,17 @@ export function AdminHeader({ user, onMenuToggle }: AdminHeaderProps) {
         <div className="w-8 h-8 rounded-full bg-primary text-surface-base font-black text-xs flex items-center justify-center shadow-gold-glow flex-shrink-0">
           {initials}
         </div>
+
+        {/* Logout Button */}
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-500/10 text-xs font-bold transition-all ml-1 shadow-sm"
+          title="Sign Out of Admin"
+        >
+          <LogOut className="w-3.5 h-3.5 text-red-400" />
+          <span className="hidden sm:inline">Logout</span>
+        </button>
       </div>
     </header>
   );

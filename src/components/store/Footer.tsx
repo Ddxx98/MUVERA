@@ -111,14 +111,14 @@ export function Footer() {
           </ul>
         </div>
 
-        {/* Admin & System */}
+        {/* Customer Care & Services */}
         <div>
-          <h4 className="font-headline font-bold text-text-primary text-sm mb-3 uppercase tracking-wider">Company & Staff</h4>
-          <ul className="space-y-2 text-xs">
-            <li><Link href="/admin" className="hover:text-primary transition-colors">Executive Admin Portal</Link></li>
-            <li><Link href="/admin/inventory" className="hover:text-primary transition-colors">Dark Store Inventory</Link></li>
-            <li><Link href="/admin/orders" className="hover:text-primary transition-colors">WhatsApp Order Queue</Link></li>
-            <li><Link href="/account" className="hover:text-primary transition-colors">Customer Profile & Orders</Link></li>
+          <h4 className="font-headline font-bold text-text-primary text-sm mb-3 uppercase tracking-wider">Customer Care</h4>
+          <ul className="space-y-2 text-xs text-text-muted">
+            <li><Link href="/account" className="hover:text-primary transition-colors">My Profile &amp; Preferences</Link></li>
+            <li><Link href="/account/orders" className="hover:text-primary transition-colors">Orders &amp; Tracking</Link></li>
+            <li><Link href="/wishlist" className="hover:text-primary transition-colors">Saved Fits &amp; Wishlist</Link></li>
+            <li><Link href="/categories" className="hover:text-primary transition-colors">Browse All Collections</Link></li>
           </ul>
         </div>
       </div>

@@ -16,7 +16,9 @@ import {
   SlidersHorizontal,
   ArrowLeft,
   X,
+  LogOut,
 } from 'lucide-react';
+import { logoutAction } from '@/modules/auth/actions';
 
 interface AdminSidebarProps {
   isOpen?: boolean;
@@ -111,8 +113,8 @@ export function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
           </nav>
         </div>
 
-        {/* Exit to Storefront */}
-        <div className="p-4 border-t border-surface-border">
+        {/* Exit to Storefront & Logout */}
+        <div className="p-4 border-t border-surface-border space-y-2">
           <Link
             href="/"
             onClick={() => onClose?.()}
@@ -121,6 +123,19 @@ export function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
             <ArrowLeft className="w-4 h-4" />
             <span>Exit to Storefront</span>
           </Link>
+
+          <button
+            type="button"
+            onClick={async () => {
+              onClose?.();
+              await logoutAction();
+              window.location.href = '/login';
+            }}
+            className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-500/10 text-xs font-bold transition-all shadow-sm"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Sign Out</span>
+          </button>
         </div>
       </aside>
     </>
