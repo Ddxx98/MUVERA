@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 import { db } from '@/lib/db';
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://muvera.in';
+const baseUrl = 'https://muvera.in';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [products, categories] = await Promise.all([
