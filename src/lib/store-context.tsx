@@ -31,7 +31,7 @@ const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [wishlist, setWishlist] = useState<string[]>(['prod_muv_01', 'prod_sni_02']);
+  const [wishlist, setWishlist] = useState<string[]>([]);
   const [activeLocation, setActiveLocation] = useState<string>(env.defaultLocation);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
@@ -44,7 +44,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (savedCart) setCart(JSON.parse(savedCart));
 
       const savedWishlist = localStorage.getItem('muvera_wishlist');
-      if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
+      if (savedWishlist) {
+        const parsed = JSON.parse(savedWishlist);
+        if (Array.isArray(parsed)) {
+          // Remove legacy prototype dummy IDs
+          const cleaned = parsed.filter((id) => id !== 'prod_muv_01' && id !== 'prod_sni_02');
+          setWishlist(cleaned);
+        }
+      }
     } catch {
       // Ignore in SSR
     }
