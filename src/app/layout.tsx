@@ -176,18 +176,15 @@ export default function RootLayout({
   return (
     <html lang="en" className={`dark ${outfit.variable} ${plusJakartaSans.variable}`} suppressHydrationWarning>
       <head>
-        <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href="https://res.cloudinary.com" />
-        <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href="https://images.unsplash.com" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
               try {
                 var stored = localStorage.getItem('muvera_theme');
-                var theme = stored || 'dark';
-                document.documentElement.classList.remove('light', 'dark');
-                document.documentElement.classList.add(theme);
+                if (stored && stored !== 'dark') {
+                  document.documentElement.classList.remove('dark');
+                  document.documentElement.classList.add(stored);
+                }
               } catch (e) {}
             `,
           }}

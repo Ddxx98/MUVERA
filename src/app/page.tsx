@@ -51,8 +51,8 @@ export default async function HomePage() {
                 alt="MUVERA Midnight Glamour Editorial"
                 fill
                 priority
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 90vw, 1200px"
-                quality={85}
+                sizes="(max-width: 640px) 480px, (max-width: 1200px) 90vw, 1200px"
+                quality={80}
                 className="object-cover object-right md:object-center"
               />
               {/* Fixed dark cinematic vignette so text remains razor-sharp without washing out in light mode */}
@@ -169,7 +169,7 @@ export default async function HomePage() {
               <div className="flex items-center gap-4">
                 <Link
                   href={`/product/${dealOfTheHour.slug}`}
-                  className="bg-primary hover:bg-primary-hover text-white dark:text-slate-950 font-headline font-black text-xs px-5 py-2.5 rounded-full shadow-gold-glow flex items-center gap-1.5 transition-all active:scale-95"
+                  className="bg-amber-400 hover:bg-amber-300 text-black font-headline font-black text-xs px-5 py-2.5 rounded-full shadow-gold-glow flex items-center gap-1.5 transition-all active:scale-95"
                 >
                   <span>Grab Deal</span>
                   <ArrowRight className="w-3.5 h-3.5" />

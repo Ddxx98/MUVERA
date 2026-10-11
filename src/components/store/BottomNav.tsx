@@ -24,7 +24,7 @@ export function BottomNav() {
   }
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface-base/95 backdrop-blur-xl border-t border-surface-border pb-safe">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface-base border-t border-surface-border pb-safe">
       <div className="flex items-center justify-around h-16 px-2">
         {tabs.map((tab) => {
           const isActive = pathname === tab.href;
@@ -35,7 +35,7 @@ export function BottomNav() {
               key={tab.href}
               href={tab.href}
               className={`relative flex flex-col items-center justify-center flex-1 py-1 transition-colors ${
-                isActive ? 'text-primary' : 'text-text-muted hover:text-text-primary'
+                isActive ? 'text-amber-800 dark:text-amber-400 font-bold' : 'text-slate-600 dark:text-zinc-300 hover:text-text-primary'
               }`}
             >
               <div className="relative">
@@ -46,11 +46,11 @@ export function BottomNav() {
                   </span>
                 )}
               </div>
-              <span className={`text-[10px] mt-1 font-bold ${isActive ? 'text-primary' : 'text-text-muted'}`}>
+              <span className={`text-[10px] mt-1 font-bold ${isActive ? 'text-amber-800 dark:text-amber-400' : 'text-slate-600 dark:text-zinc-300'}`}>
                 {tab.label}
               </span>
               {isActive && (
-                <span className="absolute bottom-1 w-4 h-0.5 rounded-full bg-primary shadow-gold-glow" />
+                <span className="absolute bottom-1 w-4 h-0.5 rounded-full bg-amber-500 shadow-gold-glow" />
               )}
             </Link>
           );
