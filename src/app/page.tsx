@@ -97,7 +97,7 @@ export default async function HomePage() {
                 <div className="flex flex-wrap items-center gap-3 pt-1 sm:pt-2">
                   <Link
                     href={heroCtaLink}
-                    className="bg-primary hover:bg-primary-hover text-surface-base px-5 sm:px-6 py-2.5 sm:py-3 rounded-full font-headline font-black text-xs sm:text-sm flex items-center gap-2 shadow-[0_4px_24px_rgba(250,204,21,0.35)] transition-all active:scale-95 shrink-0"
+                    className="bg-primary hover:bg-primary-hover text-white dark:text-slate-950 px-5 sm:px-6 py-2.5 sm:py-3 rounded-full font-headline font-black text-xs sm:text-sm flex items-center gap-2 shadow-[0_4px_24px_rgba(250,204,21,0.35)] transition-all active:scale-95 shrink-0"
                   >
                     <span>{heroCtaText}</span>
                     <ArrowRight className="w-4 h-4" />
@@ -124,7 +124,7 @@ export default async function HomePage() {
           <Link
             href="/categories"
             aria-label="View all curated collections filter chips"
-            className="text-xs font-bold text-primary hover:underline"
+            className="text-xs font-bold text-amber-800 dark:text-primary hover:underline"
           >
             View All
           </Link>
@@ -168,7 +168,7 @@ export default async function HomePage() {
               <div className="flex items-center gap-4">
                 <Link
                   href={`/product/${dealOfTheHour.slug}`}
-                  className="bg-primary hover:bg-primary-hover text-surface-base font-headline font-extrabold text-xs px-5 py-2.5 rounded-full shadow-gold-glow flex items-center gap-1.5 transition-all active:scale-95"
+                  className="bg-primary hover:bg-primary-hover text-white dark:text-slate-950 font-headline font-black text-xs px-5 py-2.5 rounded-full shadow-gold-glow flex items-center gap-1.5 transition-all active:scale-95"
                 >
                   <span>Grab Deal</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -189,7 +189,7 @@ export default async function HomePage() {
           <Link
             href="/categories"
             aria-label="View all curated category collection cards"
-            className="text-xs font-bold text-primary flex items-center gap-1 hover:underline"
+            className="text-xs font-bold text-amber-800 dark:text-primary flex items-center gap-1 hover:underline"
           >
             <span>View All</span>
             <ChevronRight className="w-3.5 h-3.5" />
@@ -238,7 +238,11 @@ export default async function HomePage() {
               <h2 className="font-headline font-black text-xl text-text-primary">Trending Blitz Drops</h2>
               <Badge variant="express">⚡ EXPRESS DISPATCH</Badge>
             </div>
-            <Link href="/products" className="text-xs font-bold text-primary flex items-center gap-1 hover:underline">
+            <Link
+              href="/products"
+              aria-label="Browse all trending blitz drop products"
+              className="text-xs font-bold text-amber-800 dark:text-primary flex items-center gap-1 hover:underline"
+            >
               <span>Browse All</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </Link>
@@ -259,7 +263,11 @@ export default async function HomePage() {
             <h2 className="font-headline font-black text-xl text-text-primary">Fresh Streetwear Releases</h2>
             <p className="text-xs text-text-muted">Exclusive MUVERA drops • Crafted in limited batches with ultra-dense fabrics</p>
           </div>
-          <Link href="/products" className="text-xs font-bold text-primary hover:underline">
+          <Link
+            href="/products"
+            aria-label="View all fresh streetwear release products"
+            className="text-xs font-bold text-amber-800 dark:text-primary hover:underline"
+          >
             View All
           </Link>
         </div>

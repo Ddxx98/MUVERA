@@ -62,8 +62,8 @@ html.light {
   --color-surface-bright: #E8E8EE;
   --color-surface-border: #E2E2EA;
   
-  --color-primary: #D97706;
-  --color-primary-hover: #B45309;
+  --color-primary: #B45309;
+  --color-primary-hover: #92400E;
   --color-primary-container: #FDE68A;
   --color-on-primary: #FFFFFF;
   --color-secondary: #DC2626;
@@ -72,12 +72,12 @@ html.light {
   --color-tertiary: #B45309;
   
   --color-text-primary: #0F172A;
-  --color-text-muted: #64748B;
+  --color-text-muted: #475569;
   --color-on-surface: #1E293B;
   --color-on-surface-variant: #78350F;
 
-  --shadow-primary-glow: 0 8px 24px rgba(217, 119, 6, 0.15);
-  --shadow-crimson-glow: 0 8px 24px rgba(220, 38, 38, 0.15);
+  --shadow-primary-glow: 0 8px 24px rgba(180, 83, 9, 0.18);
+  --shadow-crimson-glow: 0 8px 24px rgba(220, 38, 38, 0.18);
 }
 
 @layer base {

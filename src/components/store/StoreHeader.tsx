@@ -83,7 +83,7 @@ export function StoreHeader() {
             >
               <MapPin className="w-3.5 h-3.5 text-primary" />
               <span className="font-semibold max-w-[130px] truncate">{activeLocation}</span>
-              <span className="text-primary font-bold text-[11px]">⚡ Express</span>
+              <span className="text-amber-800 dark:text-primary font-bold text-[11px]">⚡ Express</span>
               <ChevronDown className="w-3 h-3 text-text-muted" />
             </button>
           </div>
@@ -92,13 +92,13 @@ export function StoreHeader() {
           <div className="hidden md:flex flex-1 max-w-md mx-4">
             <Link
               href="/search"
-              className="w-full flex items-center justify-between bg-surface-raised hover:bg-surface-card border border-surface-border px-4 py-2 rounded-full text-xs text-text-muted transition-colors"
+              className="w-full flex items-center justify-between bg-surface-raised hover:bg-surface-card border border-surface-border px-4 py-2 rounded-full text-xs transition-colors"
             >
               <div className="flex items-center gap-2">
-                <Search className="w-4 h-4 text-primary" />
-                <span>Search MUVERA luxury streetwear, bombers, tees...</span>
+                <Search className="w-4 h-4 text-amber-800 dark:text-primary" />
+                <span className="text-slate-700 dark:text-zinc-300">Search MUVERA luxury streetwear, bombers, tees...</span>
               </div>
-              <span className="text-[10px] bg-surface-card px-2 py-0.5 rounded text-text-muted font-mono border border-surface-border/50">/</span>
+              <span className="text-[10px] bg-surface-card px-2 py-0.5 rounded text-slate-700 dark:text-zinc-300 font-mono border border-surface-border/50">/</span>
             </Link>
           </div>
 

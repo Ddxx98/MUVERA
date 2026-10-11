@@ -122,7 +122,7 @@ export function ProductCard({ product }: ProductCardProps) {
             )}
           </div>
 
-          <span className="text-[9px] sm:text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 whitespace-nowrap flex-shrink-0">
+          <span className="text-[9px] sm:text-[10px] font-bold text-emerald-800 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 whitespace-nowrap flex-shrink-0">
             In Stock
           </span>
         </div>

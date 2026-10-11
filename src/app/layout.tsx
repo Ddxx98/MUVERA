@@ -185,7 +185,7 @@ export default function RootLayout({
             __html: `
               try {
                 var stored = localStorage.getItem('muvera_theme');
-                var theme = stored || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+                var theme = stored || 'dark';
                 document.documentElement.classList.remove('light', 'dark');
                 document.documentElement.classList.add(theme);
               } catch (e) {}
