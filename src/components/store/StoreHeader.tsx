@@ -71,7 +71,7 @@ export function StoreHeader() {
                 className="h-6 sm:h-8 w-auto object-contain group-hover:opacity-90 transition-opacity"
                 priority
               />
-              <span className="text-[9px] sm:text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-surface-card text-text-muted border border-surface-border">
+              <span className="text-[9px] sm:text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-surface-card text-text-primary border border-surface-border">
                 Club
               </span>
             </Link>

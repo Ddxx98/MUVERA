@@ -46,8 +46,8 @@ const config: Config = {
         },
       },
       fontFamily: {
-        headline: ['Outfit', 'sans-serif'],
-        body: ['Plus Jakarta Sans', 'sans-serif'],
+        headline: ['var(--font-outfit)', 'Outfit', 'sans-serif'],
+        body: ['var(--font-plus-jakarta-sans)', 'Plus Jakarta Sans', 'sans-serif'],
       },
       boxShadow: {
         'gold-glow': 'var(--shadow-primary-glow)',

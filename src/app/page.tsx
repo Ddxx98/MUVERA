@@ -51,6 +51,8 @@ export default async function HomePage() {
                 alt="MUVERA Midnight Glamour Editorial"
                 fill
                 priority
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 90vw, 1200px"
+                quality={80}
                 className="object-cover object-right sm:object-center"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-surface-base via-surface-base/80 sm:via-surface-base/60 to-surface-base/20 sm:to-transparent" />
@@ -87,7 +89,7 @@ export default async function HomePage() {
                   <span className="text-primary">{heroTitleLine2}</span>
                 </h1>
                 {heroSubtitle && (
-                  <p className="text-xs sm:text-sm text-text-muted leading-relaxed line-clamp-3 sm:line-clamp-none max-w-md">
+                  <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed line-clamp-3 sm:line-clamp-none max-w-md">
                     {heroSubtitle}
                   </p>
                 )}
@@ -101,7 +103,7 @@ export default async function HomePage() {
                     <ArrowRight className="w-4 h-4" />
                   </Link>
                   {heroDeliveryTicker && (
-                    <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-text-muted font-medium">
+                    <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-zinc-300 font-medium">
                       <Timer className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary shrink-0" />
                       <span>{heroDeliveryTicker}</span>
                     </div>
@@ -119,7 +121,11 @@ export default async function HomePage() {
           <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
             Curated Collections
           </span>
-          <Link href="/categories" className="text-xs font-bold text-primary hover:underline">
+          <Link
+            href="/categories"
+            aria-label="View all curated collections filter chips"
+            className="text-xs font-bold text-primary hover:underline"
+          >
             View All
           </Link>
         </div>
@@ -151,9 +157,9 @@ export default async function HomePage() {
                     50% OFF
                   </span>
                 </div>
-                <h3 className="font-headline font-black text-lg sm:text-xl text-text-primary">
+                <h2 className="font-headline font-black text-lg sm:text-xl text-text-primary">
                   {dealOfTheHour.title}
-                </h3>
+                </h2>
                 <p className="text-xs text-text-muted">
                   Limited inventory allocated at Indiranagar Dark Store. Only 6 units remaining at this price!
                 </p>
@@ -180,7 +186,11 @@ export default async function HomePage() {
             <h2 className="font-headline font-black text-xl text-text-primary">Curated Collections</h2>
             <p className="text-xs text-text-muted">High-energy streetwear lines</p>
           </div>
-          <Link href="/categories" className="text-xs font-bold text-primary flex items-center gap-1 hover:underline">
+          <Link
+            href="/categories"
+            aria-label="View all curated category collection cards"
+            className="text-xs font-bold text-primary flex items-center gap-1 hover:underline"
+          >
             <span>View All</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </Link>
@@ -198,7 +208,8 @@ export default async function HomePage() {
                   src={cat.image}
                   alt={cat.name}
                   fill
-                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
+                  sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 200px"
+                  quality={75}
                   className="object-cover object-center group-hover:scale-110 transition-transform duration-500"
                 />
               ) : (
@@ -211,7 +222,7 @@ export default async function HomePage() {
                 <h3 className="font-headline font-black text-xs text-text-primary leading-tight group-hover:text-primary transition-colors">
                   {cat.name}
                 </h3>
-                <span className="text-[10px] text-text-muted font-bold">{cat.count ?? 0} Fits</span>
+                <span className="text-[10px] text-zinc-300 font-bold">{cat.count ?? 0} Fits</span>
               </div>
             </Link>
           ))}
