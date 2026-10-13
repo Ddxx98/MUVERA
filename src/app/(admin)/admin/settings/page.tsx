@@ -619,10 +619,15 @@ export default function AdminSettingsPage() {
 
               {/* Background Imagery */}
               <div className="space-y-3">
-                <label className="text-xs font-bold text-text-muted flex items-center gap-1.5">
-                  <ImageIcon className="w-3.5 h-3.5 text-primary" />
-                  Hero Editorial Background Image
-                </label>
+                <div>
+                  <label className="text-xs font-bold text-text-muted flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-primary" />
+                    Hero Editorial Background Image
+                  </label>
+                  <p className="text-[11px] text-text-muted mt-0.5">
+                    Recommended: <strong className="text-primary font-mono">1920 × 800 px</strong> (~21:9 / 2.4:1 banner ratio). If uploading 16:9 (1920 × 1080), the top and bottom ~140px are cropped; keep key subjects in the vertical center.
+                  </p>
+                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
                   <div className="sm:col-span-2 space-y-2">

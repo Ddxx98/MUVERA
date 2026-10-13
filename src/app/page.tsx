@@ -44,7 +44,7 @@ export default async function HomePage() {
       {isHeroActive && (
         <section className="max-w-7xl mx-auto px-3 sm:px-4 pt-2">
           <div className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-zinc-950 shadow-2xl border border-zinc-800">
-            <div className="relative min-h-[clamp(26rem,65dvh,34rem)] w-full flex flex-col justify-between p-6 sm:p-10 md:p-12">
+            <div className="relative min-h-[clamp(24rem,58dvh,32rem)] w-full flex flex-col justify-between p-6 sm:p-10 md:p-12">
               {/* Background Image with Cinematic Editorial Gradients */}
               <Image
                 src={heroImage}
@@ -53,7 +53,7 @@ export default async function HomePage() {
                 priority
                 sizes="(max-width: 640px) 480px, (max-width: 1200px) 90vw, 1200px"
                 quality={80}
-                className="object-cover object-right md:object-center"
+                className="object-cover object-center"
               />
               {/* Fixed dark cinematic vignette so text remains razor-sharp without washing out in light mode */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent sm:via-transparent" />
