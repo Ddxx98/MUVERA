@@ -55,6 +55,8 @@ export default function CheckoutPage() {
   const [businessUpiId, setBusinessUpiId] = useState<string>(env.businessUpiId || 'muvera.store@upi');
   const [businessUpiMerchantName, setBusinessUpiMerchantName] = useState<string>(env.businessName || 'MUVERA Luxury Streetwear');
   const [businessWhatsAppNumber, setBusinessWhatsAppNumber] = useState<string>(env.whatsappNumber || '919380933170');
+  const [codEnabled, setCodEnabled] = useState<boolean>(true);
+  const [upiEnabled, setUpiEnabled] = useState<boolean>(true);
   const [copiedUpi, setCopiedUpi] = useState<boolean>(false);
 
   // Stable Temporary Order Number (Does not re-roll on form input keystrokes)
@@ -78,6 +80,18 @@ export default function CheckoutPage() {
           }
           if (data.settings.whatsappNumber) {
             setBusinessWhatsAppNumber(data.settings.whatsappNumber.replace(/\D/g, ''));
+          }
+          if (data.settings.codEnabled !== undefined) {
+            setCodEnabled(Boolean(data.settings.codEnabled));
+            if (!data.settings.codEnabled) {
+              setPaymentPreference('upi_whatsapp');
+            }
+          }
+          if (data.settings.upiEnabled !== undefined) {
+            setUpiEnabled(Boolean(data.settings.upiEnabled));
+            if (!data.settings.upiEnabled && data.settings.codEnabled) {
+              setPaymentPreference('cod_whatsapp');
+            }
           }
         }
       } catch (err) {
@@ -346,31 +360,35 @@ export default function CheckoutPage() {
             </div>
 
             {/* Mode Tabs */}
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setPaymentPreference('upi_whatsapp')}
-                className={`p-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 transition-all ${
-                  paymentPreference === 'upi_whatsapp'
-                    ? 'border-primary bg-primary text-surface-base shadow-gold-glow'
-                    : 'border-surface-border bg-surface-raised text-text-surface hover:bg-surface-bright'
-                }`}
-              >
-                <Zap className="w-4 h-4" />
-                <span>UPI Scan &amp; WhatsApp</span>
-              </button>
+            <div className={`grid ${upiEnabled && codEnabled ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
+              {upiEnabled && (
+                <button
+                  type="button"
+                  onClick={() => setPaymentPreference('upi_whatsapp')}
+                  className={`p-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 transition-all ${
+                    paymentPreference === 'upi_whatsapp'
+                      ? 'border-primary bg-primary text-surface-base shadow-gold-glow'
+                      : 'border-surface-border bg-surface-raised text-text-surface hover:bg-surface-bright'
+                  }`}
+                >
+                  <Zap className="w-4 h-4" />
+                  <span>UPI Scan &amp; WhatsApp</span>
+                </button>
+              )}
 
-              <button
-                type="button"
-                onClick={() => setPaymentPreference('cod_whatsapp')}
-                className={`p-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 transition-all ${
-                  paymentPreference === 'cod_whatsapp'
-                    ? 'border-primary bg-primary text-surface-base shadow-gold-glow'
-                    : 'border-surface-border bg-surface-raised text-text-surface hover:bg-surface-bright'
-                }`}
-              >
-                <span>💵 Cash on Delivery</span>
-              </button>
+              {codEnabled && (
+                <button
+                  type="button"
+                  onClick={() => setPaymentPreference('cod_whatsapp')}
+                  className={`p-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 transition-all ${
+                    paymentPreference === 'cod_whatsapp'
+                      ? 'border-primary bg-primary text-surface-base shadow-gold-glow'
+                      : 'border-surface-border bg-surface-raised text-text-surface hover:bg-surface-bright'
+                  }`}
+                >
+                  <span>💵 Cash on Delivery</span>
+                </button>
+              )}
             </div>
 
             {/* Dynamic UPI QR Code Display */}

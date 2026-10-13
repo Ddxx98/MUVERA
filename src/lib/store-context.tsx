@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { CartItem, Product, Variant, Coupon } from './types';
+import { SiteSettingsData } from './models/SiteSettings';
 import { env } from '@/config/env';
 
 interface StoreContextType {
@@ -11,6 +12,7 @@ interface StoreContextType {
   isCartDrawerOpen: boolean;
   appliedCoupon: Coupon | null;
   reservationTimeRemainingSeconds: number;
+  siteSettings: SiteSettingsData | null;
   addToCart: (product: Product, variant: Variant, quantity?: number) => void;
   removeFromCart: (variantId: string) => void;
   updateQuantity: (variantId: string, delta: number) => void;
@@ -35,7 +37,30 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [activeLocation, setActiveLocation] = useState<string>(env.defaultLocation);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
+  const [siteSettings, setSiteSettings] = useState<SiteSettingsData | null>(null);
   const [reservationTimeRemainingSeconds, setReservationTimeRemainingSeconds] = useState(env.holdExpiryMinutes * 60);
+
+  // Fetch live site settings from MongoDB
+  useEffect(() => {
+    async function loadSettings() {
+      try {
+        const res = await fetch('/api/settings');
+        const data = await res.json();
+        if (data?.settings) {
+          setSiteSettings(data.settings);
+          if (data.settings.holdExpiryMinutes) {
+            setReservationTimeRemainingSeconds(data.settings.holdExpiryMinutes * 60);
+          }
+          if (data.settings.defaultLocationName) {
+            setActiveLocation(data.settings.defaultLocationName);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load live settings in StoreProvider:', err);
+      }
+    }
+    loadSettings();
+  }, []);
 
   // Load persisted state from localStorage if available
   useEffect(() => {
@@ -166,10 +191,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const getDeliveryFeePaise = () => {
     const subtotal = getCartSubtotalPaise();
-    if (subtotal === 0 || subtotal >= env.freeShippingThresholdPaise) {
+    const threshold = siteSettings?.freeShippingThresholdPaise !== undefined
+      ? siteSettings.freeShippingThresholdPaise
+      : env.freeShippingThresholdPaise;
+    const fee = siteSettings?.expressDeliveryFeePaise !== undefined
+      ? siteSettings.expressDeliveryFeePaise
+      : env.expressDeliveryFeePaise;
+
+    if (subtotal === 0 || subtotal >= threshold) {
       return 0;
     }
-    return env.expressDeliveryFeePaise;
+    return fee;
   };
 
   const getGrandTotalPaise = () => {
@@ -230,6 +262,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         isCartDrawerOpen,
         appliedCoupon,
         reservationTimeRemainingSeconds,
+        siteSettings,
         addToCart,
         removeFromCart,
         updateQuantity,

@@ -234,10 +234,17 @@ export default async function HomePage() {
       {blitzDrops.length > 0 && (
         <section className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-secondary animate-ping" />
-              <h2 className="font-headline font-black text-xl text-text-primary">Trending Blitz Drops</h2>
-              <Badge variant="express">⚡ EXPRESS DISPATCH</Badge>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-secondary animate-ping" />
+                <h2 className="font-headline font-black text-xl text-text-primary">
+                  {settings?.blitzDropHeadline || 'Trending Blitz Drops'}
+                </h2>
+                <Badge variant="express">⚡ EXPRESS DISPATCH</Badge>
+              </div>
+              {settings?.blitzDropSubheadline && (
+                <p className="text-xs text-text-muted mt-0.5">{settings.blitzDropSubheadline}</p>
+              )}
             </div>
             <Link
               href="/products"

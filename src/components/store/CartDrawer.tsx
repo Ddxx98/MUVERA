@@ -24,6 +24,7 @@ export function CartDrawer() {
     getDiscountPaise,
     getDeliveryFeePaise,
     getGrandTotalPaise,
+    siteSettings,
   } = useStore();
 
   const [couponInput, setCouponInput] = useState('');
@@ -41,8 +42,10 @@ export function CartDrawer() {
   const delivery = getDeliveryFeePaise();
   const grandTotal = getGrandTotalPaise();
 
-  // Free shipping progress calculation
-  const freeShippingThreshold = env.freeShippingThresholdPaise;
+  // Free shipping progress calculation using dynamic CMS threshold
+  const freeShippingThreshold = siteSettings?.freeShippingThresholdPaise !== undefined
+    ? siteSettings.freeShippingThresholdPaise
+    : env.freeShippingThresholdPaise;
   const freeShippingProgress = Math.min(100, Math.round((subtotal / freeShippingThreshold) * 100));
   const amountNeededForFreeShipping = Math.max(0, freeShippingThreshold - subtotal);
 

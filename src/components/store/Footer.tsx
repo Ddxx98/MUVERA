@@ -5,10 +5,15 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { env } from '@/config/env';
+import { useStore } from '@/lib/store-context';
 import { Zap, RotateCcw, ShieldCheck, MessageCircle, Heart } from 'lucide-react';
 
 export function Footer() {
   const pathname = usePathname();
+  const { siteSettings } = useStore();
+  const returnDays = siteSettings?.returnWindowDays || 7;
+  const whatsappNum = (siteSettings?.whatsappNumber || env.whatsappNumber).replace(/\D/g, '');
+
   if (pathname.startsWith('/admin')) return null;
   return (
     <footer className="bg-surface-base border-t border-surface-border text-slate-700 dark:text-zinc-300 text-xs pb-24 md:pb-12">
@@ -30,8 +35,8 @@ export function Footer() {
               <RotateCcw className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="font-headline font-bold text-text-primary text-sm">7-Day Free Returns</h4>
-              <p className="text-[11px] text-slate-600 dark:text-zinc-400">Instant pickup & UPI refund</p>
+              <h4 className="font-headline font-bold text-text-primary text-sm">{returnDays}-Day Free Returns</h4>
+              <p className="text-[11px] text-slate-600 dark:text-zinc-400">Instant pickup &amp; UPI refund</p>
             </div>
           </div>
 
@@ -77,7 +82,7 @@ export function Footer() {
             Midnight Quick-Glam luxury fashion &amp; streetwear commerce. Engineered for high-speed delivery straight to your wardrobe with express courier shipping.
           </p>
           <a
-            href={`https://wa.me/${env.whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent('Hello MUVERA VIP Concierge! I have a question about drops.')}`}
+            href={`https://wa.me/${whatsappNum}?text=${encodeURIComponent('Hello MUVERA VIP Concierge! I have a question about drops.')}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 bg-emerald-500/10 dark:bg-emerald-600/20 text-emerald-800 dark:text-emerald-400 hover:bg-emerald-500/20 dark:hover:bg-emerald-600/30 border border-emerald-500/30 px-3.5 py-1.5 rounded-full text-xs font-bold transition-colors"

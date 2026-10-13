@@ -27,7 +27,9 @@ interface ProductDetailClientProps {
 }
 
 export function ProductDetailClient({ product, similarProducts }: ProductDetailClientProps) {
-  const { addToCart, toggleWishlist, isWishlisted } = useStore();
+  const { addToCart, toggleWishlist, isWishlisted, siteSettings } = useStore();
+  const returnDays = siteSettings?.returnWindowDays || 7;
+  const whatsappNum = (siteSettings?.whatsappNumber || '919380933170').replace(/\D/g, '');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState<Variant>(
     product.variants[0] || ({} as Variant)
@@ -226,7 +228,7 @@ export function ProductDetailClient({ product, similarProducts }: ProductDetailC
 
             {/* Quick WhatsApp Link for this exact item */}
             <a
-              href={`https://wa.me/919380933170?text=${encodeURIComponent(
+              href={`https://wa.me/${whatsappNum}?text=${encodeURIComponent(
                 `Hi MUVERA! I want to book: ${product.title} (Size: ${selectedVariant.size || 'M'}, SKU: ${selectedVariant.sku || 'N/A'}) for ${formatPaise(selectedVariant.pricePaise || product.sellingPricePaise)}. Please confirm availability!`
               )}`}
               target="_blank"
@@ -284,11 +286,11 @@ export function ProductDetailClient({ product, similarProducts }: ProductDetailC
 
             <details className="p-4 text-xs group cursor-pointer">
               <summary className="font-bold text-text-primary flex justify-between items-center list-none">
-                <span>7-Day Return Guarantee</span>
+                <span>{returnDays}-Day Return Guarantee</span>
                 <ChevronDown className="w-4 h-4 text-text-muted group-open:rotate-180 transition-transform" />
               </summary>
               <div className="pt-3 text-text-muted space-y-1 leading-relaxed">
-                <p>• Hassle-free 7-day pickup window from date of delivery.</p>
+                <p>• Hassle-free {returnDays}-day pickup window from date of delivery.</p>
                 <p>• Doorstep pickup scheduled conveniently across India.</p>
                 <p>• Instant UPI refund credited following return inspection.</p>
               </div>
