@@ -82,7 +82,7 @@ export function StoreHeader() {
               className="hidden sm:flex items-center gap-1.5 text-xs bg-surface-raised hover:bg-surface-card px-3 py-1.5 rounded-full border border-surface-border text-text-surface transition-colors"
             >
               <MapPin className="w-3.5 h-3.5 text-primary" />
-              <span className="font-semibold max-w-[130px] truncate">{activeLocation}</span>
+              <span className="font-semibold max-w-[8rem] truncate">{activeLocation}</span>
               <span className="text-amber-800 dark:text-primary font-bold text-[11px]">⚡ Express</span>
               <ChevronDown className="w-3 h-3 text-text-muted" />
             </button>
@@ -133,7 +133,7 @@ export function StoreHeader() {
             >
               <ShoppingBag className="w-4 h-4" />
               {totalCartCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[16px] sm:min-w-[18px] h-[16px] sm:h-[18px] px-1 rounded-full bg-primary text-surface-base text-[9px] sm:text-[10px] font-black flex items-center justify-center shadow-md">
+                <span className="absolute -top-1 -right-1 min-w-[1rem] sm:min-w-[1.125rem] h-[1rem] sm:h-[1.125rem] px-1 rounded-full bg-primary text-surface-base text-[9px] sm:text-[10px] font-black flex items-center justify-center shadow-md">
                   {totalCartCount}
                 </span>
               )}

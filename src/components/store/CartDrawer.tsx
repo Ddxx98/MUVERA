@@ -183,7 +183,7 @@ export function CartDrawer() {
                         <span className="text-[10px] font-bold bg-surface-raised px-1.5 py-0.5 rounded text-text-surface border border-surface-border">
                           Size: {item.size}
                         </span>
-                        <span className="text-[10px] text-text-muted truncate max-w-[90px]">
+                        <span className="text-[10px] text-text-muted truncate max-w-[5.5rem]">
                           {item.color}
                         </span>
                       </div>

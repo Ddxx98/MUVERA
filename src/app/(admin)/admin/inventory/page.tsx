@@ -306,7 +306,7 @@ export default function AdminInventoryPage() {
                           <span className="font-mono font-bold text-text-primary text-xs tracking-wider">
                             {item.sku}
                           </span>
-                          <span className="text-[10px] text-text-muted font-mono truncate max-w-[120px]">
+                          <span className="text-[10px] text-text-muted font-mono truncate max-w-[7.5rem]">
                             {item.variantId}
                           </span>
                         </div>

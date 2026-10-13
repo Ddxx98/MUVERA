@@ -75,7 +75,7 @@ export default function CartPage() {
                   key={item.variantId}
                   className="flex gap-4 p-4 rounded-2xl bg-surface-card border border-surface-border items-center"
                 >
-                  <div className="relative w-20 h-28 rounded-xl overflow-hidden bg-surface-raised flex-shrink-0">
+                  <div className="relative w-20 aspect-[3/4] rounded-xl overflow-hidden bg-surface-raised flex-shrink-0">
                     <Image src={item.image} alt={item.title} fill className="object-cover" />
                   </div>
 

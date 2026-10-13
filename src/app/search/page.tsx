@@ -135,7 +135,7 @@ export default function SearchPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,15rem),1fr))] gap-3 sm:gap-5 w-full">
               {results.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}

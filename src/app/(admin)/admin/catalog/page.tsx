@@ -955,7 +955,7 @@ export default function AdminCatalogPage() {
                     </span>
                   </td>
                   <td className="p-4 text-center">
-                    <div className="flex flex-wrap items-center justify-center gap-1 max-w-[220px] mx-auto">
+                    <div className="flex flex-wrap items-center justify-center gap-1 max-w-[14rem] mx-auto">
                       {p.variants.map((v) => (
                         <span key={v.sku} className="font-mono text-[10px] font-bold bg-surface-raised px-1.5 py-0.5 rounded border border-surface-border whitespace-nowrap inline-flex items-center" title={`${v.size}: ${v.sku}`}>
                           {v.sku}
@@ -1220,7 +1220,7 @@ export default function AdminCatalogPage() {
                     value={skuPrefix}
                     onChange={(e) => setSkuPrefix(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ''))}
                     placeholder="e.g. NOC-BOM"
-                    className="bg-surface-card border border-surface-border rounded-xl px-3 py-1.5 text-xs text-text-primary font-mono font-bold max-w-[160px] focus:outline-none focus:border-primary"
+                    className="bg-surface-card border border-surface-border rounded-xl px-3 py-1.5 text-xs text-text-primary font-mono font-bold max-w-[10rem] focus:outline-none focus:border-primary"
                   />
                 </div>
 
@@ -1815,7 +1815,7 @@ export default function AdminCatalogPage() {
                       <span className="font-mono font-bold text-xs bg-primary/20 text-primary px-2 py-1 rounded">
                         {v.size}
                       </span>
-                      <span className="font-mono text-[11px] text-text-muted flex-1 min-w-[120px]">
+                      <span className="font-mono text-[11px] text-text-muted flex-1 min-w-[7.5rem]">
                         {v.sku}
                       </span>
                       <div className="flex items-center gap-2">

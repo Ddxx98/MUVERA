@@ -57,12 +57,12 @@ export function AdminHeader({ user, onMenuToggle }: AdminHeaderProps) {
         <ThemeToggle />
         <div className="text-right hidden sm:block">
           <div className="flex items-center justify-end gap-1.5">
-            <p className="text-xs font-bold text-text-primary truncate max-w-[140px]">{displayName}</p>
+            <p className="text-xs font-bold text-text-primary truncate max-w-[9rem]">{displayName}</p>
             <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
               {user?.role || 'Admin'}
             </span>
           </div>
-          <p className="text-[10px] text-text-muted font-mono truncate max-w-[140px]">{displayContact}</p>
+          <p className="text-[10px] text-text-muted font-mono truncate max-w-[9rem]">{displayContact}</p>
         </div>
         <div className="w-8 h-8 rounded-full bg-primary text-surface-base font-black text-xs flex items-center justify-center shadow-gold-glow flex-shrink-0">
           {initials}

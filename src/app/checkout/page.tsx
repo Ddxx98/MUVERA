@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useStore } from '@/lib/store-context';
 import { formatPaise } from '@/lib/money';
 import { generateWhatsAppOrderUrl } from '@/lib/whatsapp';
-import { generateUpiQrCodeUrl, generateUpiPaymentUrl } from '@/lib/upi';
+import { generateUpiQrDataUrl, generateUpiPaymentUrl } from '@/lib/upi';
 import { env } from '@/config/env';
 import { OrderSnapshot, ShippingAddress } from '@/lib/types';
 import {
@@ -57,6 +57,13 @@ export default function CheckoutPage() {
   const [businessWhatsAppNumber, setBusinessWhatsAppNumber] = useState<string>(env.whatsappNumber || '919380933170');
   const [copiedUpi, setCopiedUpi] = useState<boolean>(false);
 
+  // Stable Temporary Order Number (Does not re-roll on form input keystrokes)
+  const [tempOrderNo] = useState<string>(() => `MUV-${Math.floor(1000 + Math.random() * 9000)}`);
+
+  // In-memory base64 Data URL for scannable QR Code
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [qrLoading, setQrLoading] = useState<boolean>(true);
+
   useEffect(() => {
     async function loadLiveSiteSettings() {
       try {
@@ -94,9 +101,33 @@ export default function CheckoutPage() {
   const grandTotal = getGrandTotalPaise();
   const amountRupees = grandTotal / 100;
 
-  // Generate a random temporary order number
-  const tempOrderNo = `MUV-${Math.floor(1000 + Math.random() * 9000)}`;
-  const qrUrl = generateUpiQrCodeUrl(amountRupees, tempOrderNo, businessUpiId, businessUpiMerchantName);
+  // Generate in-memory QR code without external network calls
+  useEffect(() => {
+    let isMounted = true;
+    setQrLoading(true);
+
+    generateUpiQrDataUrl({
+      amountRupees,
+      orderNo: tempOrderNo,
+      upiId: businessUpiId,
+      payeeName: businessUpiMerchantName,
+    })
+      .then((dataUrl) => {
+        if (isMounted) {
+          setQrDataUrl(dataUrl);
+          setQrLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to generate UPI QR code:', err);
+        if (isMounted) setQrLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [amountRupees, tempOrderNo, businessUpiId, businessUpiMerchantName]);
+
   const upiIntentUrl = generateUpiPaymentUrl(amountRupees, tempOrderNo, businessUpiId, businessUpiMerchantName);
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
@@ -354,31 +385,36 @@ export default function CheckoutPage() {
                   </p>
                 </div>
 
-                <div className="inline-block p-3 rounded-2xl bg-white shadow-2xl border-4 border-primary">
-                  <Image
-                    src={qrUrl}
-                    alt="UPI Payment QR Code"
-                    width={200}
-                    height={200}
-                    className="rounded-lg"
-                  />
+                <div className="inline-block p-3 rounded-2xl bg-white shadow-2xl border-4 border-amber-400">
+                  {qrLoading || !qrDataUrl ? (
+                    <div className="w-[min(70vw,14rem)] h-[min(70vw,14rem)] flex flex-col items-center justify-center bg-zinc-100 rounded-lg animate-pulse text-zinc-500">
+                      <QrCode className="w-10 h-10 stroke-[1.5] mb-2 animate-spin text-amber-500" />
+                      <span className="text-[11px] font-bold">Generating UPI QR...</span>
+                    </div>
+                  ) : (
+                    <img
+                      src={qrDataUrl}
+                      alt="UPI Payment QR Code"
+                      className="w-[min(70vw,14rem)] h-[min(70vw,14rem)] object-contain rounded-lg block mx-auto"
+                    />
+                  )}
                 </div>
 
-                <div className="flex flex-col items-center gap-2">
+                <div className="flex flex-col items-center gap-2.5">
                   <div className="flex items-center gap-2 bg-surface-card px-3.5 py-1.5 rounded-full border border-surface-border">
-                    <span className="text-xs font-mono font-bold text-primary select-all">
+                    <span className="text-xs font-mono font-bold text-amber-500 dark:text-primary select-all">
                       {businessUpiId}
                     </span>
                     <button
                       type="button"
                       onClick={handleCopyUpi}
-                      className="p-1 hover:text-primary transition-colors text-text-muted text-[11px] flex items-center gap-1 font-sans font-bold"
+                      className="p-1 hover:text-primary transition-colors text-slate-700 dark:text-zinc-300 text-[11px] flex items-center gap-1 font-sans font-bold"
                       title="Copy UPI ID"
                     >
                       {copiedUpi ? (
                         <>
                           <Check className="w-3.5 h-3.5 text-emerald-400" />
-                          <span className="text-emerald-400">Copied!</span>
+                          <span className="text-emerald-400 font-bold">Copied!</span>
                         </>
                       ) : (
                         <>
@@ -391,10 +427,10 @@ export default function CheckoutPage() {
 
                   <a
                     href={upiIntentUrl}
-                    className="inline-flex sm:hidden items-center gap-1.5 text-xs text-primary bg-primary/10 border border-primary/30 px-3.5 py-1.5 rounded-full font-bold shadow-sm"
+                    className="inline-flex sm:hidden items-center gap-2 text-xs text-slate-950 bg-amber-400 hover:bg-amber-300 px-4 py-2 rounded-full font-headline font-black shadow-md transition-all active:scale-95"
                   >
-                    <Zap className="w-3.5 h-3.5" />
-                    <span>Tap to Pay with any UPI App</span>
+                    <Zap className="w-4 h-4 fill-current text-slate-950" />
+                    <span>Pay via UPI App (GPay / PhonePe / Paytm)</span>
                   </a>
                 </div>
 

@@ -44,7 +44,7 @@ export default async function HomePage() {
       {isHeroActive && (
         <section className="max-w-7xl mx-auto px-3 sm:px-4 pt-2">
           <div className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-zinc-950 shadow-2xl border border-zinc-800">
-            <div className="relative min-h-[440px] sm:min-h-[480px] md:h-[520px] w-full flex flex-col justify-between p-6 sm:p-10 md:p-12">
+            <div className="relative min-h-[clamp(26rem,65dvh,34rem)] w-full flex flex-col justify-between p-6 sm:p-10 md:p-12">
               {/* Background Image with Cinematic Editorial Gradients */}
               <Image
                 src={heroImage}
@@ -197,7 +197,7 @@ export default async function HomePage() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,10rem),1fr))] gap-3">
           {displayCategories.slice(0, 6).map((cat) => (
             <Link
               key={cat.id || cat.slug}
@@ -249,7 +249,7 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,15rem),1fr))] gap-3 sm:gap-5 w-full">
             {blitzDrops.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
@@ -282,7 +282,7 @@ export default async function HomePage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,15rem),1fr))] gap-3 sm:gap-5 w-full">
             {products.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

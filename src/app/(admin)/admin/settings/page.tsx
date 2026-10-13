@@ -524,7 +524,7 @@ export default function AdminSettingsPage() {
 
               {/* Scaled Preview Frame */}
               <div className="relative w-full rounded-2xl overflow-hidden bg-surface-raised border border-surface-border shadow-2xl">
-                <div className="relative h-[320px] sm:h-[400px] w-full flex flex-col justify-between p-5 sm:p-8">
+                <div className="relative min-h-[clamp(18rem,40dvh,24rem)] w-full flex flex-col justify-between p-5 sm:p-8">
                   {/* Background Image & Overlay */}
                   {settings.heroBackgroundImage ? (
                     // eslint-disable-next-line @next/next/no-img-element
