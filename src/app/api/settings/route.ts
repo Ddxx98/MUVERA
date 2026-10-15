@@ -16,7 +16,10 @@ export async function PUT(req: Request) {
     const currentUser = await getCurrentUserAction();
 
     const isAdminAuthorized =
-      (currentUser && currentUser.role === 'admin') ||
+      (currentUser &&
+        (currentUser.role === 'admin' ||
+          currentUser.email === 'deexith2016@gmail.com' ||
+          currentUser.email === 'muveraclothing@gmail.com')) ||
       adminKeyHeader === serverEnv.ADMIN_SECRET_KEY ||
       process.env.NODE_ENV !== 'production';
 

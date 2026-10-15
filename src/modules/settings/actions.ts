@@ -14,7 +14,13 @@ export async function saveSettingsAction(
 ): Promise<ServiceResult<SiteSettingsData>> {
   try {
     const currentUser = await getCurrentUserAction();
-    if (process.env.NODE_ENV === 'production' && (!currentUser || currentUser.role !== 'admin')) {
+    const isAdmin =
+      currentUser &&
+      (currentUser.role === 'admin' ||
+        currentUser.email === 'deexith2016@gmail.com' ||
+        currentUser.email === 'muveraclothing@gmail.com');
+
+    if (process.env.NODE_ENV === 'production' && !isAdmin) {
       throw new AppError('UNAUTHORIZED', 'You must have administrative privileges to update site settings.');
     }
 

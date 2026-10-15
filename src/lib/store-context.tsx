@@ -66,7 +66,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const savedCart = localStorage.getItem('muvera_cart');
-      if (savedCart) setCart(JSON.parse(savedCart));
+      if (savedCart) {
+        const parsed = JSON.parse(savedCart);
+        if (Array.isArray(parsed)) {
+          const sanitized = parsed.map((item: any) => ({
+            ...item,
+            variantId: item.variantId || item._id?.toString() || `${item.productId}_${item.size}_${item.sku || 'std'}`,
+          }));
+          setCart(sanitized);
+        }
+      }
 
       const savedWishlist = localStorage.getItem('muvera_wishlist');
       if (savedWishlist) {
@@ -115,17 +124,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, [cart.length]);
 
   const addToCart = (product: Product, variant: Variant, quantity: number = 1) => {
+    const vId = variant.id || (variant as any)._id?.toString() || `${product.id}_${variant.size}_${variant.sku || 'std'}`;
     setCart((prev) => {
-      const existing = prev.find((item) => item.variantId === variant.id);
+      const existing = prev.find((item) => item.variantId === vId);
       if (existing) {
         return prev.map((item) =>
-          item.variantId === variant.id ? { ...item, quantity: item.quantity + quantity } : item
+          item.variantId === vId ? { ...item, quantity: item.quantity + quantity } : item
         );
       }
 
       const newItem: CartItem = {
         productId: product.id,
-        variantId: variant.id,
+        variantId: vId,
         sku: variant.sku,
         title: product.title,
         brand: product.brand,

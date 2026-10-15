@@ -144,24 +144,41 @@ async function connectToMongo(): Promise<boolean> {
   }
 }
 
+function normalizeProduct(doc: any): Product {
+  if (!doc) return doc;
+  const id = doc.id || doc._id?.toString();
+  const variants = Array.isArray(doc.variants)
+    ? doc.variants.map((v: any) => ({
+        ...v,
+        id: v.id || v._id?.toString() || `${doc.slug || id}_${v.size}_${v.sku || 'std'}`,
+      }))
+    : [];
+  return {
+    ...doc,
+    id,
+    variants,
+  };
+}
+
 export const db = {
   // Products
   async getProducts(): Promise<Product[]> {
     const isConnected = await connectToMongo();
     if (isConnected) {
       const docs = await ProductModel.find().lean();
-      return docs.map((d: any) => ({ ...d, id: d._id.toString() }));
+      return docs.map(normalizeProduct);
     }
-    return global._muveraDb!.products;
+    return global._muveraDb!.products.map(normalizeProduct);
   },
 
   async getProductBySlug(slug: string): Promise<Product | undefined> {
     const isConnected = await connectToMongo();
     if (isConnected) {
       const doc = await ProductModel.findOne({ slug }).lean();
-      return doc ? { ...(doc as any), id: (doc as any)._id.toString() } : undefined;
+      return doc ? normalizeProduct(doc) : undefined;
     }
-    return global._muveraDb!.products.find((p) => p.slug === slug);
+    const found = global._muveraDb!.products.find((p) => p.slug === slug);
+    return found ? normalizeProduct(found) : undefined;
   },
 
   async getProductById(id: string): Promise<Product | undefined> {
@@ -169,11 +186,12 @@ export const db = {
     if (isConnected) {
       if (mongoose.isValidObjectId(id)) {
         const doc = await ProductModel.findById(id).lean();
-        return doc ? { ...(doc as any), id: (doc as any)._id.toString() } : undefined;
+        return doc ? normalizeProduct(doc) : undefined;
       }
       return undefined;
     }
-    return global._muveraDb!.products.find((p) => p.id === id);
+    const found = global._muveraDb!.products.find((p) => p.id === id);
+    return found ? normalizeProduct(found) : undefined;
   },
 
   async saveProduct(product: Product): Promise<Product> {

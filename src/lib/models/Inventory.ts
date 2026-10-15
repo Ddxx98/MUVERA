@@ -24,8 +24,8 @@ InventorySchema.index({ variantId: 1, locationId: 1 }, { unique: true });
 
 const StockMovementSchema = new Schema(
   {
-    variantId: { type: String, required: true, index: true },
-    sku: { type: String, required: true },
+    variantId: { type: String, default: 'default', index: true },
+    sku: { type: String, default: 'default' },
     locationId: { type: String, required: true },
     type: {
       type: String,

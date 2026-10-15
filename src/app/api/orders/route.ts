@@ -34,7 +34,11 @@ export async function POST(req: Request) {
       shippingAddress: body.shippingAddress,
       deliveryMethod: body.deliveryMethod || 'standard',
       paymentPreference: body.paymentPreference || 'upi_whatsapp',
-      items: body.items || [],
+      items: (body.items || []).map((i: any) => ({
+        ...i,
+        variantId: i.variantId || i._id?.toString() || `${i.productId || 'p'}_${i.size || 'std'}_${i.sku || 'item'}`,
+        sku: i.sku || 'SKU-STD',
+      })),
       subtotalPaise: Number(body.subtotalPaise) || 0,
       discountPaise: Number(body.discountPaise) || 0,
       deliveryFeePaise: Number(body.deliveryFeePaise) || 0,

@@ -19,8 +19,14 @@ export const inventoryService = {
     items: Array<{ variantId: string; sku: string; quantity: number }>,
     locationId: string = 'loc_blr_ind_01'
   ): Promise<void> {
+    const sanitizedItems = items.map((item) => ({
+      ...item,
+      variantId: item.variantId || item.sku || `var_${item.sku || Date.now()}`,
+      sku: item.sku || 'STD',
+    }));
+
     // 1. Verify availability for all items first
-    for (const item of items) {
+    for (const item of sanitizedItems) {
       let inv = await db.getInventoryItem(item.variantId, locationId);
       if (!inv) {
         inv = {
@@ -44,7 +50,7 @@ export const inventoryService = {
     }
 
     // 2. Increment reserved stock atomically
-    for (const item of items) {
+    for (const item of sanitizedItems) {
       const inv = (await db.getInventoryItem(item.variantId, locationId))!;
       inv.reserved += item.quantity;
       inv.available = inv.onHand - inv.reserved;
@@ -77,7 +83,13 @@ export const inventoryService = {
     items: Array<{ variantId: string; sku: string; quantity: number }>,
     locationId: string = 'loc_blr_ind_01'
   ): Promise<void> {
-    for (const item of items) {
+    const sanitizedItems = items.map((item) => ({
+      ...item,
+      variantId: item.variantId || item.sku || `var_${item.sku || Date.now()}`,
+      sku: item.sku || 'STD',
+    }));
+
+    for (const item of sanitizedItems) {
       const inv = await db.getInventoryItem(item.variantId, locationId);
       if (!inv) continue;
 
@@ -113,7 +125,13 @@ export const inventoryService = {
     items: Array<{ variantId: string; sku: string; quantity: number }>,
     locationId: string = 'loc_blr_ind_01'
   ): Promise<void> {
-    for (const item of items) {
+    const sanitizedItems = items.map((item) => ({
+      ...item,
+      variantId: item.variantId || item.sku || `var_${item.sku || Date.now()}`,
+      sku: item.sku || 'STD',
+    }));
+
+    for (const item of sanitizedItems) {
       const inv = await db.getInventoryItem(item.variantId, locationId);
       if (!inv) continue;
 
