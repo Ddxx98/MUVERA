@@ -7,13 +7,14 @@ import { RegisterInput, LoginInput, UserProfile } from './types';
 import { handleActionError, ServiceResult } from '@/lib/errors';
 
 const SESSION_COOKIE_NAME = 'muvera_session';
+const SESSION_MAX_AGE_SECONDS = 6 * 60 * 60; // 6 hours auto-logout
 
 function setSessionCookie(token: string) {
   cookies().set(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 7 * 24 * 60 * 60, // 7 days
+    maxAge: SESSION_MAX_AGE_SECONDS,
     path: '/',
   });
 }

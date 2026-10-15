@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Product, Variant } from '@/lib/types';
@@ -16,6 +16,8 @@ import {
   CheckCircle,
   ChevronDown,
   MessageCircle,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -31,6 +33,30 @@ export function ProductDetailClient({ product, similarProducts }: ProductDetailC
   const returnDays = siteSettings?.returnWindowDays || 7;
   const whatsappNum = (siteSettings?.whatsappNumber || '919380933170').replace(/\D/g, '');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const galleryRef = useRef<HTMLDivElement>(null);
+
+  const handleGalleryScroll = () => {
+    if (!galleryRef.current) return;
+    const { scrollLeft, clientWidth } = galleryRef.current;
+    if (clientWidth > 0) {
+      const newIndex = Math.round(scrollLeft / clientWidth);
+      if (newIndex !== selectedImageIndex) {
+        setSelectedImageIndex(newIndex);
+      }
+    }
+  };
+
+  const scrollToImage = (index: number) => {
+    if (!galleryRef.current) return;
+    const totalImages = product.images?.length || 1;
+    const targetIndex = Math.max(0, Math.min(index, totalImages - 1));
+    galleryRef.current.scrollTo({
+      left: targetIndex * galleryRef.current.clientWidth,
+      behavior: 'smooth',
+    });
+    setSelectedImageIndex(targetIndex);
+  };
+
   const [selectedVariant, setSelectedVariant] = useState<Variant>(
     product.variants[0] || ({} as Variant)
   );
@@ -82,17 +108,43 @@ export function ProductDetailClient({ product, similarProducts }: ProductDetailC
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Column: Image Gallery (7 cols) */}
         <div className="lg:col-span-7 space-y-3">
-          {/* Main Hero Image */}
-          <div className="relative aspect-[3/4] sm:aspect-[4/5] w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-surface-raised border border-surface-border shadow-2xl">
-            <Image
-              src={product.images[selectedImageIndex]?.url || product.images[0]?.url || 'https://res.cloudinary.com/ha2fbiwt/image/upload/v1/muvera/products/placeholder'}
-              alt={product.title}
-              fill
-              priority
-              className="object-cover object-center"
-            />
+          {/* Main Hero Swipeable Gallery */}
+          <div className="relative aspect-[3/4] sm:aspect-[4/5] w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-surface-raised border border-surface-border shadow-2xl group">
+            {/* Horizontal Scroll Snap Track */}
+            <div
+              ref={galleryRef}
+              onScroll={handleGalleryScroll}
+              className="w-full h-full flex overflow-x-auto snap-x snap-mandatory no-scrollbar touch-pan-x select-none"
+            >
+              {product.images && product.images.length > 0 ? (
+                product.images.map((img, idx) => (
+                  <div key={idx} className="relative w-full h-full flex-shrink-0 snap-center snap-always">
+                    <Image
+                      src={img.url}
+                      alt={`${product.title} - View ${idx + 1}`}
+                      fill
+                      priority={idx === 0}
+                      sizes="(max-width: 768px) 100vw, 55vw"
+                      className="object-cover object-center"
+                      draggable={false}
+                    />
+                  </div>
+                ))
+              ) : (
+                <div className="relative w-full h-full flex-shrink-0">
+                  <Image
+                    src="https://res.cloudinary.com/ha2fbiwt/image/upload/v1/muvera/products/placeholder"
+                    alt={product.title}
+                    fill
+                    priority
+                    className="object-cover object-center"
+                  />
+                </div>
+              )}
+            </div>
+
             {/* Top Tag Badges */}
-            <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+            <div className="absolute top-4 left-4 flex flex-col gap-2 z-20 pointer-events-none">
               {product.isBlitzDrop && <Badge variant="blitz">🔥 Blitz Drop</Badge>}
               {product.discountPercentage > 0 && (
                 <Badge variant="discount">-{product.discountPercentage}% OFF</Badge>
@@ -103,7 +155,7 @@ export function ProductDetailClient({ product, similarProducts }: ProductDetailC
             <button
               onClick={() => toggleWishlist(product.id)}
               aria-label="Wishlist"
-              className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-surface-base/80 backdrop-blur-md flex items-center justify-center text-text-surface hover:text-text-primary transition-all active:scale-90"
+              className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-surface-base/80 backdrop-blur-md flex items-center justify-center text-text-surface hover:text-text-primary transition-all active:scale-90"
             >
               <Heart
                 className={`w-5 h-5 transition-colors ${
@@ -111,6 +163,47 @@ export function ProductDetailClient({ product, similarProducts }: ProductDetailC
                 }`}
               />
             </button>
+
+            {/* Desktop Next/Previous Chevrons & Bottom Dots */}
+            {product.images && product.images.length > 1 && (
+              <>
+                {selectedImageIndex > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => scrollToImage(selectedImageIndex - 1)}
+                    aria-label="Previous image"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/60 hover:bg-black/90 backdrop-blur-md text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 active:scale-95 shadow-xl"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                )}
+                {selectedImageIndex < product.images.length - 1 && (
+                  <button
+                    type="button"
+                    onClick={() => scrollToImage(selectedImageIndex + 1)}
+                    aria-label="Next image"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/60 hover:bg-black/90 backdrop-blur-md text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 active:scale-95 shadow-xl"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                )}
+
+                {/* Floating Dot Indicators */}
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full pointer-events-auto">
+                  {product.images.map((_, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => scrollToImage(idx)}
+                      aria-label={`Go to slide ${idx + 1}`}
+                      className={`h-1.5 rounded-full transition-all ${
+                        selectedImageIndex === idx ? 'w-5 bg-primary' : 'w-1.5 bg-white/50 hover:bg-white/90'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           {/* Thumbnail Rail */}
@@ -119,7 +212,8 @@ export function ProductDetailClient({ product, similarProducts }: ProductDetailC
               {product.images.map((img, idx) => (
                 <button
                   key={idx}
-                  onClick={() => setSelectedImageIndex(idx)}
+                  type="button"
+                  onClick={() => scrollToImage(idx)}
                   className={`relative w-20 h-24 rounded-xl overflow-hidden border-2 flex-shrink-0 transition-all ${
                     selectedImageIndex === idx
                       ? 'border-primary shadow-gold-glow'
@@ -201,15 +295,15 @@ export function ProductDetailClient({ product, similarProducts }: ProductDetailC
                   return (
                     <button
                       key={v.id || v.sku}
+                      type="button"
                       onClick={() => setSelectedVariant(v)}
-                      className={`py-3 rounded-xl font-headline font-bold text-sm border flex flex-col items-center justify-center transition-all ${
+                      className={`py-2.5 rounded-xl font-headline font-bold text-sm border flex items-center justify-center transition-all ${
                         isSelected
                           ? 'border-primary bg-primary text-surface-base shadow-gold-glow'
                           : 'border-surface-border bg-surface-raised hover:bg-surface-card text-text-surface'
                       }`}
                     >
                       <span>{v.size}</span>
-                      <span className="text-[9px] font-mono mt-0.5 opacity-80">{v.color || 'Standard'}</span>
                     </button>
                   );
                 })}
@@ -351,6 +445,17 @@ export function ProductDetailClient({ product, similarProducts }: ProductDetailC
                   <tr><td className="py-2 font-bold text-primary">M</td><td>44</td><td>29</td><td>21</td></tr>
                   <tr><td className="py-2 font-bold text-primary">L</td><td>46</td><td>30</td><td>22</td></tr>
                   <tr><td className="py-2 font-bold text-primary">XL</td><td>48</td><td>31</td><td>23</td></tr>
+                  {product.variants?.some((v) => {
+                    const s = v.size?.trim().toUpperCase();
+                    return s === 'XXL' || s === '2XL' || s === '3XL';
+                  }) && (
+                    <tr>
+                      <td className="py-2 font-bold text-primary">XXL</td>
+                      <td>50</td>
+                      <td>32</td>
+                      <td>24</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

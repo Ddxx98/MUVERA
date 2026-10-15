@@ -30,7 +30,13 @@ export function StoreHeader() {
   }, []);
 
   React.useEffect(() => {
-    getCurrentUserAction().then((u) => setCurrentUser(u)).catch(() => {});
+    const checkUser = () => {
+      getCurrentUserAction().then((u) => setCurrentUser(u)).catch(() => {});
+    };
+    checkUser();
+    // Check session validity periodically (auto-logout on expiry)
+    const interval = setInterval(checkUser, 5 * 60 * 1000);
+    return () => clearInterval(interval);
   }, [pathname]);
 
   const handleStoreLogout = async () => {

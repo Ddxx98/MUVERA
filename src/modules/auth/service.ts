@@ -15,6 +15,8 @@ export function normalizeUserRole(role?: string): UserRole {
   return role && role.trim().toLowerCase() === 'admin' ? 'admin' : 'customer';
 }
 
+export const SESSION_DURATION_MS = 6 * 60 * 60 * 1000; // 6 hours auto-logout
+
 export const authService = {
   /**
    * Registers a new customer user.
@@ -72,7 +74,7 @@ export const authService = {
       email: saved.email,
       name: saved.name,
       role: savedRole,
-      expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+      expiresAt: Date.now() + SESSION_DURATION_MS,
     });
 
     await auditService.recordAudit({
@@ -121,7 +123,7 @@ export const authService = {
       email: user.email,
       name: user.name,
       role,
-      expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+      expiresAt: Date.now() + SESSION_DURATION_MS,
     });
 
     const profile: UserProfile = {
@@ -178,7 +180,7 @@ export const authService = {
       email: user.email,
       name: user.name,
       role,
-      expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+      expiresAt: Date.now() + SESSION_DURATION_MS,
     });
 
     const profile: UserProfile = {

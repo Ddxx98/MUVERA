@@ -9,6 +9,8 @@ import { generateWhatsAppOrderUrl } from '@/lib/whatsapp';
 import { generateUpiQrDataUrl, generateUpiPaymentUrl } from '@/lib/upi';
 import { env } from '@/config/env';
 import { OrderSnapshot, ShippingAddress } from '@/lib/types';
+import { getCurrentUserAction } from '@/modules/auth/actions';
+import { UserProfile } from '@/modules/auth/types';
 import {
   MapPin,
   Zap,
@@ -32,19 +34,20 @@ export default function CheckoutPage() {
     appliedCoupon,
     getCartSubtotalPaise,
     getDiscountPaise,
-    getDeliveryFeePaise,
-    getGrandTotalPaise,
+    siteSettings,
   } = useStore();
 
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+
   const [address, setAddress] = useState<ShippingAddress>({
-    fullName: 'Deekshith D V',
-    phone: '9380933170',
-    street: '12th Main Road, HAL 2nd Stage, Indiranagar',
-    apartment: 'Apt 4B, Silver Palms',
-    landmark: 'Near Corner House',
-    city: 'Bengaluru',
-    state: 'Karnataka',
-    pincode: '560038',
+    fullName: '',
+    phone: '',
+    street: '',
+    apartment: '',
+    landmark: '',
+    city: '',
+    state: '',
+    pincode: '',
   });
 
   const [deliveryMethod, setDeliveryMethod] = useState<'express_60' | 'standard'>('standard');
@@ -67,38 +70,57 @@ export default function CheckoutPage() {
   const [qrLoading, setQrLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    async function loadLiveSiteSettings() {
+    async function loadInitialCheckoutData() {
       try {
-        const res = await fetch('/api/settings');
-        const data = await res.json();
-        if (data?.settings) {
-          if (data.settings.businessUpiId && data.settings.businessUpiId.trim()) {
-            setBusinessUpiId(data.settings.businessUpiId.trim());
+        const [settingsRes, user] = await Promise.all([
+          fetch('/api/settings').then((r) => r.json()).catch(() => null),
+          getCurrentUserAction().catch(() => null),
+        ]);
+
+        if (user) {
+          setCurrentUser(user);
+          const defaultAddr = user.addresses?.find((a) => a.isDefault) || user.addresses?.[0];
+          setAddress({
+            fullName: defaultAddr?.fullName || user.name || '',
+            phone: defaultAddr?.phone || user.phone || '',
+            street: defaultAddr?.street || '',
+            apartment: defaultAddr?.apartment || '',
+            landmark: defaultAddr?.landmark || '',
+            city: defaultAddr?.city || '',
+            state: defaultAddr?.state || '',
+            pincode: defaultAddr?.pincode || '',
+          });
+        }
+
+        if (settingsRes?.settings) {
+          const s = settingsRes.settings;
+          if (s.businessUpiId && s.businessUpiId.trim()) {
+            setBusinessUpiId(s.businessUpiId.trim());
           }
-          if (data.settings.businessUpiMerchantName && data.settings.businessUpiMerchantName.trim()) {
-            setBusinessUpiMerchantName(data.settings.businessUpiMerchantName.trim());
+          if (s.businessUpiMerchantName && s.businessUpiMerchantName.trim()) {
+            setBusinessUpiMerchantName(s.businessUpiMerchantName.trim());
           }
-          if (data.settings.whatsappNumber) {
-            setBusinessWhatsAppNumber(data.settings.whatsappNumber.replace(/\D/g, ''));
+          if (s.whatsappNumber) {
+            setBusinessWhatsAppNumber(s.whatsappNumber.replace(/\D/g, ''));
           }
-          if (data.settings.codEnabled !== undefined) {
-            setCodEnabled(Boolean(data.settings.codEnabled));
-            if (!data.settings.codEnabled) {
+          if (s.codEnabled !== undefined) {
+            setCodEnabled(Boolean(s.codEnabled));
+            if (!s.codEnabled) {
               setPaymentPreference('upi_whatsapp');
             }
           }
-          if (data.settings.upiEnabled !== undefined) {
-            setUpiEnabled(Boolean(data.settings.upiEnabled));
-            if (!data.settings.upiEnabled && data.settings.codEnabled) {
+          if (s.upiEnabled !== undefined) {
+            setUpiEnabled(Boolean(s.upiEnabled));
+            if (!s.upiEnabled && s.codEnabled) {
               setPaymentPreference('cod_whatsapp');
             }
           }
         }
       } catch (err) {
-        console.error('Failed to load live settings for checkout:', err);
+        console.error('Failed to load initial checkout data:', err);
       }
     }
-    loadLiveSiteSettings();
+    loadInitialCheckoutData();
   }, []);
 
   const handleCopyUpi = () => {
@@ -111,8 +133,11 @@ export default function CheckoutPage() {
 
   const subtotal = getCartSubtotalPaise();
   const discount = getDiscountPaise();
-  const delivery = getDeliveryFeePaise();
-  const grandTotal = getGrandTotalPaise();
+  // Express courier delivery fee is always applied (no free delivery at checkout)
+  const delivery = (siteSettings?.expressDeliveryFeePaise && siteSettings.expressDeliveryFeePaise > 0)
+    ? siteSettings.expressDeliveryFeePaise
+    : (env.expressDeliveryFeePaise > 0 ? env.expressDeliveryFeePaise : 9900);
+  const grandTotal = Math.max(0, subtotal - discount + delivery);
   const amountRupees = grandTotal / 100;
 
   // Generate in-memory QR code without external network calls
@@ -153,8 +178,9 @@ export default function CheckoutPage() {
     try {
       const orderPayload: Partial<OrderSnapshot> = {
         orderNo: tempOrderNo,
-        customerName: address.fullName,
-        customerPhone: address.phone,
+        customerName: address.fullName.trim() || currentUser?.name || 'Guest Customer',
+        customerPhone: address.phone.trim() || currentUser?.phone || '',
+        customerEmail: currentUser?.email || undefined,
         shippingAddress: address,
         deliveryMethod,
         paymentPreference,
@@ -240,9 +266,16 @@ export default function CheckoutPage() {
         <div className="lg:col-span-7 space-y-6">
           {/* Step 1: Shipping Address Form */}
           <div className="p-6 rounded-2xl bg-surface-card border border-surface-border space-y-4 shadow-xl">
-            <div className="flex items-center gap-2 pb-2 border-b border-surface-border">
-              <MapPin className="w-5 h-5 text-primary" />
-              <h2 className="font-headline font-bold text-base text-text-primary">1. Delivery Address</h2>
+            <div className="flex items-center justify-between pb-2 border-b border-surface-border">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-primary" />
+                <h2 className="font-headline font-bold text-base text-text-primary">1. Delivery Address</h2>
+              </div>
+              {currentUser && (
+                <span className="text-[11px] font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full border border-primary/20">
+                  Logged in as {currentUser.name}
+                </span>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
@@ -346,8 +379,8 @@ export default function CheckoutPage() {
                   <p className="text-[11px] text-text-muted">Fast Doorstep Dispatch Across India • 2-4 Business Days</p>
                 </div>
               </div>
-              <span className="text-xs font-bold text-primary">
-                {delivery === 0 ? 'FREE' : formatPaise(delivery)}
+              <span className="text-xs font-bold text-primary font-mono">
+                {formatPaise(delivery)}
               </span>
             </div>
           </div>
@@ -503,7 +536,7 @@ export default function CheckoutPage() {
               <div className="flex justify-between text-text-muted">
                 <span>Delivery Charge</span>
                 <span className="font-mono text-text-primary">
-                  {delivery === 0 ? <span className="text-primary font-bold">FREE</span> : formatPaise(delivery)}
+                  {formatPaise(delivery)}
                 </span>
               </div>
               <div className="flex justify-between text-base font-bold text-text-primary pt-3 border-t border-surface-border">

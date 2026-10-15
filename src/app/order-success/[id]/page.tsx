@@ -13,7 +13,6 @@ import {
   MapPin,
   MessageCircle,
   Truck,
-  Phone,
   ArrowRight,
   ShieldCheck,
   Package,
@@ -113,39 +112,6 @@ export default function OrderSuccessPage() {
               </span>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* Simulated Rider Tracking Widget */}
-      <div className="p-6 rounded-2xl bg-surface-card border border-surface-border space-y-4 shadow-xl">
-        <div className="flex items-center justify-between pb-3 border-b border-surface-border">
-          <div className="flex items-center gap-2">
-            <Truck className="w-5 h-5 text-primary" />
-            <h3 className="font-headline font-bold text-sm text-text-primary">Express Delivery Partner</h3>
-          </div>
-          <span className="text-xs font-mono font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full border border-primary/20">
-            ETA: ~18 Mins
-          </span>
-        </div>
-
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-surface-raised border border-surface-border flex items-center justify-center text-text-muted font-headline font-black text-sm text-primary">
-              RG
-            </div>
-            <div>
-              <p className="font-bold text-sm text-text-primary">Ramesh Gowda</p>
-              <p className="text-xs text-text-muted">Vehicle: KA-03-EX-9981 (Indiranagar Hub)</p>
-            </div>
-          </div>
-
-          <a
-            href="tel:9880011223"
-            className="flex items-center gap-1.5 bg-surface-raised hover:bg-surface-bright border border-surface-border px-3 py-1.5 rounded-full text-xs font-bold text-text-surface transition-colors"
-          >
-            <Phone className="w-3.5 h-3.5 text-primary" />
-            <span>Call Rider</span>
-          </a>
         </div>
       </div>
 
