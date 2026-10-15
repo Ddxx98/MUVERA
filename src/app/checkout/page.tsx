@@ -34,6 +34,8 @@ export default function CheckoutPage() {
     appliedCoupon,
     getCartSubtotalPaise,
     getDiscountPaise,
+    getDeliveryFeePaise,
+    getGrandTotalPaise,
     siteSettings,
   } = useStore();
 
@@ -69,11 +71,13 @@ export default function CheckoutPage() {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [qrLoading, setQrLoading] = useState<boolean>(true);
 
+  const [orderError, setOrderError] = useState<string | null>(null);
+
   useEffect(() => {
     async function loadInitialCheckoutData() {
       try {
         const [settingsRes, user] = await Promise.all([
-          fetch('/api/settings').then((r) => r.json()).catch(() => null),
+          fetch('/api/settings', { cache: 'no-store' }).then((r) => r.json()).catch(() => null),
           getCurrentUserAction().catch(() => null),
         ]);
 
@@ -133,11 +137,8 @@ export default function CheckoutPage() {
 
   const subtotal = getCartSubtotalPaise();
   const discount = getDiscountPaise();
-  // Express courier delivery fee is always applied (no free delivery at checkout)
-  const delivery = (siteSettings?.expressDeliveryFeePaise && siteSettings.expressDeliveryFeePaise > 0)
-    ? siteSettings.expressDeliveryFeePaise
-    : (env.expressDeliveryFeePaise > 0 ? env.expressDeliveryFeePaise : 9900);
-  const grandTotal = Math.max(0, subtotal - discount + delivery);
+  const delivery = getDeliveryFeePaise();
+  const grandTotal = getGrandTotalPaise();
   const amountRupees = grandTotal / 100;
 
   // Generate in-memory QR code without external network calls
@@ -173,15 +174,34 @@ export default function CheckoutPage() {
     e.preventDefault();
     if (cart.length === 0) return;
 
+    setOrderError(null);
+
+    const customerName = address.fullName.trim() || currentUser?.name || 'Customer';
+    const customerPhone = address.phone.trim() || currentUser?.phone || '';
+
+    if (!customerName || !customerPhone || !address.street.trim() || !address.city.trim() || !address.pincode.trim()) {
+      setOrderError('Please fill in all mandatory delivery address fields (*).');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       const orderPayload: Partial<OrderSnapshot> = {
         orderNo: tempOrderNo,
-        customerName: address.fullName.trim() || currentUser?.name || 'Guest Customer',
-        customerPhone: address.phone.trim() || currentUser?.phone || '',
+        customerName,
+        customerPhone,
         customerEmail: currentUser?.email || undefined,
-        shippingAddress: address,
+        shippingAddress: {
+          fullName: customerName,
+          phone: customerPhone,
+          street: address.street.trim(),
+          apartment: address.apartment?.trim() || undefined,
+          landmark: address.landmark?.trim() || undefined,
+          city: address.city.trim(),
+          state: address.state?.trim() || 'Karnataka',
+          pincode: address.pincode.trim(),
+        },
         deliveryMethod,
         paymentPreference,
         paymentStatus: 'pending_whatsapp',
@@ -217,7 +237,11 @@ export default function CheckoutPage() {
       });
 
       const data = await res.json();
-      const savedOrder: OrderSnapshot = data.order || { ...orderPayload, id: `ord_${Date.now()}` };
+      if (!res.ok || !data.order) {
+        throw new Error(data.error || 'Failed to persist order in store records. Please try again.');
+      }
+
+      const savedOrder: OrderSnapshot = data.order;
 
       // Build WhatsApp deep link URL with dynamic live settings
       const whatsappUrl = generateWhatsAppOrderUrl(savedOrder, businessWhatsAppNumber, businessUpiMerchantName);
@@ -232,8 +256,9 @@ export default function CheckoutPage() {
 
       // Navigate to order confirmation
       router.push(`/order-success/${savedOrder.id}`);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Order creation error:', err);
+      setOrderError(err.message || 'Failed to submit order. Please check your network and try again.');
       setIsSubmitting(false);
     }
   };
@@ -335,17 +360,30 @@ export default function CheckoutPage() {
               </div>
 
               <div>
-                <label className="font-bold text-text-muted mb-1 block">City</label>
+                <label className="font-bold text-text-muted mb-1 block">City *</label>
                 <input
                   type="text"
                   required
                   value={address.city}
                   onChange={(e) => setAddress({ ...address, city: e.target.value })}
+                  placeholder="e.g. Bengaluru"
                   className="w-full bg-surface-raised border border-surface-border rounded-xl p-3 text-text-primary focus:outline-none focus:border-primary font-medium"
                 />
               </div>
 
               <div>
+                <label className="font-bold text-text-muted mb-1 block">State *</label>
+                <input
+                  type="text"
+                  required
+                  value={address.state}
+                  onChange={(e) => setAddress({ ...address, state: e.target.value })}
+                  placeholder="e.g. Karnataka"
+                  className="w-full bg-surface-raised border border-surface-border rounded-xl p-3 text-text-primary focus:outline-none focus:border-primary font-medium"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
                 <label className="font-bold text-text-muted mb-1 block">Pincode *</label>
                 <input
                   type="text"
@@ -353,10 +391,17 @@ export default function CheckoutPage() {
                   maxLength={6}
                   value={address.pincode}
                   onChange={(e) => setAddress({ ...address, pincode: e.target.value })}
+                  placeholder="6-digit pincode"
                   className="w-full bg-surface-raised border border-surface-border rounded-xl p-3 text-text-primary focus:outline-none focus:border-primary font-mono font-bold"
                 />
               </div>
             </div>
+
+            {orderError && (
+              <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-bold animate-in fade-in duration-200">
+                {orderError}
+              </div>
+            )}
           </div>
 
           {/* Step 2: Delivery Speed */}
@@ -380,7 +425,7 @@ export default function CheckoutPage() {
                 </div>
               </div>
               <span className="text-xs font-bold text-primary font-mono">
-                {formatPaise(delivery)}
+                {delivery === 0 ? 'FREE' : formatPaise(delivery)}
               </span>
             </div>
           </div>
@@ -536,7 +581,7 @@ export default function CheckoutPage() {
               <div className="flex justify-between text-text-muted">
                 <span>Delivery Charge</span>
                 <span className="font-mono text-text-primary">
-                  {formatPaise(delivery)}
+                  {delivery === 0 ? <span className="text-primary font-bold">FREE</span> : formatPaise(delivery)}
                 </span>
               </div>
               <div className="flex justify-between text-base font-bold text-text-primary pt-3 border-t border-surface-border">

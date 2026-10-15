@@ -16,7 +16,7 @@ export interface CreateOrderInput {
   customerEmail?: string;
   shippingAddress: ShippingAddress;
   deliveryMethod: 'standard' | 'express_60';
-  paymentPreference: 'upi_whatsapp' | 'razorpay' | 'cod';
+  paymentPreference: 'upi_whatsapp' | 'cod_whatsapp' | 'online_gateway' | 'razorpay' | 'cod';
   items: OrderItemSnapshot[];
   subtotalPaise: number;
   discountPaise: number;
@@ -118,28 +118,36 @@ export const orderService = {
     const saved = await db.saveOrder(order);
 
     // 5. Enqueue background hold-expiration job (15 minutes from now)
-    const holdExpiryMinutes = clientEnv.holdExpiryMinutes || 15;
-    await jobService.enqueueJob(
-      'expire_reservation',
-      { orderId: saved.id, orderNo: saved.orderNo },
-      {
-        runAt: new Date(Date.now() + holdExpiryMinutes * 60 * 1000),
-        dedupeKey: `hold_exp_${saved.id}`,
-      }
-    );
+    try {
+      const holdExpiryMinutes = clientEnv.holdExpiryMinutes || 15;
+      await jobService.enqueueJob(
+        'expire_reservation',
+        { orderId: saved.id, orderNo: saved.orderNo },
+        {
+          runAt: new Date(Date.now() + holdExpiryMinutes * 60 * 1000),
+          dedupeKey: `hold_exp_${saved.id}`,
+        }
+      );
+    } catch (jobErr) {
+      console.warn('Non-fatal: Failed to enqueue expiration job:', jobErr);
+    }
 
     // 6. Record audit log
-    await auditService.recordAudit({
-      action: 'ORDER_CREATE',
-      entity: 'order',
-      entityId: saved.id,
-      actor: input.customerName,
-      after: {
-        orderNo: saved.orderNo,
-        totalPaise: saved.totalPaise,
-        itemsCount: saved.items.length,
-      },
-    });
+    try {
+      await auditService.recordAudit({
+        action: 'ORDER_CREATE',
+        entity: 'order',
+        entityId: saved.id,
+        actor: input.customerName,
+        after: {
+          orderNo: saved.orderNo,
+          totalPaise: saved.totalPaise,
+          itemsCount: saved.items.length,
+        },
+      });
+    } catch (auditErr) {
+      console.warn('Non-fatal: Failed to record audit log:', auditErr);
+    }
 
     return saved;
   },

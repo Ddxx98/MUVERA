@@ -38,7 +38,7 @@ const ShippingAddressSchema = new Schema(
     apartment: { type: String },
     landmark: { type: String },
     city: { type: String, required: true },
-    state: { type: String, required: true },
+    state: { type: String, default: '' },
     pincode: { type: String, required: true },
   },
   { _id: false }
@@ -47,14 +47,16 @@ const ShippingAddressSchema = new Schema(
 const OrderSchema = new Schema(
   {
     orderNo: { type: String, required: true, unique: true, index: true },
+    id: { type: String, index: true },
+    orderId: { type: String, index: true },
     customerName: { type: String, required: true },
     customerPhone: { type: String, required: true, index: true },
     customerEmail: { type: String },
     shippingAddress: { type: ShippingAddressSchema, required: true },
-    deliveryMethod: { type: String, enum: ['express_60', 'standard'], default: 'express_60' },
+    deliveryMethod: { type: String, default: 'express_60' },
     paymentPreference: {
       type: String,
-      enum: ['upi_whatsapp', 'cod_whatsapp', 'online_gateway'],
+      enum: ['upi_whatsapp', 'cod_whatsapp', 'online_gateway', 'cod', 'razorpay'],
       default: 'upi_whatsapp',
     },
     paymentStatus: {

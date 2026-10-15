@@ -44,7 +44,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function loadSettings() {
       try {
-        const res = await fetch('/api/settings');
+        const res = await fetch('/api/settings', { cache: 'no-store' });
         const data = await res.json();
         if (data?.settings) {
           setSiteSettings(data.settings);

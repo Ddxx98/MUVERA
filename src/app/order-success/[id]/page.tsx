@@ -52,8 +52,25 @@ export default function OrderSuccessPage() {
     );
   }
 
-  const orderNo = order?.orderNo || 'MUV-9402';
-  const total = order?.totalPaise || 349800;
+  if (!order) {
+    return (
+      <div className="max-w-md mx-auto py-24 px-4 text-center space-y-4 bg-surface-card border border-surface-border rounded-3xl p-8 my-12 shadow-2xl">
+        <h2 className="font-headline font-bold text-xl text-text-primary">Order Not Found</h2>
+        <p className="text-xs text-text-muted">We could not locate this order snapshot. Please check your order history in your account or reconnect via WhatsApp.</p>
+        <div className="pt-2">
+          <Link
+            href="/products"
+            className="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-surface-base px-6 py-3 rounded-full font-headline font-bold text-xs shadow-gold-glow transition-all"
+          >
+            <span>Continue Shopping</span>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const orderNo = order.orderNo;
+  const total = order.totalPaise;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">

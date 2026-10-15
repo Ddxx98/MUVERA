@@ -295,7 +295,9 @@ export const db = {
   async getOrderById(id: string): Promise<OrderSnapshot | undefined> {
     const isConnected = await connectToMongo();
     if (isConnected) {
-      const query = mongoose.isValidObjectId(id) ? { _id: id } : { orderNo: id };
+      const query = mongoose.isValidObjectId(id)
+        ? { $or: [{ _id: id }, { orderNo: id }, { id: id }, { orderId: id }] }
+        : { $or: [{ orderNo: id }, { id: id }, { orderId: id }] };
       const doc = await OrderModel.findOne(query).lean();
       if (doc) return { ...(doc as any), id: (doc as any)._id.toString() };
     }
@@ -305,7 +307,12 @@ export const db = {
   async saveOrder(order: OrderSnapshot): Promise<OrderSnapshot> {
     const isConnected = await connectToMongo();
     if (isConnected) {
-      const savedDoc = await OrderModel.findOneAndUpdate({ orderNo: order.orderNo }, order, {
+      const payloadToSave = {
+        ...order,
+        id: order.id,
+        orderId: order.id,
+      };
+      const savedDoc = await OrderModel.findOneAndUpdate({ orderNo: order.orderNo }, payloadToSave, {
         upsert: true,
         new: true,
       });

@@ -20,18 +20,25 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
+    const customerName = (body.customerName || body.shippingAddress?.fullName || '').trim() || 'Customer';
+    const customerPhone = (body.customerPhone || body.shippingAddress?.phone || '').trim();
+
+    if (!customerPhone) {
+      return NextResponse.json({ error: 'Customer mobile number is required' }, { status: 400 });
+    }
+
     const order = await orderService.createOrder({
-      customerName: body.customerName || 'Customer',
-      customerPhone: body.customerPhone || '9380933170',
-      customerEmail: body.customerEmail,
+      customerName,
+      customerPhone,
+      customerEmail: body.customerEmail || undefined,
       shippingAddress: body.shippingAddress,
-      deliveryMethod: body.deliveryMethod || 'express_60',
+      deliveryMethod: body.deliveryMethod || 'standard',
       paymentPreference: body.paymentPreference || 'upi_whatsapp',
       items: body.items || [],
-      subtotalPaise: body.subtotalPaise || 0,
-      discountPaise: body.discountPaise || 0,
-      deliveryFeePaise: body.deliveryFeePaise || 0,
-      totalPaise: body.totalPaise || 0,
+      subtotalPaise: Number(body.subtotalPaise) || 0,
+      discountPaise: Number(body.discountPaise) || 0,
+      deliveryFeePaise: Number(body.deliveryFeePaise) || 0,
+      totalPaise: Number(body.totalPaise) || 0,
       couponCode: body.couponCode,
       notes: body.notes,
     });
