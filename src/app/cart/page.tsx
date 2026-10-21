@@ -1,12 +1,15 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useStore } from '@/lib/store-context';
 import { formatPaise } from '@/lib/money';
+import { generateInstantWhatsAppCartUrl } from '@/lib/whatsapp';
+import { getCurrentUserAction } from '@/modules/auth/actions';
+import { UserProfile } from '@/modules/auth/types';
 import { env } from '@/config/env';
-import { Trash2, Plus, Minus, Zap, ArrowRight, ShieldCheck, Tag } from 'lucide-react';
+import { Trash2, Plus, Minus, Zap, ArrowRight, ShieldCheck, Tag, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 export default function CartPage() {
@@ -21,7 +24,14 @@ export default function CartPage() {
     getDiscountPaise,
     getDeliveryFeePaise,
     getGrandTotalPaise,
+    siteSettings,
   } = useStore();
+
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    getCurrentUserAction().then(u => setCurrentUser(u)).catch(() => setCurrentUser(null));
+  }, []);
 
   const minutes = Math.floor(reservationTimeRemainingSeconds / 60);
   const seconds = reservationTimeRemainingSeconds % 60;
@@ -165,17 +175,44 @@ export default function CartPage() {
                 </div>
               </div>
 
-              <Link
-                href="/checkout"
-                className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-surface-base py-3.5 px-4 rounded-full font-headline font-black text-sm shadow-[0_4px_24px_rgba(250,204,21,0.35)] transition-all active:scale-95"
-              >
-                <span>Proceed to WhatsApp Checkout</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+              <div className="space-y-2">
+                <Link
+                  href="/checkout"
+                  className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-surface-base py-3.5 px-4 rounded-full font-headline font-black text-sm shadow-[0_4px_24px_rgba(250,204,21,0.35)] transition-all active:scale-95"
+                >
+                  <span>{currentUser ? 'Proceed to Checkout' : 'Proceed to Checkout / Log In'}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+
+                {!currentUser && (
+                  <a
+                    href={generateInstantWhatsAppCartUrl({
+                      items: cart,
+                      subtotalPaise: subtotal,
+                      discountPaise: discount,
+                      deliveryFeePaise: delivery,
+                      totalPaise: grandTotal,
+                      couponCode: appliedCoupon?.code,
+                      customPhone: siteSettings?.whatsappNumber,
+                      customBusinessName: siteSettings?.businessName,
+                    })}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white py-3 px-4 rounded-full font-headline font-bold text-xs shadow-[0_4px_16px_rgba(16,185,129,0.25)] transition-all active:scale-95"
+                  >
+                    <MessageCircle className="w-4 h-4 fill-current" />
+                    <span>⚡ Instant WhatsApp Order (No Login)</span>
+                  </a>
+                )}
+              </div>
 
               <div className="flex items-center justify-center gap-1.5 text-[11px] text-text-muted text-center pt-2">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Express Delivery • Doorstep Try &amp; Buy Supported</span>
+                <span>
+                  {currentUser
+                    ? `Logged in as ${currentUser.name || currentUser.email} • Doorstep Delivery`
+                    : 'Log in to track orders, or tap Instant WhatsApp Order'}
+                </span>
               </div>
             </div>
           </div>

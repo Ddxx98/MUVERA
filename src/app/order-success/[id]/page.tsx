@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useStore } from '@/lib/store-context';
 import { OrderSnapshot } from '@/lib/types';
 import { formatPaise } from '@/lib/money';
 import { generateWhatsAppOrderUrl } from '@/lib/whatsapp';
@@ -24,6 +25,7 @@ import { Button } from '@/components/ui/Button';
 export default function OrderSuccessPage() {
   const params = useParams();
   const orderId = params?.id as string;
+  const { siteSettings } = useStore();
 
   const [order, setOrder] = useState<OrderSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
@@ -191,7 +193,7 @@ export default function OrderSuccessPage() {
         {order && (
           <button
             type="button"
-            onClick={() => generateInvoicePdf(order)}
+            onClick={() => generateInvoicePdf(order, siteSettings)}
             className="flex-1 flex items-center justify-center gap-2 bg-amber-400 hover:bg-amber-300 text-black font-headline font-bold text-xs sm:text-sm py-3.5 px-4 rounded-full shadow-lg transition-all active:scale-95"
           >
             <Download className="w-4 h-4" />
@@ -201,7 +203,7 @@ export default function OrderSuccessPage() {
 
         {order && (
           <a
-            href={generateWhatsAppOrderUrl(order)}
+            href={generateWhatsAppOrderUrl(order, siteSettings?.whatsappNumber, siteSettings?.businessUpiMerchantName)}
             target="_blank"
             rel="noopener noreferrer"
             className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-headline font-bold text-xs sm:text-sm py-3.5 px-4 rounded-full shadow-lg transition-all"

@@ -34,6 +34,7 @@ export default function AdminOrdersPage() {
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'allocated' | 'shipped' | 'cancelled'>('all');
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [siteSettings, setSiteSettings] = useState<any>(null);
 
   // Edit modal form state
   const [editFulfilmentStatus, setEditFulfilmentStatus] = useState<FulfilmentStatus>('unfulfilled');
@@ -45,9 +46,12 @@ export default function AdminOrdersPage() {
 
   const loadOrders = async () => {
     try {
-      const res = await fetch('/api/orders');
-      const data = await res.json();
-      if (data.orders) setOrders(data.orders);
+      const [res, settingsRes] = await Promise.all([
+        fetch('/api/orders').then((r) => r.json()).catch(() => ({})),
+        fetch('/api/settings').then((r) => r.json()).catch(() => ({})),
+      ]);
+      if (res.orders) setOrders(res.orders);
+      if (settingsRes.settings) setSiteSettings(settingsRes.settings);
     } catch (err) {
       console.error('Failed to load orders:', err);
     } finally {
@@ -299,7 +303,7 @@ export default function AdminOrdersPage() {
                       <span>Edit Status</span>
                     </Button>
                     <Button
-                      onClick={() => generateInvoicePdf(order)}
+                      onClick={() => generateInvoicePdf(order, siteSettings)}
                       variant="outline"
                       size="sm"
                       className="text-xs flex items-center gap-1.5"
@@ -700,7 +704,7 @@ export default function AdminOrdersPage() {
                 Close
               </button>
               <button
-                onClick={() => generateInvoicePdf(selectedOrder)}
+                onClick={() => generateInvoicePdf(selectedOrder, siteSettings)}
                 className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold flex items-center gap-1.5 shadow-sm"
               >
                 <Download className="w-3.5 h-3.5" />

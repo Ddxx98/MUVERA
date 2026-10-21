@@ -65,8 +65,58 @@ export function generateAdminCustomerChatUrl(order: OrderSnapshot, messageType: 
   } else if (messageType === 'dispatch') {
     message = `📦 Great news ${order.customerName}! Your MUVERA order #${order.orderNo} is packed and handed over for express courier delivery!`;
   } else {
-    message = `🎉 Order Delivered! Your order #${order.orderNo} from MUVERA has been delivered. Enjoy your fits! Reach out if you need size exchanges within 7 days.`;
+    message = `🎉 Order Delivered! Your order #${order.orderNo} from MUVERA has been delivered. Enjoy your fits! Feel free to reach out to our concierge anytime if you need assistance.`;
   }
 
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+}
+
+/**
+ * Generates an instant WhatsApp concierge checkout link directly from bag items.
+ * Allows guest shoppers to complete their purchase on WhatsApp without logging in.
+ */
+export function generateInstantWhatsAppCartUrl(params: {
+  items: Array<{
+    title: string;
+    size: string;
+    color?: string;
+    quantity: number;
+    sellingPricePaise: number;
+  }>;
+  subtotalPaise: number;
+  discountPaise?: number;
+  deliveryFeePaise?: number;
+  totalPaise: number;
+  couponCode?: string;
+  customPhone?: string;
+  customBusinessName?: string;
+}): string {
+  const cleanPhone = (params.customPhone || env.whatsappNumber).replace(/\D/g, '');
+  const bizName = (params.customBusinessName || env.businessName).toUpperCase();
+
+  const itemsList = params.items
+    .map(
+      (item, idx) =>
+        `${idx + 1}. *${item.title}* (${item.size}${item.color ? ` / ${item.color}` : ''})\n   Qty: ${item.quantity} | ${formatPaise(item.sellingPricePaise * item.quantity)}`
+    )
+    .join('\n\n');
+
+  const lines = [
+    `⚡ *INSTANT WHATSAPP ORDER — ${bizName}*`,
+    `━━━━━━━━━━━━━━━━━━━━━━`,
+    `Hello ${bizName} Concierge! I want to order the following items directly via WhatsApp:`,
+    ``,
+    itemsList,
+    `━━━━━━━━━━━━━━━━━━━━━━`,
+    `💰 *Subtotal:* ${formatPaise(params.subtotalPaise)}`,
+    params.discountPaise && params.discountPaise > 0
+      ? `🏷️ *Coupon Savings (${params.couponCode || 'PROMO'}):* -${formatPaise(params.discountPaise)}`
+      : null,
+    `⚡ *Delivery Fee:* ${!params.deliveryFeePaise || params.deliveryFeePaise === 0 ? 'FREE' : formatPaise(params.deliveryFeePaise)}`,
+    `💳 *ESTIMATED TOTAL:* *${formatPaise(params.totalPaise)}*`,
+    `━━━━━━━━━━━━━━━━━━━━━━`,
+    `Please confirm stock availability and send payment / delivery confirmation instructions!`,
+  ].filter(Boolean) as string[];
+
+  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(lines.join('\n'))}`;
 }

@@ -31,10 +31,32 @@ export async function GET(req: Request) {
       return NextResponse.json({ order });
     }
 
-    // Listing all orders: admin only
-    await requireAdmin();
-    const orders = await orderService.getOrders();
-    return NextResponse.json({ orders });
+    // Listing orders:
+    const ctx = await getOptionalUser();
+    if (!ctx) {
+      return NextResponse.json({ error: 'Authentication required to view orders' }, { status: 401 });
+    }
+
+    // Admins see all store orders
+    if (ctx.role === 'admin') {
+      const orders = await orderService.getOrders();
+      return NextResponse.json({ orders });
+    }
+
+    // Authenticated customers see only their own orders (matching email or mobile)
+    const allOrders = await orderService.getOrders();
+    const userPhone = (ctx.phone || '').replace(/\D/g, '').slice(-10);
+    const userEmail = (ctx.email || '').toLowerCase().trim();
+
+    const customerOrders = allOrders.filter((o) => {
+      const orderEmail = (o.customerEmail || '').toLowerCase().trim();
+      const orderPhone = (o.customerPhone || '').replace(/\D/g, '').slice(-10);
+      const emailMatch = Boolean(userEmail && orderEmail && userEmail === orderEmail);
+      const phoneMatch = Boolean(userPhone && orderPhone && userPhone === orderPhone);
+      return emailMatch || phoneMatch;
+    });
+
+    return NextResponse.json({ orders: customerOrders });
   } catch (err: any) {
     const status = err?.statusCode || 500;
     return NextResponse.json({ error: err.message || 'Failed to fetch orders' }, { status });
@@ -43,10 +65,12 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const ctx = await getOptionalUser();
     const body = await req.json();
 
-    const customerName = (body.customerName || body.shippingAddress?.fullName || '').trim() || 'Customer';
-    const customerPhone = (body.customerPhone || body.shippingAddress?.phone || '').trim();
+    const customerName = (body.customerName || body.shippingAddress?.fullName || ctx?.name || '').trim() || 'Customer';
+    const customerPhone = (body.customerPhone || body.shippingAddress?.phone || ctx?.phone || '').trim();
+    const customerEmail = (body.customerEmail || ctx?.email || '').trim() || undefined;
 
     if (!customerPhone) {
       return NextResponse.json({ error: 'Customer mobile number is required' }, { status: 400 });
@@ -55,7 +79,7 @@ export async function POST(req: Request) {
     const order = await orderService.createOrder({
       customerName,
       customerPhone,
-      customerEmail: body.customerEmail || undefined,
+      customerEmail,
       shippingAddress: body.shippingAddress,
       deliveryMethod: body.deliveryMethod || 'standard',
       paymentPreference: body.paymentPreference || 'upi_whatsapp',

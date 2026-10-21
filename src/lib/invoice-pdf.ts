@@ -1,10 +1,14 @@
 import { OrderSnapshot } from './types';
 import { formatPaise, calculateGstBreakdown } from './money';
+import { SiteSettingsData } from './models/SiteSettings';
 
 /**
  * Generates and triggers download of a standardized, statutory A4 GST Tax Invoice PDF.
  */
-export async function generateInvoicePdf(order: OrderSnapshot): Promise<void> {
+export async function generateInvoicePdf(
+  order: OrderSnapshot,
+  settings?: SiteSettingsData | null
+): Promise<void> {
   // Dynamically import jsPDF for optimal client-side bundle performance
   const { jsPDF } = await import('jspdf');
 
@@ -20,6 +24,10 @@ export async function generateInvoicePdf(order: OrderSnapshot): Promise<void> {
   const contentWidth = pageWidth - margin * 2; // 182mm
   let y = margin;
 
+  const bizName = (settings?.businessName || 'MUVERA LUXURY COMMERCE').toUpperCase();
+  const locationName = settings?.defaultLocationName || 'Indiranagar Dark Store Hub, 100ft Road, Bengaluru, KA 560038';
+  const supportPhone = settings?.supportPhone || '+91 93809 33170';
+
   // 1. Top Decorative Header Bar
   doc.setFillColor(18, 18, 20); // Luxury obsidian black
   doc.rect(margin, y, contentWidth, 24, 'F');
@@ -27,13 +35,13 @@ export async function generateInvoicePdf(order: OrderSnapshot): Promise<void> {
   doc.setTextColor(245, 197, 24); // Electric Gold
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
-  doc.text('MUVERA LUXURY COMMERCE', margin + 6, y + 10);
+  doc.text(bizName, margin + 6, y + 10);
 
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(220, 220, 225);
   doc.text('GSTIN: 29AABCM1234F1Z8 | State: Karnataka (Code: 29)', margin + 6, y + 16);
-  doc.text('Indiranagar Dark Store Hub, 100ft Road, Bengaluru, KA 560038', margin + 6, y + 20);
+  doc.text(locationName.substring(0, 75), margin + 6, y + 20);
 
   // Top-Right Tax Invoice Badge
   doc.setFillColor(245, 197, 24);
@@ -267,15 +275,15 @@ export async function generateInvoicePdf(order: OrderSnapshot): Promise<void> {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(110, 115, 125);
-  doc.text('1. Easy 7-day doorstep size exchange policy applicable from the delivery date.', margin, y + 4);
-  doc.text('2. Please retain garment tags and original packaging for valid exchange authorization.', margin, y + 8);
-  doc.text('3. For support or courier tracking inquiries, connect via WhatsApp: +91 93809 33170.', margin, y + 12);
+  doc.text('1. Premium quality guaranteed. Multi-point quality inspection verified prior to courier dispatch.', margin, y + 4);
+  doc.text('2. Please retain garment tags and original packaging for order verification records.', margin, y + 8);
+  doc.text(`3. For order support, styling assistance, or courier tracking, connect via: ${supportPhone}.`, margin, y + 12);
 
   // Signatory Stamp
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   doc.setTextColor(18, 18, 20);
-  doc.text('For MUVERA LUXURY COMMERCE', pageWidth - margin - 4, y, { align: 'right' });
+  doc.text(`For ${bizName}`, pageWidth - margin - 4, y, { align: 'right' });
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(7);
   doc.setTextColor(110, 115, 125);
@@ -283,5 +291,5 @@ export async function generateInvoicePdf(order: OrderSnapshot): Promise<void> {
   doc.text('Computer Generated Invoice • No Physical Signature Required', pageWidth - margin - 4, y + 14, { align: 'right' });
 
   // Trigger browser download
-  doc.save(`MUVERA-Tax-Invoice-${order.orderNo}.pdf`);
+  doc.save(`${bizName.replace(/\s+/g, '-')}-Tax-Invoice-${order.orderNo}.pdf`);
 }

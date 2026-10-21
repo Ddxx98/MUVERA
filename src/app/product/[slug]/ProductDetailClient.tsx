@@ -33,7 +33,6 @@ interface ProductDetailClientProps {
 
 export function ProductDetailClient({ product, similarProducts }: ProductDetailClientProps) {
   const { addToCart, toggleWishlist, isWishlisted, siteSettings } = useStore();
-  const returnDays = siteSettings?.returnWindowDays || 7;
   const whatsappNum = (siteSettings?.whatsappNumber || '919380933170').replace(/\D/g, '');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const galleryRef = useRef<HTMLDivElement>(null);
@@ -109,11 +108,11 @@ export function ProductDetailClient({ product, similarProducts }: ProductDetailC
       )}
 
       {/* Main Grid: Gallery & Info */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Image Gallery (7 cols) */}
         <div className="lg:col-span-7 space-y-3">
           {/* Main Hero Swipeable Gallery */}
-          <div className="relative aspect-[3/4] sm:aspect-[4/5] w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-surface-raised border border-surface-border shadow-2xl group">
+          <div className="relative aspect-[3/4] sm:aspect-[4/5] lg:max-h-[min(72vh,36rem)] w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-surface-raised border border-surface-border shadow-2xl group">
             {/* Horizontal Scroll Snap Track */}
             <div
               ref={galleryRef}
@@ -247,7 +246,7 @@ export function ProductDetailClient({ product, similarProducts }: ProductDetailC
         </div>
 
         {/* Right Column: Product Details & Purchase Actions (5 cols) */}
-        <div className="lg:col-span-5 space-y-6">
+        <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-24 h-fit">
           {/* Brand & Title */}
           <div>
             <div className="flex items-center justify-between mb-1">
@@ -399,13 +398,13 @@ export function ProductDetailClient({ product, similarProducts }: ProductDetailC
 
             <details className="p-4 text-xs group cursor-pointer">
               <summary className="font-bold text-text-primary flex justify-between items-center list-none">
-                <span>{returnDays}-Day Return Guarantee</span>
+                <span>Authenticity &amp; Quality Guarantee</span>
                 <ChevronDown className="w-4 h-4 text-text-muted group-open:rotate-180 transition-transform" />
               </summary>
               <div className="pt-3 text-text-muted space-y-1 leading-relaxed">
-                <p>• Hassle-free {returnDays}-day pickup window from date of delivery.</p>
-                <p>• Doorstep pickup scheduled conveniently across India.</p>
-                <p>• Instant UPI refund credited following return inspection.</p>
+                <p>• 100% genuine luxury streetwear crafted with premium heavyweight fabrics.</p>
+                <p>• Multi-point quality inspection verified prior to courier dispatch.</p>
+                <p>• Dedicated VIP concierge support directly available on WhatsApp.</p>
               </div>
             </details>
           </div>

@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useStore } from '@/lib/store-context';
 import { formatPaise } from '@/lib/money';
-import { generateWhatsAppOrderUrl } from '@/lib/whatsapp';
+import { generateWhatsAppOrderUrl, generateInstantWhatsAppCartUrl } from '@/lib/whatsapp';
 import { generateUpiQrDataUrl, generateUpiPaymentUrl } from '@/lib/upi';
 import { env } from '@/config/env';
 import { OrderSnapshot, ShippingAddress } from '@/lib/types';
@@ -23,6 +24,8 @@ import {
   Info,
   Copy,
   Check,
+  User,
+  LogIn,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
@@ -288,6 +291,52 @@ export default function CheckoutPage() {
           Instant order booking • Inventory held • Direct WhatsApp confirmation
         </p>
       </div>
+
+      {/* Auth Prompt for Guests */}
+      {!currentUser && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-primary flex items-center justify-center flex-shrink-0">
+              <User className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-headline font-bold text-sm sm:text-base text-text-primary">
+                Have an account? Log in to save orders to your profile
+              </h3>
+              <p className="text-xs text-text-muted mt-0.5 max-w-xl">
+                Log in to link this order to your account for live parcel tracking &amp; GST tax invoices. If you prefer not to log in, <span className="text-emerald-400 font-bold">Instant WhatsApp Order</span> will be chosen.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
+            <Link
+              href="/login?redirect=/checkout"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-surface-base text-xs font-headline font-bold transition-all shadow-gold-glow"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Log In</span>
+            </Link>
+            <a
+              href={generateInstantWhatsAppCartUrl({
+                items: cart,
+                subtotalPaise: subtotal,
+                discountPaise: discount,
+                deliveryFeePaise: delivery,
+                totalPaise: grandTotal,
+                couponCode: appliedCoupon?.code,
+                customPhone: businessWhatsAppNumber,
+                customBusinessName: businessUpiMerchantName,
+              })}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-headline font-bold transition-all shadow-[0_4px_16px_rgba(16,185,129,0.2)]"
+            >
+              <MessageCircle className="w-3.5 h-3.5 fill-current" />
+              <span>Instant WhatsApp Order</span>
+            </a>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmitOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Column: Form & Payment (7 cols) */}
@@ -602,13 +651,23 @@ export default function CheckoutPage() {
               className="py-4 text-sm font-headline font-black shadow-gold-glow flex items-center justify-center gap-2"
             >
               <MessageCircle className="w-5 h-5 fill-current" />
-              <span>{isSubmitting ? 'Booking Order...' : 'Confirm Order & Open WhatsApp'}</span>
+              <span>
+                {isSubmitting
+                  ? 'Booking Order...'
+                  : currentUser
+                  ? 'Confirm & Place Order'
+                  : '⚡ Instant WhatsApp Order (Guest)'}
+              </span>
             </Button>
 
             <div className="space-y-2 text-center text-[11px] text-text-muted pt-2 border-t border-surface-border">
               <p className="flex items-center justify-center gap-1.5 font-semibold text-emerald-400">
                 <CheckCircle className="w-3.5 h-3.5" />
-                <span>Inventory Held • Zero Risk Cancellation</span>
+                <span>
+                  {currentUser
+                    ? `Linked to account (${currentUser.email || currentUser.name})`
+                    : 'Instant WhatsApp Order • No login required'}
+                </span>
               </p>
               <p>Your order will be verified on WhatsApp by the dark store dispatch team.</p>
             </div>

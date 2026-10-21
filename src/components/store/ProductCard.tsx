@@ -94,7 +94,7 @@ export function ProductCard({ product }: ProductCardProps) {
       </Link>
 
       {/* Product Information */}
-      <div className="p-2 sm:p-4 flex flex-col flex-1 justify-between bg-surface-card">
+      <div className="p-2.5 sm:p-3.5 md:p-4 flex flex-col flex-1 justify-between bg-surface-card">
         <div>
           {/* Brand */}
           <p className="text-[10px] sm:text-[11px] font-extrabold tracking-wider uppercase text-text-muted mb-0.5 truncate">
@@ -112,7 +112,7 @@ export function ProductCard({ product }: ProductCardProps) {
         {/* Pricing in Integer Paise */}
         <div className="mt-2 sm:mt-2.5 flex items-center justify-between gap-1">
           <div className="flex items-baseline gap-1 sm:gap-1.5 min-w-0">
-            <span className="font-headline font-black text-xs sm:text-base text-text-primary whitespace-nowrap">
+            <span className="font-headline font-black text-xs sm:text-sm md:text-base text-text-primary whitespace-nowrap">
               {formatPaise(product.sellingPricePaise)}
             </span>
             {product.mrpPaise > product.sellingPricePaise && (

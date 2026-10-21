@@ -11,7 +11,6 @@ import { Zap, RotateCcw, ShieldCheck, MessageCircle, Heart } from 'lucide-react'
 export function Footer() {
   const pathname = usePathname();
   const { siteSettings } = useStore();
-  const returnDays = siteSettings?.returnWindowDays || 7;
   const whatsappNum = (siteSettings?.whatsappNumber || env.whatsappNumber).replace(/\D/g, '');
 
   if (pathname.startsWith('/admin')) return null;
@@ -32,11 +31,11 @@ export function Footer() {
 
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-amber-800 dark:text-primary flex-shrink-0">
-              <RotateCcw className="w-5 h-5" />
+              <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="font-headline font-bold text-text-primary text-sm">{returnDays}-Day Free Returns</h4>
-              <p className="text-[11px] text-slate-600 dark:text-zinc-400">Instant pickup &amp; UPI refund</p>
+              <h4 className="font-headline font-bold text-text-primary text-sm">Quality Guaranteed</h4>
+              <p className="text-[11px] text-slate-600 dark:text-zinc-400">Inspected prior to dispatch</p>
             </div>
           </div>
 
@@ -124,13 +123,23 @@ export function Footer() {
             <li><Link href="/account/orders" className="text-slate-700 dark:text-zinc-300 hover:text-primary transition-colors">Orders &amp; Tracking</Link></li>
             <li><Link href="/wishlist" className="text-slate-700 dark:text-zinc-300 hover:text-primary transition-colors">Saved Fits &amp; Wishlist</Link></li>
             <li><Link href="/categories" className="text-slate-700 dark:text-zinc-300 hover:text-primary transition-colors">Browse All Collections</Link></li>
+            {siteSettings?.supportEmail && (
+              <li className="pt-1 text-[11px] text-slate-500 dark:text-zinc-400">
+                Email: <a href={`mailto:${siteSettings.supportEmail}`} className="hover:text-primary transition-colors font-medium">{siteSettings.supportEmail}</a>
+              </li>
+            )}
+            {siteSettings?.supportPhone && (
+              <li className="text-[11px] text-slate-500 dark:text-zinc-400">
+                Phone: <span className="font-medium text-text-primary">{siteSettings.supportPhone}</span>
+              </li>
+            )}
           </ul>
         </div>
       </div>
 
       {/* Copyright */}
       <div className="border-t border-surface-border max-w-7xl mx-auto px-4 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-600 dark:text-zinc-400">
-        <p>© 2026 MUVERA Luxury Commerce Ltd. All rights reserved.</p>
+        <p>© 2026 {siteSettings?.businessName || 'MUVERA Luxury Commerce Ltd'}. All rights reserved.</p>
         <p className="flex items-center gap-1">
           Crafted with <Heart className="w-3 h-3 text-secondary fill-current" /> for rapid fashion delivery.
         </p>

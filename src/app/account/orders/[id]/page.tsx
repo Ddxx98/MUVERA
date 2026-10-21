@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useStore } from '@/lib/store-context';
 import { OrderSnapshot } from '@/lib/types';
 import { formatPaise, calculateGstBreakdown } from '@/lib/money';
 import { generateWhatsAppOrderUrl } from '@/lib/whatsapp';
@@ -28,6 +29,7 @@ export default function OrderDetailPage() {
   const params = useParams();
   const router = useRouter();
   const orderId = params?.id as string;
+  const { siteSettings } = useStore();
 
   const [order, setOrder] = useState<OrderSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
@@ -122,7 +124,7 @@ export default function OrderDetailPage() {
 
         <div className="flex flex-wrap items-center gap-2">
           <Button
-            onClick={() => generateInvoicePdf(order)}
+            onClick={() => generateInvoicePdf(order, siteSettings)}
             variant="outline"
             size="sm"
             className="flex items-center gap-1.5 text-xs font-bold"
@@ -145,7 +147,7 @@ export default function OrderDetailPage() {
           )}
 
           <a
-            href={generateWhatsAppOrderUrl(order)}
+            href={generateWhatsAppOrderUrl(order, siteSettings?.whatsappNumber, siteSettings?.businessUpiMerchantName)}
             target="_blank"
             rel="noopener noreferrer"
             className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2.5 rounded-full flex items-center gap-1.5 transition-all shadow-md"
