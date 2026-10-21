@@ -1,19 +1,44 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { orderService } from '@/modules/orders';
+import { requireAdmin, requireCustomer, getOptionalUser } from '@/modules/auth/guards';
+import { AppError } from '@/lib/errors';
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const id = searchParams.get('id');
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    const userId = searchParams.get('userId');
 
-  if (id) {
-    const order = await orderService.getOrderById(id);
-    if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
-    return NextResponse.json({ order });
+    // If requesting a single order by ID, require customer (owns it) or admin
+    if (id) {
+      const ctx = await getOptionalUser();
+      const order = await orderService.getOrderById(id);
+      if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+
+      // Enforce ownership: customers can only access their own orders
+      if (ctx && ctx.role !== 'admin') {
+        const ownerEmail = order.customerEmail || '';
+        const ownerPhone = (order.customerPhone || '').replace(/\D/g, '').slice(-10);
+        const userPhone = (ctx.phone || '').replace(/\D/g, '').slice(-10);
+        const emailMatch = ownerEmail && ctx.email.toLowerCase() === ownerEmail.toLowerCase();
+        const phoneMatch = ownerPhone && userPhone && userPhone === ownerPhone;
+        if (!emailMatch && !phoneMatch) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+      }
+
+      return NextResponse.json({ order });
+    }
+
+    // Listing all orders: admin only
+    await requireAdmin();
+    const orders = await orderService.getOrders();
+    return NextResponse.json({ orders });
+  } catch (err: any) {
+    const status = err?.statusCode || 500;
+    return NextResponse.json({ error: err.message || 'Failed to fetch orders' }, { status });
   }
-
-  const orders = await orderService.getOrders();
-  return NextResponse.json({ orders });
 }
 
 export async function POST(req: Request) {
@@ -56,32 +81,41 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    const { orderId, fulfilmentStatus, paymentStatus, actor } = await req.json();
+    // Status updates are admin-only
+    await requireAdmin();
 
-    let updatedOrder;
-    if (fulfilmentStatus) {
-      updatedOrder = await orderService.updateFulfillmentStatus(
-        orderId,
+    const body = await req.json();
+    const {
+      orderId,
+      fulfilmentStatus,
+      paymentStatus,
+      orderStatus,
+      trackingNumber,
+      assignedRider,
+      adminNote,
+      actor,
+    } = body;
+
+    if (!orderId) {
+      return NextResponse.json({ error: 'orderId is required' }, { status: 400 });
+    }
+
+    const updatedOrder = await orderService.manualUpdateOrder(
+      orderId,
+      {
         fulfilmentStatus,
-        actor || 'Warehouse Staff'
-      );
-    }
-
-    if (paymentStatus) {
-      updatedOrder = await orderService.updatePaymentStatus(
-        orderId,
         paymentStatus,
-        actor || 'Finance Admin'
-      );
-    }
-
-    if (!updatedOrder) {
-      const order = await db.getOrderById(orderId);
-      return NextResponse.json({ success: true, order });
-    }
+        orderStatus,
+        trackingNumber,
+        assignedRider,
+        adminNote,
+      },
+      actor || 'Operations Admin'
+    );
 
     return NextResponse.json({ success: true, order: updatedOrder });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 400 });
+    const status = err?.statusCode || 400;
+    return NextResponse.json({ error: err.message }, { status });
   }
 }

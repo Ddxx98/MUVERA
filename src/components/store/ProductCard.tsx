@@ -94,10 +94,10 @@ export function ProductCard({ product }: ProductCardProps) {
       </Link>
 
       {/* Product Information */}
-      <div className="p-3 sm:p-4 flex flex-col flex-1 justify-between bg-surface-card">
+      <div className="p-2 sm:p-4 flex flex-col flex-1 justify-between bg-surface-card">
         <div>
           {/* Brand */}
-          <p className="text-[11px] font-extrabold tracking-wider uppercase text-text-muted mb-0.5 truncate">
+          <p className="text-[10px] sm:text-[11px] font-extrabold tracking-wider uppercase text-text-muted mb-0.5 truncate">
             {product.brand}
           </p>
 
@@ -110,19 +110,19 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
 
         {/* Pricing in Integer Paise */}
-        <div className="mt-2.5 flex items-center justify-between gap-1">
-          <div className="flex items-baseline gap-1.5 min-w-0">
-            <span className="font-headline font-black text-sm sm:text-base text-text-primary whitespace-nowrap">
+        <div className="mt-2 sm:mt-2.5 flex items-center justify-between gap-1">
+          <div className="flex items-baseline gap-1 sm:gap-1.5 min-w-0">
+            <span className="font-headline font-black text-xs sm:text-base text-text-primary whitespace-nowrap">
               {formatPaise(product.sellingPricePaise)}
             </span>
             {product.mrpPaise > product.sellingPricePaise && (
-              <span className="text-[11px] sm:text-xs text-text-muted line-through font-semibold whitespace-nowrap truncate">
+              <span className="text-[10px] sm:text-xs text-text-muted line-through font-semibold whitespace-nowrap truncate">
                 {formatPaise(product.mrpPaise)}
               </span>
             )}
           </div>
 
-          <span className="text-[9px] sm:text-[10px] font-bold text-emerald-800 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 whitespace-nowrap flex-shrink-0">
+          <span className="text-[8px] sm:text-[10px] font-bold text-emerald-800 dark:text-emerald-400 bg-emerald-500/10 px-1 sm:px-1.5 py-0.5 rounded border border-emerald-500/20 whitespace-nowrap flex-shrink-0">
             In Stock
           </span>
         </div>

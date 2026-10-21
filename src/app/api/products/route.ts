@@ -2,19 +2,30 @@ import { NextResponse } from 'next/server';
 import { catalogService } from '@/modules/catalog';
 import { db } from '@/lib/db';
 import { Product } from '@/lib/types';
+import { requireAdmin } from '@/modules/auth/guards';
+import { revalidatePath } from 'next/cache';
 
 export async function GET(req: Request) {
+  const start = performance.now();
   const { searchParams } = new URL(req.url);
   const category = searchParams.get('category') || undefined;
   const brand = searchParams.get('brand') || undefined;
   const search = searchParams.get('search') || undefined;
 
   const products = await catalogService.getProducts({ category, brand, search });
-  return NextResponse.json({ products });
+  const duration = Math.round(performance.now() - start);
+
+  const res = NextResponse.json({ products });
+  // Public catalog reads cached at edge with SWR
+  res.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+  res.headers.set('Server-Timing', `db;dur=${duration}`);
+  return res;
 }
 
 export async function POST(req: Request) {
   try {
+    await requireAdmin();
+
     const product: Product = await req.json();
     const saved = await catalogService.upsertProduct(product, 'Admin API');
 
@@ -55,14 +66,19 @@ export async function POST(req: Request) {
       }
     }
 
+    revalidatePath('/products');
+    revalidatePath('/');
     return NextResponse.json({ success: true, product: saved });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 400 });
+    const status = err?.statusCode || (err?.code === 'UNAUTHORIZED' ? 401 : err?.code === 'FORBIDDEN' ? 403 : 400);
+    return NextResponse.json({ error: err.message }, { status });
   }
 }
 
 export async function PUT(req: Request) {
   try {
+    await requireAdmin();
+
     const product: Product = await req.json();
     if (!product.id && !product.slug) {
       return NextResponse.json({ error: 'Product ID or slug is required for updating' }, { status: 400 });
@@ -124,14 +140,20 @@ export async function PUT(req: Request) {
       }
     }
 
+    revalidatePath('/products');
+    revalidatePath(`/product/${saved.slug}`);
+    revalidatePath('/');
     return NextResponse.json({ success: true, product: saved });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 400 });
+    const status = err?.statusCode || (err?.code === 'UNAUTHORIZED' ? 401 : err?.code === 'FORBIDDEN' ? 403 : 400);
+    return NextResponse.json({ error: err.message }, { status });
   }
 }
 
 export async function DELETE(req: Request) {
   try {
+    await requireAdmin();
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     if (!id) {
@@ -139,8 +161,11 @@ export async function DELETE(req: Request) {
     }
 
     const success = await catalogService.deleteProduct(id, 'Admin Catalog Delete');
+    revalidatePath('/products');
+    revalidatePath('/');
     return NextResponse.json({ success });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    const status = err?.statusCode || (err?.code === 'UNAUTHORIZED' ? 401 : err?.code === 'FORBIDDEN' ? 403 : 500);
+    return NextResponse.json({ error: err.message }, { status });
   }
 }

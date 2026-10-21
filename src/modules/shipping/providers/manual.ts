@@ -5,7 +5,7 @@ export class ManualShippingProvider implements ShippingProvider {
 
   async createShipment(input: CreateShipmentInput): Promise<ShipmentResult> {
     const isExpress = input.deliveryMethod === 'express_60';
-    const courierName = isExpress ? 'MUVERA 60-Min Express Fleet' : 'BlueDart Express';
+    const courierName = isExpress ? 'MUVERA Express Courier Fleet' : 'BlueDart Express';
     const prefix = isExpress ? 'MUV-EXP' : 'BD';
     const trackingNumber = `${prefix}-${Math.floor(100000000 + Math.random() * 900000000)}`;
     const trackingUrl = isExpress

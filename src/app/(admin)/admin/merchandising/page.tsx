@@ -20,16 +20,16 @@ export default function AdminMerchandisingPage() {
 
   // Brevo Campaign State
   const [campaignName, setCampaignName] = useState('Weekend Blitz Drop Exclusive');
-  const [campaignSubject, setCampaignSubject] = useState('⚡ 60-Minute Streetwear Drop: 20% Off Your Next Haul');
+  const [campaignSubject, setCampaignSubject] = useState('⚡ Exclusive Streetwear Drop: 20% Off Your Next Haul');
   const [senderName, setSenderName] = useState('MUVERA Luxury Streetwear');
   const [senderEmail, setSenderEmail] = useState('support@muvera.club');
   const [campaignHtml, setCampaignHtml] = useState(
     `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #0E0E10; color: #fff; padding: 32px; border-radius: 16px;">
   <h1 style="color: #FACC15; font-size: 28px; text-align: center; margin: 0;">MUVERA</h1>
-  <p style="text-align: center; color: #A1A1AA; font-size: 13px; text-transform: uppercase;">60-Minute Luxury Fashion Commerce</p>
+  <p style="text-align: center; color: #A1A1AA; font-size: 13px; text-transform: uppercase;">Luxury Streetwear Commerce</p>
   <div style="background: #18181B; padding: 24px; border-radius: 12px; margin: 24px 0; border: 1px solid #2E2E38;">
     <h2 style="font-size: 20px; color: #fff; margin-top: 0;">Midnight Blitz Drop is Live!</h2>
-    <p style="color: #D1C6AB; font-size: 14px; line-height: 1.6;">Explore oversized silhouettes, heavy luxury hoodies, and limited statement drops ready for 60-minute express courier delivery.</p>
+    <p style="color: #D1C6AB; font-size: 14px; line-height: 1.6;">Explore oversized silhouettes, heavy luxury hoodies, and limited statement drops ready for express courier delivery.</p>
     <p style="color: #FACC15; font-size: 18px; font-weight: bold;">Use Code: FLASH20 for 20% OFF</p>
     <div style="text-align: center; margin-top: 24px;">
       <a href="https://muvera.club" style="background: #FACC15; color: #000; padding: 12px 28px; border-radius: 8px; font-weight: bold; text-decoration: none;">Shop The Drop</a>

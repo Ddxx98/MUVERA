@@ -256,7 +256,7 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,15rem),1fr))] gap-3 sm:gap-5 w-full">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 md:gap-6 w-full">
             {blitzDrops.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
@@ -289,7 +289,7 @@ export default async function HomePage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,15rem),1fr))] gap-3 sm:gap-5 w-full">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 md:gap-6 w-full">
             {products.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

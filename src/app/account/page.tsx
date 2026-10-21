@@ -68,7 +68,7 @@ export default function AccountPage() {
           <div className="space-y-1">
             <h1 className="font-headline font-black text-2xl text-text-primary">Sign in to MUVERA</h1>
             <p className="text-xs text-text-muted">
-              Unlock 60-minute express tracking, saved fits, and exclusive member perks.
+              Unlock express delivery tracking, saved fits, and exclusive member perks.
             </p>
           </div>
 

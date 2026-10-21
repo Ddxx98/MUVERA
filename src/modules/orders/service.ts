@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { OrderSnapshot, OrderItemSnapshot, ShippingAddress } from '@/lib/types';
+import { OrderSnapshot, OrderItemSnapshot, ShippingAddress, FulfilmentStatus, PaymentStatus, OrderStatus } from '@/lib/types';
 import { inventoryService } from '@/modules/inventory';
 import { couponService } from '@/modules/coupons';
 import { paymentService, PaymentProviderType } from '@/modules/payments';
@@ -24,6 +24,20 @@ export interface CreateOrderInput {
   totalPaise: number;
   couponCode?: string;
   notes?: string;
+}
+
+export interface ManualOrderUpdateInput {
+  fulfilmentStatus?: FulfilmentStatus;
+  paymentStatus?: PaymentStatus;
+  orderStatus?: OrderStatus;
+  trackingNumber?: string;
+  assignedRider?: {
+    name: string;
+    phone: string;
+    vehicleNo: string;
+    etaMinutes?: number;
+  };
+  adminNote?: string;
 }
 
 export const orderService = {
@@ -81,11 +95,16 @@ export const orderService = {
       paymentProviderType
     );
 
+    const isWhatsAppBooking =
+      input.paymentPreference === 'upi_whatsapp' || input.paymentPreference === 'cod_whatsapp';
+
     const initialTimeline = [
       {
         id: `ev_${Date.now()}_created`,
-        status: 'placed',
-        description: `Order placed via ${input.paymentPreference.toUpperCase()}. 15-minute stock hold reserved.`,
+        status: isWhatsAppBooking ? 'pending_whatsapp' : 'placed',
+        description: isWhatsAppBooking
+          ? 'WhatsApp checkout request initiated by customer. Awaiting payment verification & admin confirmation. Stock hold reserved.'
+          : `Order placed via ${input.paymentPreference.toUpperCase()}. 15-minute stock hold reserved.`,
         actor: 'Customer',
         createdAt: new Date().toISOString(),
       },
@@ -279,6 +298,178 @@ export const orderService = {
       actor,
       before: { paymentStatus: previousStatus },
       after: { paymentStatus: nextPaymentStatus, invoiceNo: order.invoiceNo },
+    });
+
+    return saved;
+  },
+
+  /**
+   * Comprehensive manual update of order status, tracking, and timeline notes by administrator.
+   */
+  async manualUpdateOrder(
+    orderId: string,
+    updates: ManualOrderUpdateInput,
+    actor = 'Operations Admin'
+  ): Promise<OrderSnapshot> {
+    const order = await db.getOrderById(orderId);
+    if (!order) throw new AppError('ORDER_NOT_FOUND', 'Order not found');
+
+    const beforeState = {
+      fulfilmentStatus: order.fulfilmentStatus,
+      paymentStatus: order.paymentStatus,
+      orderStatus: order.orderStatus,
+      trackingNumber: order.trackingNumber,
+    };
+
+    const previousFulfilment = order.fulfilmentStatus;
+    const previousPayment = order.paymentStatus;
+    const items = order.items.map((i) => ({ variantId: i.variantId, sku: i.sku, quantity: i.quantity }));
+
+    // 1. Fulfilment status change
+    if (updates.fulfilmentStatus && updates.fulfilmentStatus !== previousFulfilment) {
+      const nextFulfilment = updates.fulfilmentStatus;
+
+      // Commit stock if transitioning from unfulfilled to allocated / picking / packed / shipped / delivered
+      if (
+        ['allocated', 'picking', 'packed', 'shipped', 'out_for_delivery', 'delivered'].includes(nextFulfilment) &&
+        previousFulfilment === 'unfulfilled'
+      ) {
+        await inventoryService.commitReservation(order.id, items);
+      }
+
+      // Cancellation logic
+      if (nextFulfilment === 'cancelled') {
+        if (previousFulfilment === 'unfulfilled') {
+          await inventoryService.releaseReservation(order.id, items);
+        }
+        if (order.couponCode) {
+          await couponService.releaseCoupon(order.couponCode, order.id);
+        }
+        order.orderStatus = 'cancelled';
+      } else if (nextFulfilment === 'delivered') {
+        order.orderStatus = 'completed';
+      }
+
+      order.fulfilmentStatus = nextFulfilment;
+
+      order.timeline.push({
+        id: `ev_${Date.now()}_fulfil`,
+        status: nextFulfilment,
+        description: `Fulfillment status manually updated to ${nextFulfilment.toUpperCase()}`,
+        actor,
+        createdAt: new Date().toISOString(),
+      });
+    }
+
+    // 2. Payment status change
+    if (updates.paymentStatus && updates.paymentStatus !== previousPayment) {
+      const nextPayment = updates.paymentStatus;
+      order.paymentStatus = nextPayment;
+
+      if (nextPayment === 'paid') {
+        if (!order.invoiceNo) {
+          order.invoiceNo = await generateInvoiceNumber('26-27');
+        }
+        // Commit stock if still unfulfilled
+        if (order.fulfilmentStatus === 'unfulfilled') {
+          await inventoryService.commitReservation(order.id, items);
+          order.fulfilmentStatus = 'allocated';
+        }
+      }
+
+      order.timeline.push({
+        id: `ev_${Date.now()}_pay`,
+        status: nextPayment,
+        description: `Payment status manually updated to ${nextPayment.toUpperCase()}${order.invoiceNo ? ` (Invoice ${order.invoiceNo})` : ''}`,
+        actor,
+        createdAt: new Date().toISOString(),
+      });
+    }
+
+    // 3. Order status change (open, processing, completed, cancelled)
+    if (updates.orderStatus && updates.orderStatus !== order.orderStatus) {
+      const nextOrderStatus = updates.orderStatus;
+      order.orderStatus = nextOrderStatus;
+      if (nextOrderStatus === 'cancelled' && order.fulfilmentStatus !== 'cancelled') {
+        if (order.fulfilmentStatus === 'unfulfilled') {
+          await inventoryService.releaseReservation(order.id, items);
+        }
+        if (order.couponCode) {
+          await couponService.releaseCoupon(order.couponCode, order.id);
+        }
+        order.fulfilmentStatus = 'cancelled';
+      }
+      order.timeline.push({
+        id: `ev_${Date.now()}_ordstat`,
+        status: nextOrderStatus,
+        description: `Order status updated to ${nextOrderStatus.toUpperCase()}`,
+        actor,
+        createdAt: new Date().toISOString(),
+      });
+    }
+
+    // 4. Tracking number update
+    if (updates.trackingNumber !== undefined && updates.trackingNumber !== order.trackingNumber) {
+      order.trackingNumber = updates.trackingNumber.trim() || undefined;
+      if (order.trackingNumber) {
+        order.timeline.push({
+          id: `ev_${Date.now()}_track`,
+          status: 'tracking_updated',
+          description: `Tracking number assigned: ${order.trackingNumber}`,
+          actor,
+          createdAt: new Date().toISOString(),
+        });
+      }
+    }
+
+    // 5. Assigned rider update
+    if (updates.assignedRider) {
+      order.assignedRider = {
+        name: updates.assignedRider.name,
+        phone: updates.assignedRider.phone,
+        vehicleNo: updates.assignedRider.vehicleNo,
+        etaMinutes: updates.assignedRider.etaMinutes || 30,
+      };
+      order.timeline.push({
+        id: `ev_${Date.now()}_rider`,
+        status: 'rider_assigned',
+        description: `Express rider assigned: ${order.assignedRider.name} (${order.assignedRider.phone})`,
+        actor,
+        createdAt: new Date().toISOString(),
+      });
+    }
+
+    // 6. Custom admin note
+    if (updates.adminNote && updates.adminNote.trim()) {
+      order.timeline.push({
+        id: `ev_${Date.now()}_note`,
+        status: 'admin_note',
+        description: updates.adminNote.trim(),
+        actor,
+        createdAt: new Date().toISOString(),
+      });
+    }
+
+    // Auto-generate invoice if paid or packing/shipped and missing
+    if (!order.invoiceNo && (order.paymentStatus === 'paid' || ['packed', 'shipped', 'delivered'].includes(order.fulfilmentStatus))) {
+      order.invoiceNo = await generateInvoiceNumber('26-27');
+    }
+
+    order.updatedAt = new Date().toISOString();
+    const saved = await db.saveOrder(order);
+
+    await auditService.recordAudit({
+      action: 'ORDER_MANUAL_UPDATE',
+      entity: 'order',
+      entityId: order.id,
+      actor,
+      before: beforeState,
+      after: {
+        fulfilmentStatus: saved.fulfilmentStatus,
+        paymentStatus: saved.paymentStatus,
+        orderStatus: saved.orderStatus,
+        trackingNumber: saved.trackingNumber,
+      },
     });
 
     return saved;

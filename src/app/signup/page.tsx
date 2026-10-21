@@ -78,7 +78,7 @@ export default function CustomerSignUpPage() {
           </div>
           <h1 className="font-headline font-bold text-xl text-text-primary">Create Your Account</h1>
           <p className="text-xs text-text-muted">
-            Unlock 60-minute express drops, VIP access &amp; instant WhatsApp checkout
+            Unlock express streetwear drops, VIP access &amp; instant WhatsApp checkout
           </p>
         </div>
 

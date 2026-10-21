@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { hashPassword, verifyPassword, signSessionToken, verifySessionToken } from './crypto';
+import { hashPassword, verifyPassword, signJwt, verifyJwt, signSessionToken, verifySessionToken } from './crypto';
 import { newToken, hashToken } from './tokens';
 import { RegisterInput, LoginInput, UserProfile, UserRecord, AuthSession, UserRole } from './types';
 import { AppError } from '@/lib/errors';
@@ -69,13 +69,16 @@ export const authService = {
     const saved = await db.saveUser(newUser);
     const savedRole = normalizeUserRole(saved.role);
 
-    const token = signSessionToken({
-      userId: saved.id,
-      email: saved.email,
-      name: saved.name,
-      role: savedRole,
-      expiresAt: Date.now() + SESSION_DURATION_MS,
-    });
+    const token = signJwt(
+      {
+        sub: saved.id,
+        email: saved.email,
+        name: saved.name,
+        role: savedRole,
+        aud: savedRole === 'admin' ? 'admin' : 'customer',
+      },
+      SESSION_DURATION_MS / 1000
+    );
 
     await auditService.recordAudit({
       action: 'USER_REGISTER',
@@ -118,13 +121,16 @@ export const authService = {
 
     const role = normalizeUserRole(user.role);
 
-    const token = signSessionToken({
-      userId: user.id,
-      email: user.email,
-      name: user.name,
-      role,
-      expiresAt: Date.now() + SESSION_DURATION_MS,
-    });
+    const token = signJwt(
+      {
+        sub: user.id,
+        email: user.email,
+        name: user.name,
+        role,
+        aud: role === 'admin' ? 'admin' : 'customer',
+      },
+      SESSION_DURATION_MS / 1000
+    );
 
     const profile: UserProfile = {
       id: user.id,
@@ -175,13 +181,16 @@ export const authService = {
 
     const role = normalizeUserRole(user.role);
 
-    const token = signSessionToken({
-      userId: user.id,
-      email: user.email,
-      name: user.name,
-      role,
-      expiresAt: Date.now() + SESSION_DURATION_MS,
-    });
+    const token = signJwt(
+      {
+        sub: user.id,
+        email: user.email,
+        name: user.name,
+        role,
+        aud: role === 'admin' ? 'admin' : 'customer',
+      },
+      SESSION_DURATION_MS / 1000
+    );
 
     const profile: UserProfile = {
       id: user.id,
@@ -199,17 +208,33 @@ export const authService = {
 
   /**
    * Decodes session token and fetches fresh profile from database.
+   * Supports both legacy HMAC tokens and new JWT format.
    */
   async getSessionUser(token?: string): Promise<UserProfile | null> {
     if (!token) return null;
-    const session = verifySessionToken<AuthSession>(token);
-    if (!session || !session.userId) return null;
 
-    if (session.expiresAt && Date.now() > session.expiresAt) {
-      return null;
+    let userId: string | undefined;
+
+    // Try new JWT format first (aud=admin or aud=customer)
+    const adminPayload = verifyJwt(token, 'admin');
+    if (adminPayload) {
+      userId = adminPayload.sub;
+    } else {
+      const customerPayload = verifyJwt(token, 'customer');
+      if (customerPayload) {
+        userId = customerPayload.sub;
+      } else {
+        // Fall back to legacy HMAC token for backward compatibility
+        const session = verifySessionToken<{ userId?: string; expiresAt?: number }>(token);
+        if (!session || !session.userId) return null;
+        if (session.expiresAt && Date.now() > session.expiresAt) return null;
+        userId = session.userId;
+      }
     }
 
-    const user = await db.getUserById(session.userId);
+    if (!userId) return null;
+
+    const user = await db.getUserById(userId);
     if (!user) return null;
 
     const role = normalizeUserRole(user.role);
@@ -225,6 +250,7 @@ export const authService = {
       createdAt: user.createdAt,
     };
   },
+
 
   /**
    * Initiates password reset flow by issuing a 256-bit token with SHA-256 storage (Section 23).

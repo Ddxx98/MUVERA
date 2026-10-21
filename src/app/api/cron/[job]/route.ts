@@ -4,16 +4,25 @@ import { db } from '@/lib/db';
 import { inventoryService } from '@/modules/inventory';
 import { couponService } from '@/modules/coupons';
 import { serverEnv } from '@/config/env.server';
+import crypto from 'crypto';
 
 export async function GET(
   req: Request,
   { params }: { params: { job: string } }
 ) {
-  // Authorization check (Bearer token matching CRON_SECRET or dev bypass)
-  const authHeader = req.headers.get('authorization');
+  // Machine route: constant-time CRON_SECRET verification (no dev bypass)
+  const authHeader = req.headers.get('authorization') || '';
   const cronSecret = serverEnv.CRON_SECRET;
+  const expected = `Bearer ${cronSecret}`;
 
-  if (process.env.NODE_ENV === 'production' && authHeader !== `Bearer ${cronSecret}`) {
+  // Constant-time comparison to prevent timing attacks
+  const authBuf = Buffer.from(authHeader.padEnd(expected.length));
+  const expectedBuf = Buffer.from(expected.padEnd(authHeader.length));
+  const isValid = authBuf.length === expectedBuf.length &&
+    crypto.timingSafeEqual(authBuf, expectedBuf) &&
+    authHeader === expected;
+
+  if (!isValid) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

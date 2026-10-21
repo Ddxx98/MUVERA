@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { inventoryService } from '@/modules/inventory/service';
+import { requireAdmin } from '@/modules/auth/guards';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  const start = performance.now();
   const [rawInventory, movements, products] = await Promise.all([
     db.getInventory(),
     db.getStockMovements(),
@@ -81,11 +85,18 @@ export async function GET() {
     }
   }
 
-  return NextResponse.json({ inventory: enrichedList, movements });
+  const duration = Math.round(performance.now() - start);
+  const res = NextResponse.json({ inventory: enrichedList, movements });
+  // Invariant: Live stock availability must NEVER be cached
+  res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  res.headers.set('Server-Timing', `db;dur=${duration}`);
+  return res;
 }
 
 export async function POST(req: Request) {
   try {
+    await requireAdmin();
+
     const { variantId, sku, locationId, quantityDelta, reason, actor } = await req.json();
 
     await inventoryService.adjustStock(
@@ -99,6 +110,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 400 });
+    const status = err?.statusCode || (err?.code === 'UNAUTHORIZED' ? 401 : err?.code === 'FORBIDDEN' ? 403 : 400);
+    return NextResponse.json({ error: err.message }, { status });
   }
 }

@@ -18,10 +18,13 @@ import {
   MessageCircle,
   ChevronLeft,
   ChevronRight,
+  Maximize2,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { ProductCard } from '@/components/store/ProductCard';
+import { SizeGuideModal } from '@/components/store/SizeGuideModal';
 
 interface ProductDetailClientProps {
   product: Product;
@@ -67,6 +70,7 @@ export function ProductDetailClient({ product, similarProducts }: ProductDetailC
     eta: '📦 Express Courier: Fast Doorstep Dispatch (2-4 Business Days)',
   });
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
 
   const favorited = isWishlisted(product.id);
@@ -114,11 +118,15 @@ export function ProductDetailClient({ product, similarProducts }: ProductDetailC
             <div
               ref={galleryRef}
               onScroll={handleGalleryScroll}
-              className="w-full h-full flex overflow-x-auto snap-x snap-mandatory no-scrollbar touch-pan-x select-none"
+              className="w-full h-full flex overflow-x-auto snap-x snap-mandatory no-scrollbar touch-pan-y touch-pan-x select-none"
             >
               {product.images && product.images.length > 0 ? (
                 product.images.map((img, idx) => (
-                  <div key={idx} className="relative w-full h-full flex-shrink-0 snap-center snap-always">
+                  <div
+                    key={idx}
+                    onClick={() => setIsLightboxOpen(true)}
+                    className="relative w-full h-full flex-shrink-0 snap-center snap-always cursor-zoom-in"
+                  >
                     <Image
                       src={img.url}
                       alt={`${product.title} - View ${idx + 1}`}
@@ -151,18 +159,29 @@ export function ProductDetailClient({ product, similarProducts }: ProductDetailC
               )}
             </div>
 
-            {/* Wishlist Heart */}
-            <button
-              onClick={() => toggleWishlist(product.id)}
-              aria-label="Wishlist"
-              className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-surface-base/80 backdrop-blur-md flex items-center justify-center text-text-surface hover:text-text-primary transition-all active:scale-90"
-            >
-              <Heart
-                className={`w-5 h-5 transition-colors ${
-                  favorited ? 'fill-secondary text-secondary' : 'text-text-muted hover:text-secondary'
-                }`}
-              />
-            </button>
+            {/* Action Buttons: Zoom & Wishlist */}
+            <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsLightboxOpen(true)}
+                aria-label="View large images fullscreen"
+                className="w-10 h-10 rounded-full bg-surface-base/80 backdrop-blur-md flex items-center justify-center text-text-surface hover:text-text-primary transition-all active:scale-90"
+              >
+                <Maximize2 className="w-4 h-4 text-text-muted hover:text-primary transition-colors" />
+              </button>
+
+              <button
+                onClick={() => toggleWishlist(product.id)}
+                aria-label="Wishlist"
+                className="w-10 h-10 rounded-full bg-surface-base/80 backdrop-blur-md flex items-center justify-center text-text-surface hover:text-text-primary transition-all active:scale-90"
+              >
+                <Heart
+                  className={`w-5 h-5 transition-colors ${
+                    favorited ? 'fill-secondary text-secondary' : 'text-text-muted hover:text-secondary'
+                  }`}
+                />
+              </button>
+            </div>
 
             {/* Desktop Next/Previous Chevrons & Bottom Dots */}
             {product.images && product.images.length > 1 && (
@@ -415,54 +434,98 @@ export function ProductDetailClient({ product, similarProducts }: ProductDetailC
       )}
 
       {/* Size Guide Modal */}
-      {isSizeGuideOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-surface-card border border-surface-border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-surface-border">
-              <h3 className="font-headline font-bold text-lg text-text-primary">Size &amp; Fit Guide</h3>
-              <button
-                onClick={() => setIsSizeGuideOpen(false)}
-                className="p-1.5 rounded-full text-text-muted hover:text-text-primary hover:bg-surface-raised transition-colors text-sm"
-              >
-                ✕
-              </button>
+      <SizeGuideModal
+        isOpen={isSizeGuideOpen}
+        onClose={() => setIsSizeGuideOpen(false)}
+        selectedSize={selectedVariant?.size}
+      />
+
+      {/* Fullscreen High-Resolution Image Lightbox */}
+      {isLightboxOpen && (
+        <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col justify-between p-3 sm:p-6 animate-in fade-in duration-200">
+          {/* Lightbox Top Header */}
+          <div className="flex items-center justify-between z-20 pb-2 border-b border-white/10">
+            <div>
+              <h3 className="font-headline font-bold text-sm sm:text-base text-white line-clamp-1">
+                {product.title}
+              </h3>
+              <p className="text-xs text-zinc-400">
+                Fit View {selectedImageIndex + 1} of {product.images?.length || 1} • High-Resolution Inspection
+              </p>
             </div>
-            <p className="text-xs text-text-muted">
-              Measurements are in inches. Fits are true to standard streetwear boxy proportions.
-            </p>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left">
-                <thead>
-                  <tr className="border-b border-surface-border text-text-muted font-bold">
-                    <th className="py-2">Size</th>
-                    <th className="py-2">Chest (in)</th>
-                    <th className="py-2">Length (in)</th>
-                    <th className="py-2">Shoulder (in)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-surface-border text-text-primary">
-                  <tr><td className="py-2 font-bold text-primary">S</td><td>42</td><td>28</td><td>20</td></tr>
-                  <tr><td className="py-2 font-bold text-primary">M</td><td>44</td><td>29</td><td>21</td></tr>
-                  <tr><td className="py-2 font-bold text-primary">L</td><td>46</td><td>30</td><td>22</td></tr>
-                  <tr><td className="py-2 font-bold text-primary">XL</td><td>48</td><td>31</td><td>23</td></tr>
-                  {product.variants?.some((v) => {
-                    const s = v.size?.trim().toUpperCase();
-                    return s === 'XXL' || s === '2XL' || s === '3XL';
-                  }) && (
-                    <tr>
-                      <td className="py-2 font-bold text-primary">XXL</td>
-                      <td>50</td>
-                      <td>32</td>
-                      <td>24</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-            <Button onClick={() => setIsSizeGuideOpen(false)} variant="outline" size="sm" fullWidth>
-              Got It
-            </Button>
+            <button
+              onClick={() => setIsLightboxOpen(false)}
+              aria-label="Close fullscreen view"
+              className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
           </div>
+
+          {/* Large Image Frame */}
+          <div className="relative flex-1 w-full max-w-4xl mx-auto my-auto flex items-center justify-center min-h-[50vh]">
+            {product.images && product.images[selectedImageIndex] ? (
+              <Image
+                src={product.images[selectedImageIndex].url}
+                alt={`${product.title} - Large View ${selectedImageIndex + 1}`}
+                fill
+                sizes="100vw"
+                quality={95}
+                className="object-contain object-center"
+              />
+            ) : (
+              <Image
+                src="https://res.cloudinary.com/ha2fbiwt/image/upload/v1/muvera/products/placeholder"
+                alt={product.title}
+                fill
+                className="object-contain object-center"
+              />
+            )}
+
+            {/* Previous / Next Chevrons */}
+            {product.images && product.images.length > 1 && (
+              <>
+                {selectedImageIndex > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => scrollToImage(selectedImageIndex - 1)}
+                    aria-label="Previous large image"
+                    className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/70 hover:bg-black/90 text-white flex items-center justify-center transition-all active:scale-95 shadow-2xl border border-white/10"
+                  >
+                    <ChevronLeft className="w-6 h-6" />
+                  </button>
+                )}
+                {selectedImageIndex < product.images.length - 1 && (
+                  <button
+                    type="button"
+                    onClick={() => scrollToImage(selectedImageIndex + 1)}
+                    aria-label="Next large image"
+                    className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/70 hover:bg-black/90 text-white flex items-center justify-center transition-all active:scale-95 shadow-2xl border border-white/10"
+                  >
+                    <ChevronRight className="w-6 h-6" />
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Bottom Thumbnails */}
+          {product.images && product.images.length > 1 && (
+            <div className="flex justify-center gap-2 overflow-x-auto py-2 z-20 no-scrollbar">
+              {product.images.map((img, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => scrollToImage(idx)}
+                  className={`relative w-14 h-16 sm:w-16 sm:h-20 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all ${
+                    selectedImageIndex === idx ? 'border-primary scale-105' : 'border-white/20 opacity-50 hover:opacity-100'
+                  }`}
+                >
+                  <Image src={img.url} alt={`Thumbnail ${idx + 1}`} fill className="object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

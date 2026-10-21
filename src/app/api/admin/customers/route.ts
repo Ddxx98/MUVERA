@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { requireAdmin } from '@/modules/auth/guards';
 
 export async function GET() {
   try {
+    await requireAdmin();
+
     const [users, orders] = await Promise.all([
       db.getUsers(),
       db.getOrders(),
@@ -53,6 +56,7 @@ export async function GET() {
       customers: customerStats,
     });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    const status = err?.statusCode || (err?.code === 'UNAUTHORIZED' ? 401 : err?.code === 'FORBIDDEN' ? 403 : 500);
+    return NextResponse.json({ error: err.message }, { status });
   }
 }

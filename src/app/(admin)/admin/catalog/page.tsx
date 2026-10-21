@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { Product, Variant, SizeOption } from '@/lib/types';
 import { formatPaise } from '@/lib/money';
 import { siteConfig } from '@/config/site';
-import * as XLSX from 'xlsx';
 import {
   Plus,
   CheckCircle,
@@ -450,7 +449,8 @@ export default function AdminCatalogPage() {
     });
   };
 
-  const downloadSampleTemplate = () => {
+  const downloadSampleTemplate = async () => {
+    const XLSX = await import('xlsx');
     const sampleData = [
       {
         title: 'Midnight Heavy French Terry Acid Wash Tee',
@@ -510,13 +510,14 @@ export default function AdminCatalogPage() {
     XLSX.writeFile(workbook, 'muvera_bulk_products_template.xlsx');
   };
 
-  const handleBulkFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBulkFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setBulkFileName(file.name);
     setBulkResult(null);
 
+    const XLSX = await import('xlsx');
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {

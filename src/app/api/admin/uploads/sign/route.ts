@@ -1,19 +1,17 @@
 import { NextResponse } from 'next/server';
 import { mediaService } from '@/modules/media';
-import { serverEnv } from '@/config/env.server';
+import { requireAdmin } from '@/modules/auth/guards';
 
 export async function POST(req: Request) {
   try {
-    const { folder, adminSecret } = await req.json();
+    // Layer 2: require admin session (Layer 1 middleware already verified aud=admin)
+    const { user } = await requireAdmin();
 
-    // Verify admin secret
-    if (adminSecret !== serverEnv.ADMIN_SECRET_KEY && process.env.NODE_ENV === 'production') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+    const { folder } = await req.json();
     const signatureData = mediaService.generateUploadSignature(folder || 'muvera/products');
     return NextResponse.json({ success: true, ...signatureData });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Signature generation failed' }, { status: 500 });
+    const status = err?.statusCode || 500;
+    return NextResponse.json({ error: err.message || 'Signature generation failed' }, { status });
   }
 }

@@ -4,6 +4,10 @@ import { z } from 'zod';
 const serverEnvSchema = z.object({
   MONGODB_URI: z.string().optional().default(''),
   ADMIN_SECRET_KEY: z.string().default('muvera_admin_master_secret_2026'),
+  /** Separate JWT signing secret for customer sessions (aud=customer) */
+  SESSION_SECRET: z.string().default('muvera_customer_session_secret_2026'),
+  /** Separate JWT signing secret for admin sessions (aud=admin) */
+  ADMIN_SESSION_SECRET: z.string().default('muvera_admin_session_jwt_secret_2026'),
   RAZORPAY_KEY_ID: z.string().optional().default(''),
   RAZORPAY_KEY_SECRET: z.string().optional().default(''),
   RAZORPAY_WEBHOOK_SECRET: z.string().optional().default(''),
@@ -31,6 +35,8 @@ if (!parsed.success) {
 export const serverEnv = parsed.success ? parsed.data : {
   MONGODB_URI: process.env.MONGODB_URI || '',
   ADMIN_SECRET_KEY: process.env.ADMIN_SECRET_KEY || 'muvera_admin_master_secret_2026',
+  SESSION_SECRET: process.env.SESSION_SECRET || 'muvera_customer_session_secret_2026',
+  ADMIN_SESSION_SECRET: process.env.ADMIN_SESSION_SECRET || 'muvera_admin_session_jwt_secret_2026',
   RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID || '',
   RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET || '',
   RAZORPAY_WEBHOOK_SECRET: process.env.RAZORPAY_WEBHOOK_SECRET || '',
@@ -48,3 +54,4 @@ export const serverEnv = parsed.success ? parsed.data : {
   EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME || 'MUVERA Security',
   SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || 'http://localhost:3000',
 };
+

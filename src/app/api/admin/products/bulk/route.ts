@@ -2,9 +2,12 @@ import { NextResponse } from 'next/server';
 import { catalogService } from '@/modules/catalog';
 import { db } from '@/lib/db';
 import { Product, SizeOption } from '@/lib/types';
+import { requireAdmin } from '@/modules/auth/guards';
 
 export async function POST(req: Request) {
   try {
+    await requireAdmin();
+
     const body = await req.json();
     const items = Array.isArray(body) ? body : body.products;
 

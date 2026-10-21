@@ -5,22 +5,51 @@ import { revalidatePath } from 'next/cache';
 import { authService } from './service';
 import { RegisterInput, LoginInput, UserProfile } from './types';
 import { handleActionError, ServiceResult } from '@/lib/errors';
+import { verifyJwt } from './crypto';
 
-const SESSION_COOKIE_NAME = 'muvera_session';
+/**
+ * Cookie names:
+ *  - Admins get a separate cookie (muvera_admin_session) with SameSite=Strict
+ *  - Customers get muvera_session with SameSite=Lax (needed for WhatsApp OAuth redirects)
+ */
+const ADMIN_COOKIE_NAME = 'muvera_admin_session';
+const CUSTOMER_COOKIE_NAME = 'muvera_session';
+
 const SESSION_MAX_AGE_SECONDS = 6 * 60 * 60; // 6 hours auto-logout
 
-function setSessionCookie(token: string) {
-  cookies().set(SESSION_COOKIE_NAME, token, {
+function setSessionCookie(token: string, role: string) {
+  const isAdmin = role === 'admin';
+  const cookieName = isAdmin ? ADMIN_COOKIE_NAME : CUSTOMER_COOKIE_NAME;
+
+  cookies().set(cookieName, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: isAdmin ? 'strict' : 'lax',
     maxAge: SESSION_MAX_AGE_SECONDS,
     path: '/',
   });
+
+  // If previously had the other cookie, clear it (prevent stale cross-role cookies)
+  if (isAdmin) {
+    cookies().delete(CUSTOMER_COOKIE_NAME);
+  } else {
+    cookies().delete(ADMIN_COOKIE_NAME);
+  }
 }
 
-function clearSessionCookie() {
-  cookies().delete(SESSION_COOKIE_NAME);
+function clearAllSessionCookies() {
+  cookies().delete(CUSTOMER_COOKIE_NAME);
+  cookies().delete(ADMIN_COOKIE_NAME);
+}
+
+/**
+ * Reads the session token from cookies, checking admin cookie first, then customer.
+ */
+function getSessionToken(): string | undefined {
+  return (
+    cookies().get(ADMIN_COOKIE_NAME)?.value ||
+    cookies().get(CUSTOMER_COOKIE_NAME)?.value
+  );
 }
 
 /**
@@ -29,7 +58,7 @@ function clearSessionCookie() {
 export async function registerAction(input: RegisterInput): Promise<ServiceResult<UserProfile>> {
   try {
     const { user, token } = await authService.registerUser(input);
-    setSessionCookie(token);
+    setSessionCookie(token, user.role);
     revalidatePath('/account');
     return { ok: true, data: user };
   } catch (err) {
@@ -43,7 +72,7 @@ export async function registerAction(input: RegisterInput): Promise<ServiceResul
 export async function loginAction(input: LoginInput): Promise<ServiceResult<UserProfile>> {
   try {
     const { user, token } = await authService.loginWithCredentials(input);
-    setSessionCookie(token);
+    setSessionCookie(token, user.role);
     revalidatePath('/account');
     revalidatePath('/admin');
     return { ok: true, data: user };
@@ -58,7 +87,7 @@ export async function loginAction(input: LoginInput): Promise<ServiceResult<User
 export async function loginWithOtpAction(phone: string, otp: string): Promise<ServiceResult<UserProfile>> {
   try {
     const { user, token } = await authService.loginWithOtp(phone, otp);
-    setSessionCookie(token);
+    setSessionCookie(token, user.role);
     revalidatePath('/account');
     revalidatePath('/admin');
     return { ok: true, data: user };
@@ -68,11 +97,11 @@ export async function loginWithOtpAction(phone: string, otp: string): Promise<Se
 }
 
 /**
- * Server Action: Clears session cookie on logout.
+ * Server Action: Clears all session cookies on logout.
  */
 export async function logoutAction(): Promise<ServiceResult<{ success: boolean }>> {
   try {
-    clearSessionCookie();
+    clearAllSessionCookies();
     revalidatePath('/');
     revalidatePath('/account');
     revalidatePath('/admin');
@@ -87,7 +116,7 @@ export async function logoutAction(): Promise<ServiceResult<{ success: boolean }
  */
 export async function getCurrentUserAction(): Promise<UserProfile | null> {
   try {
-    const sessionToken = cookies().get(SESSION_COOKIE_NAME)?.value;
+    const sessionToken = getSessionToken();
     if (!sessionToken) return null;
     return await authService.getSessionUser(sessionToken);
   } catch {
@@ -131,7 +160,7 @@ export async function validateResetTokenAction(token: string): Promise<ServiceRe
  */
 export async function resetPasswordAction(token: string, newPassword: string): Promise<ServiceResult<{ message: string }>> {
   try {
-    clearSessionCookie();
+    clearAllSessionCookies();
     const res = await authService.resetPassword(token, newPassword);
     revalidatePath('/account');
     return { ok: true, data: res };
@@ -149,7 +178,7 @@ export async function resetPasswordWithOtpAction(
   newPassword: string
 ): Promise<ServiceResult<{ message: string }>> {
   try {
-    clearSessionCookie();
+    clearAllSessionCookies();
     const res = await authService.resetPasswordWithOtp(email, otp, newPassword);
     revalidatePath('/account');
     return { ok: true, data: res };
@@ -157,5 +186,3 @@ export async function resetPasswordWithOtpAction(
     return handleActionError(err);
   }
 }
-
-

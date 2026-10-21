@@ -39,7 +39,7 @@ export default function CustomerOrdersPage() {
       <div className="border-b border-surface-border pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="font-headline font-black text-2xl sm:text-3xl text-text-primary">Your Orders</h1>
-          <p className="text-xs text-text-muted mt-0.5">Track your 60-min express deliveries and past orders</p>
+          <p className="text-xs text-text-muted mt-0.5">Track your express courier deliveries and past orders</p>
         </div>
 
         {/* Tab Filters */}
@@ -133,7 +133,7 @@ export default function CustomerOrdersPage() {
               <div className="flex items-center justify-between pt-2 border-t border-surface-border">
                 <div className="flex items-center gap-1.5 text-xs text-primary font-bold">
                   <Zap className="w-3.5 h-3.5 fill-current" />
-                  <span>{order.deliveryMethod === 'express_60' ? '⚡ 60-Min Blitz Hub' : 'Standard Delivery'}</span>
+                  <span>⚡ Express Courier Delivery</span>
                 </div>
 
                 <Link

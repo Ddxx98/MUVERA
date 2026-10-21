@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { OrderSnapshot } from '@/lib/types';
 import { formatPaise, calculateGstBreakdown } from '@/lib/money';
 import { generateWhatsAppOrderUrl } from '@/lib/whatsapp';
+import { generateInvoicePdf } from '@/lib/invoice-pdf';
 import {
   Package,
   MapPin,
@@ -19,6 +20,7 @@ import {
   XCircle,
   ShieldCheck,
   Printer,
+  Download,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
@@ -118,7 +120,17 @@ export default function OrderDetailPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            onClick={() => generateInvoicePdf(order)}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-1.5 text-xs font-bold"
+          >
+            <Download className="w-3.5 h-3.5 text-primary" />
+            <span>Download Invoice (PDF)</span>
+          </Button>
+
           {order.orderStatus !== 'cancelled' && order.fulfilmentStatus === 'unfulfilled' && (
             <Button onClick={() => setIsCancelModalOpen(true)} variant="danger" size="sm">
               Cancel Order
