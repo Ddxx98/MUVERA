@@ -43,7 +43,7 @@ export default function CartPage() {
   const grandTotal = getGrandTotalPaise();
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       <div className="border-b border-surface-border pb-4">
         <h1 className="font-headline font-black text-2xl sm:text-3xl text-text-primary">Your Shopping Bag</h1>
         <p className="text-xs text-text-muted mt-0.5">

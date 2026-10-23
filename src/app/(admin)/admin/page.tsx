@@ -54,7 +54,7 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,13rem),1fr))] gap-4 w-full">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
         {/* GMV */}
         <div className="p-5 rounded-2xl bg-surface-card border border-surface-border space-y-2 shadow-lg">
           <div className="flex justify-between items-center text-text-muted">

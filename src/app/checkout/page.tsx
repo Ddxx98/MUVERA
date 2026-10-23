@@ -263,7 +263,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       <div>
         <h1 className="font-headline font-black text-2xl sm:text-3xl text-text-primary">
           WhatsApp Fast Checkout &amp; Payment
@@ -516,7 +516,7 @@ export default function CheckoutPage() {
 
                 <div className="inline-block p-3 rounded-2xl bg-white shadow-2xl border-4 border-amber-400">
                   {qrLoading || !qrDataUrl ? (
-                    <div className="w-[min(70vw,14rem)] h-[min(70vw,14rem)] flex flex-col items-center justify-center bg-zinc-100 rounded-lg animate-pulse text-zinc-500">
+                    <div className="w-48 h-48 sm:w-56 sm:h-56 flex flex-col items-center justify-center bg-zinc-100 rounded-lg animate-pulse text-zinc-500">
                       <QrCode className="w-10 h-10 stroke-[1.5] mb-2 animate-spin text-amber-500" />
                       <span className="text-[11px] font-bold">Generating UPI QR...</span>
                     </div>
@@ -524,7 +524,7 @@ export default function CheckoutPage() {
                     <img
                       src={qrDataUrl}
                       alt="UPI Payment QR Code"
-                      className="w-[min(70vw,14rem)] h-[min(70vw,14rem)] object-contain rounded-lg block mx-auto"
+                      className="w-48 h-48 sm:w-56 sm:h-56 object-contain rounded-lg block mx-auto"
                     />
                   )}
                 </div>

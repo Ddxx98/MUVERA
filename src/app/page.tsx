@@ -42,9 +42,9 @@ export default async function HomePage() {
     <div className="pb-16 space-y-8">
       {/* 1. Hero Drop Banner (Theatrical Midnight Glamour) */}
       {isHeroActive && (
-        <section className="max-w-7xl mx-auto px-3 sm:px-4 pt-2">
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 sm:pt-4">
           <div className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-zinc-950 shadow-2xl border border-zinc-800">
-            <div className="relative w-full aspect-[4/5] sm:aspect-[16/10] md:aspect-[2.04/1] lg:aspect-[2.35/1] min-h-[22rem] lg:max-h-[min(65vh,32rem)] flex flex-col justify-between p-5 sm:p-8 md:p-12">
+            <div className="relative w-full aspect-[4/5] sm:aspect-[16/10] md:aspect-[16/9] lg:aspect-[21/9] min-h-[24rem] lg:min-h-[28rem] flex flex-col justify-between p-5 sm:p-8 md:p-10 lg:p-12">
               {/* Background Image with Cinematic Editorial Gradients */}
               <Image
                 src={heroImage}
@@ -117,7 +117,7 @@ export default async function HomePage() {
       )}
 
       {/* 2. Categories Quick Filter Chips */}
-      <section className="max-w-7xl mx-auto px-4">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-2.5">
           <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
             Curated Collections
@@ -145,7 +145,7 @@ export default async function HomePage() {
 
       {/* 3. Deal of the Hour Lightning Card */}
       {dealOfTheHour && (
-        <section className="max-w-7xl mx-auto px-4">
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="relative bg-gradient-to-r from-secondary-container via-surface-card to-surface-raised p-4 sm:p-6 rounded-2xl border border-secondary/40 shadow-xl overflow-hidden">
             <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="space-y-1 text-center sm:text-left">
@@ -181,7 +181,7 @@ export default async function HomePage() {
       )}
 
       {/* 4. Curated Category Visual Grid */}
-      <section className="max-w-7xl mx-auto px-4">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="font-headline font-black text-xl text-text-primary">Curated Collections</h2>
@@ -197,7 +197,7 @@ export default async function HomePage() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,10rem),1fr))] gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
           {displayCategories.slice(0, 6).map((cat) => (
             <Link
               key={cat.id || cat.slug}
@@ -232,7 +232,7 @@ export default async function HomePage() {
 
       {/* 5. Trending Nocturne Blitz Drops (PLP Grid) */}
       {blitzDrops.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4">
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-4">
             <div>
               <div className="flex items-center gap-2">
@@ -256,7 +256,7 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-5 w-full">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-4 md:gap-5 w-full">
             {blitzDrops.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
@@ -265,7 +265,7 @@ export default async function HomePage() {
       )}
 
       {/* 6. All Streetwear Catalog Rail */}
-      <section className="max-w-7xl mx-auto px-4">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="font-headline font-black text-xl text-text-primary">Fresh Streetwear Releases</h2>
@@ -289,7 +289,7 @@ export default async function HomePage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-5 w-full">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-4 md:gap-5 w-full">
             {products.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

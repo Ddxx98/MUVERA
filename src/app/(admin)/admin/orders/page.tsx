@@ -482,7 +482,7 @@ export default function AdminOrdersPage() {
       {/* Manual Edit Order Status Modal */}
       {editingOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-surface-card border border-surface-border text-text-primary rounded-2xl w-full max-w-[min(92vw,36rem)] p-4 sm:p-6 shadow-2xl space-y-5 max-h-[90dvh] overflow-y-auto">
+          <div className="bg-surface-card border border-surface-border text-text-primary rounded-2xl w-full max-w-xl mx-4 p-4 sm:p-6 shadow-2xl space-y-5 max-h-[90dvh] overflow-y-auto">
             <div className="flex justify-between items-start border-b border-surface-border pb-3">
               <div>
                 <h2 className="text-lg font-black font-headline text-text-primary flex items-center gap-2">
@@ -630,7 +630,7 @@ export default function AdminOrdersPage() {
       {/* Printable GST Tax Invoice Modal */}
       {isInvoiceOpen && selectedOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-white text-zinc-900 rounded-2xl w-full max-w-[min(92vw,42rem)] p-4 sm:p-8 shadow-2xl space-y-6 max-h-[90dvh] overflow-y-auto">
+          <div className="bg-white text-zinc-900 rounded-2xl w-full max-w-2xl mx-4 p-4 sm:p-8 shadow-2xl space-y-6 max-h-[90dvh] overflow-y-auto">
             <div className="flex justify-between items-start border-b border-zinc-200 pb-4">
               <div>
                 <h2 className="text-2xl font-black tracking-wider text-black">MUVERA LUXURY COMMERCE</h2>

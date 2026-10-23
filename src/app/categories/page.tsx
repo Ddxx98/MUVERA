@@ -25,7 +25,7 @@ export default async function CategoriesPage() {
   const categories = await db.getCategories();
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       <div>
         <h1 className="font-headline font-black text-2xl sm:text-3xl text-text-primary">Apparel Categories</h1>
         <p className="text-xs text-text-muted mt-1">Explore all curated luxury streetwear and party lines</p>
@@ -40,7 +40,7 @@ export default async function CategoriesPage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] gap-4 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full">
           {categories.map((cat) => (
             <Link
               key={cat.id || cat.slug}

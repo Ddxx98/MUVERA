@@ -17,7 +17,7 @@ export function Footer() {
     <footer className="bg-surface-base border-t border-surface-border text-slate-700 dark:text-zinc-300 text-xs pb-24 md:pb-12">
       {/* Value Propositions Grid */}
       <div className="border-b border-surface-border py-8 bg-surface-raised/40">
-        <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-4 gap-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-amber-800 dark:text-primary flex-shrink-0">
               <Zap className="w-5 h-5 fill-current" />
@@ -61,7 +61,7 @@ export function Footer() {
       </div>
 
       {/* Main Footer Links */}
-      <div className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
         {/* Brand Info */}
         <div className="space-y-3">
           <Link href="/" className="inline-flex items-center gap-2">
@@ -137,7 +137,7 @@ export function Footer() {
       </div>
 
       {/* Copyright */}
-      <div className="border-t border-surface-border max-w-7xl mx-auto px-4 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-600 dark:text-zinc-400">
+      <div className="border-t border-surface-border max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-600 dark:text-zinc-400">
         <p>© 2026 {siteSettings?.businessName || 'MUVERA'}. All rights reserved.</p>
         <p className="flex items-center gap-1">
           Crafted with <Heart className="w-3 h-3 text-secondary fill-current" /> for rapid fashion delivery.
