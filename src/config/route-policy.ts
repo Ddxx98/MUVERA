@@ -43,12 +43,12 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
 
   // ─── Admin API routes ──────────────────────────────────────────────────────
   { pattern: /^\/api\/admin\//, class: 'admin', description: 'Admin REST API; require aud=admin session' },
-  { pattern: /^\/api\/orders$/, class: 'admin', description: 'Orders API PATCH (admin status update); also handles customer POST' },
   { pattern: /^\/api\/returns$/, class: 'admin', description: 'Returns GET/PATCH for admin inspection; POST is customer' },
-  { pattern: /^\/api\/settings$/, class: 'admin', description: 'Settings GET is public, PUT is admin-only (checked inside handler)' },
-  { pattern: /^\/api\/inventory$/, class: 'public', description: 'Inventory availability read; public for storefront' },
 
-  // ─── Public API routes ─────────────────────────────────────────────────────
+  // ─── Public & Customer Storefront API routes ────────────────────────────────
+  { pattern: /^\/api\/settings$/, class: 'public', description: 'Settings GET is public for storefront CMS, PUT is admin-only (checked in handler)' },
+  { pattern: /^\/api\/orders$/, class: 'public', description: 'Orders API: POST creates order, GET returns customer/admin orders, PATCH requires admin' },
+  { pattern: /^\/api\/inventory$/, class: 'public', description: 'Inventory availability read; public for storefront' },
   { pattern: /^\/api\/categories$/, class: 'public', description: 'Category list' },
   { pattern: /^\/api\/products/, class: 'public', description: 'Product catalog' },
   { pattern: /^\/api\/coupons/, class: 'public', description: 'Coupon validation' },

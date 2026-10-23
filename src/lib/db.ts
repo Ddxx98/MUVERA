@@ -1,16 +1,6 @@
 import mongoose from 'mongoose';
 import { Product, InventoryItem, StockMovement, OrderSnapshot, Coupon, ReturnRequest, Category } from './types';
 import { siteConfig } from '@/config/site';
-
-// Enforce reliable DNS resolvers on Windows Node environment to prevent querySrv ECONNREFUSED
-if (typeof window === 'undefined') {
-  try {
-    const dns = require('dns');
-    dns.setServers(['8.8.8.8', '1.1.1.1']);
-  } catch {
-    // Edge or browser environment
-  }
-}
 import { initialProducts, initialInventory, initialOrders, initialCoupons } from './seed-data';
 import { ProductModel, InventoryModel, StockMovementModel, OrderModel, CouponModel, UserModel, SiteSettingsModel, AuthTokenModel, ReturnModel, CategoryModel } from './models';
 import { env } from '@/config/env';
@@ -121,24 +111,18 @@ async function connectToMongo(): Promise<boolean> {
   if (!env.mongoUri) return false;
 
   try {
-    if (typeof window === 'undefined') {
-      try {
-        const dns = await import('dns');
-        dns.setServers(['8.8.8.8', '1.1.1.1']);
-      } catch {
-        // Edge or browser environment
-      }
-    }
+    if ((mongoose.connection.readyState as number) === 1) return true;
 
     if (!global._mongooseConn) {
       global._mongooseConn = mongoose.connect(env.mongoUri, {
-        bufferCommands: false,
         maxPoolSize: 5,
+        serverSelectionTimeoutMS: 5000,
       });
     }
     await global._mongooseConn;
-    return true;
+    return (mongoose.connection.readyState as number) === 1;
   } catch (err) {
+    global._mongooseConn = null;
     console.error('MongoDB connection error, falling back to local store:', err);
     return false;
   }
@@ -532,10 +516,14 @@ export const db = {
 
   // Site Settings (Singleton)
   async getSiteSettings(): Promise<SiteSettingsData> {
-    const isConnected = await connectToMongo();
-    if (isConnected) {
-      const doc = await SiteSettingsModel.findOne().lean();
-      if (doc) return doc as any;
+    try {
+      const isConnected = await connectToMongo();
+      if (isConnected && mongoose.connection.readyState === 1) {
+        const doc = await SiteSettingsModel.findOne().lean();
+        if (doc) return doc as any;
+      }
+    } catch (err) {
+      console.warn('Error fetching site settings from Mongo, using in-memory store:', err);
     }
     return global._muveraDb!.siteSettings;
   },

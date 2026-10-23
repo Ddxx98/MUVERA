@@ -11,23 +11,11 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 export function StoreHeader() {
   const pathname = usePathname();
-  const { cart, wishlist, setIsCartDrawerOpen } = useStore();
-  const [announcement, setAnnouncement] = useState('⚡ FAST DISPATCH • Free Express Shipping above ₹999');
-  const [announcementActive, setAnnouncementActive] = useState(true);
+  const { cart, wishlist, setIsCartDrawerOpen, siteSettings } = useStore();
+  const announcement = siteSettings?.topAnnouncementText || '';
+  const announcementActive = siteSettings?.topAnnouncementActive ?? false;
 
   const [currentUser, setCurrentUser] = useState<any>(null);
-
-  React.useEffect(() => {
-    fetch('/api/settings')
-      .then((r) => r.json())
-      .then((d) => {
-        if (d?.settings) {
-          if (d.settings.topAnnouncementText) setAnnouncement(d.settings.topAnnouncementText);
-          if (d.settings.topAnnouncementActive !== undefined) setAnnouncementActive(d.settings.topAnnouncementActive);
-        }
-      })
-      .catch(() => {});
-  }, []);
 
   React.useEffect(() => {
     const checkUser = () => {

@@ -31,14 +31,24 @@ interface StoreContextType {
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
-export function StoreProvider({ children }: { children: React.ReactNode }) {
+export function StoreProvider({
+  children,
+  initialSettings,
+}: {
+  children: React.ReactNode;
+  initialSettings?: SiteSettingsData | null;
+}) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<string[]>([]);
-  const [activeLocation, setActiveLocation] = useState<string>(env.defaultLocation);
+  const [siteSettings, setSiteSettings] = useState<SiteSettingsData | null>(initialSettings || null);
+  const [activeLocation, setActiveLocation] = useState<string>(
+    initialSettings?.defaultLocationName || env.defaultLocation
+  );
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
-  const [siteSettings, setSiteSettings] = useState<SiteSettingsData | null>(null);
-  const [reservationTimeRemainingSeconds, setReservationTimeRemainingSeconds] = useState(env.holdExpiryMinutes * 60);
+  const [reservationTimeRemainingSeconds, setReservationTimeRemainingSeconds] = useState(
+    (initialSettings?.holdExpiryMinutes ?? env.holdExpiryMinutes) * 60
+  );
 
   // Fetch live site settings from MongoDB
   useEffect(() => {
@@ -201,14 +211,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const getDeliveryFeePaise = () => {
     const subtotal = getCartSubtotalPaise();
-    const threshold = siteSettings?.freeShippingThresholdPaise !== undefined
-      ? siteSettings.freeShippingThresholdPaise
-      : env.freeShippingThresholdPaise;
-    const fee = siteSettings?.expressDeliveryFeePaise !== undefined
-      ? siteSettings.expressDeliveryFeePaise
-      : env.expressDeliveryFeePaise;
+    if (subtotal === 0) return 0;
 
-    if (subtotal === 0 || subtotal >= threshold) {
+    // Zero hardcoded fallbacks: strictly governed by CMS siteSettings
+    const threshold = siteSettings ? siteSettings.freeShippingThresholdPaise : 0;
+    const fee = siteSettings ? siteSettings.expressDeliveryFeePaise : 0;
+
+    if (threshold <= 0 || subtotal >= threshold) {
       return 0;
     }
     return fee;

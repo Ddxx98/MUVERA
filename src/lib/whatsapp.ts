@@ -1,13 +1,12 @@
 import { OrderSnapshot } from './types';
 import { formatPaise } from './money';
-import { env } from '@/config/env';
 
 /**
  * Generates an automated WhatsApp booking deep link with structured order details.
  */
 export function generateWhatsAppOrderUrl(order: OrderSnapshot, customPhone?: string, customBusinessName?: string): string {
-  const cleanPhone = (customPhone || env.whatsappNumber).replace(/\D/g, '');
-  const bizName = (customBusinessName || env.businessName).toUpperCase();
+  const cleanPhone = (customPhone || '').replace(/\D/g, '');
+  const bizName = (customBusinessName || 'MUVERA').toUpperCase();
 
   const itemsList = order.items
     .map(
@@ -91,8 +90,8 @@ export function generateInstantWhatsAppCartUrl(params: {
   customPhone?: string;
   customBusinessName?: string;
 }): string {
-  const cleanPhone = (params.customPhone || env.whatsappNumber).replace(/\D/g, '');
-  const bizName = (params.customBusinessName || env.businessName).toUpperCase();
+  const cleanPhone = (params.customPhone || '').replace(/\D/g, '');
+  const bizName = (params.customBusinessName || 'MUVERA').toUpperCase();
 
   const itemsList = params.items
     .map(

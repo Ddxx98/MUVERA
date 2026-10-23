@@ -8,7 +8,6 @@ import { useStore } from '@/lib/store-context';
 import { formatPaise } from '@/lib/money';
 import { generateWhatsAppOrderUrl, generateInstantWhatsAppCartUrl } from '@/lib/whatsapp';
 import { generateUpiQrDataUrl, generateUpiPaymentUrl } from '@/lib/upi';
-import { env } from '@/config/env';
 import { OrderSnapshot, ShippingAddress } from '@/lib/types';
 import { getCurrentUserAction } from '@/modules/auth/actions';
 import { UserProfile } from '@/modules/auth/types';
@@ -59,13 +58,24 @@ export default function CheckoutPage() {
   const [paymentPreference, setPaymentPreference] = useState<'upi_whatsapp' | 'cod_whatsapp'>('upi_whatsapp');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Dynamic Live Payment & WhatsApp variables from Admin Settings (MongoDB)
-  const [businessUpiId, setBusinessUpiId] = useState<string>(env.businessUpiId || 'muvera.store@upi');
-  const [businessUpiMerchantName, setBusinessUpiMerchantName] = useState<string>(env.businessName || 'MUVERA Luxury Streetwear');
-  const [businessWhatsAppNumber, setBusinessWhatsAppNumber] = useState<string>(env.whatsappNumber || '919380933170');
-  const [codEnabled, setCodEnabled] = useState<boolean>(true);
-  const [upiEnabled, setUpiEnabled] = useState<boolean>(true);
+  // Dynamic Live Payment & WhatsApp variables strictly from CMS siteSettings (MongoDB)
+  const businessUpiId = siteSettings?.businessUpiId || '';
+  const businessUpiMerchantName = siteSettings?.businessUpiMerchantName || siteSettings?.businessName || '';
+  const businessWhatsAppNumber = (siteSettings?.whatsappNumber || '').replace(/\D/g, '');
+  const codEnabled = siteSettings?.codEnabled ?? false;
+  const upiEnabled = siteSettings?.upiEnabled ?? true;
   const [copiedUpi, setCopiedUpi] = useState<boolean>(false);
+
+  // Ensure selected payment preference complies with dynamic settings
+  useEffect(() => {
+    if (siteSettings) {
+      if (!siteSettings.codEnabled && paymentPreference === 'cod_whatsapp') {
+        setPaymentPreference('upi_whatsapp');
+      } else if (!siteSettings.upiEnabled && siteSettings.codEnabled && paymentPreference === 'upi_whatsapp') {
+        setPaymentPreference('cod_whatsapp');
+      }
+    }
+  }, [siteSettings, paymentPreference]);
 
   // Stable Temporary Order Number (Does not re-roll on form input keystrokes)
   const [tempOrderNo] = useState<string>(() => `MUV-${Math.floor(1000 + Math.random() * 9000)}`);
@@ -77,13 +87,9 @@ export default function CheckoutPage() {
   const [orderError, setOrderError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function loadInitialCheckoutData() {
+    async function loadUser() {
       try {
-        const [settingsRes, user] = await Promise.all([
-          fetch('/api/settings', { cache: 'no-store' }).then((r) => r.json()).catch(() => null),
-          getCurrentUserAction().catch(() => null),
-        ]);
-
+        const user = await getCurrentUserAction().catch(() => null);
         if (user) {
           setCurrentUser(user);
           const defaultAddr = user.addresses?.find((a) => a.isDefault) || user.addresses?.[0];
@@ -98,36 +104,11 @@ export default function CheckoutPage() {
             pincode: defaultAddr?.pincode || '',
           });
         }
-
-        if (settingsRes?.settings) {
-          const s = settingsRes.settings;
-          if (s.businessUpiId && s.businessUpiId.trim()) {
-            setBusinessUpiId(s.businessUpiId.trim());
-          }
-          if (s.businessUpiMerchantName && s.businessUpiMerchantName.trim()) {
-            setBusinessUpiMerchantName(s.businessUpiMerchantName.trim());
-          }
-          if (s.whatsappNumber) {
-            setBusinessWhatsAppNumber(s.whatsappNumber.replace(/\D/g, ''));
-          }
-          if (s.codEnabled !== undefined) {
-            setCodEnabled(Boolean(s.codEnabled));
-            if (!s.codEnabled) {
-              setPaymentPreference('upi_whatsapp');
-            }
-          }
-          if (s.upiEnabled !== undefined) {
-            setUpiEnabled(Boolean(s.upiEnabled));
-            if (!s.upiEnabled && s.codEnabled) {
-              setPaymentPreference('cod_whatsapp');
-            }
-          }
-        }
       } catch (err) {
-        console.error('Failed to load initial checkout data:', err);
+        console.error('Failed to load user address in checkout:', err);
       }
     }
-    loadInitialCheckoutData();
+    loadUser();
   }, []);
 
   const handleCopyUpi = () => {

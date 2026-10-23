@@ -24,9 +24,9 @@ export async function generateInvoicePdf(
   const contentWidth = pageWidth - margin * 2; // 182mm
   let y = margin;
 
-  const bizName = (settings?.businessName || 'MUVERA LUXURY COMMERCE').toUpperCase();
-  const locationName = settings?.defaultLocationName || 'Indiranagar Dark Store Hub, 100ft Road, Bengaluru, KA 560038';
-  const supportPhone = settings?.supportPhone || '+91 93809 33170';
+  const bizName = (settings?.businessName || 'MUVERA').toUpperCase();
+  const locationName = settings?.defaultLocationName || '';
+  const supportPhone = settings?.supportPhone || '';
 
   // 1. Top Decorative Header Bar
   doc.setFillColor(18, 18, 20); // Luxury obsidian black

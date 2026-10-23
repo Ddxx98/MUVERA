@@ -4,14 +4,13 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { env } from '@/config/env';
 import { useStore } from '@/lib/store-context';
 import { Zap, RotateCcw, ShieldCheck, MessageCircle, Heart } from 'lucide-react';
 
 export function Footer() {
   const pathname = usePathname();
   const { siteSettings } = useStore();
-  const whatsappNum = (siteSettings?.whatsappNumber || env.whatsappNumber).replace(/\D/g, '');
+  const whatsappNum = (siteSettings?.whatsappNumber || '').replace(/\D/g, '');
 
   if (pathname.startsWith('/admin')) return null;
   return (
@@ -139,7 +138,7 @@ export function Footer() {
 
       {/* Copyright */}
       <div className="border-t border-surface-border max-w-7xl mx-auto px-4 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-600 dark:text-zinc-400">
-        <p>© 2026 {siteSettings?.businessName || 'MUVERA Luxury Commerce Ltd'}. All rights reserved.</p>
+        <p>© 2026 {siteSettings?.businessName || 'MUVERA'}. All rights reserved.</p>
         <p className="flex items-center gap-1">
           Crafted with <Heart className="w-3 h-3 text-secondary fill-current" /> for rapid fashion delivery.
         </p>

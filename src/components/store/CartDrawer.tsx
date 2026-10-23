@@ -8,7 +8,6 @@ import { formatPaise } from '@/lib/money';
 import { generateInstantWhatsAppCartUrl } from '@/lib/whatsapp';
 import { getCurrentUserAction } from '@/modules/auth/actions';
 import { UserProfile } from '@/modules/auth/types';
-import { env } from '@/config/env';
 import { X, Plus, Minus, Trash2, Zap, ArrowRight, Tag, ShieldCheck, MessageCircle, User } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
@@ -52,12 +51,15 @@ export function CartDrawer() {
   const delivery = getDeliveryFeePaise();
   const grandTotal = getGrandTotalPaise();
 
-  // Free shipping progress calculation using dynamic CMS threshold
-  const freeShippingThreshold = siteSettings?.freeShippingThresholdPaise !== undefined
-    ? siteSettings.freeShippingThresholdPaise
-    : env.freeShippingThresholdPaise;
-  const freeShippingProgress = Math.min(100, Math.round((subtotal / freeShippingThreshold) * 100));
-  const amountNeededForFreeShipping = Math.max(0, freeShippingThreshold - subtotal);
+  // Free shipping progress calculation strictly using dynamic CMS threshold (zero hardcoded fallbacks)
+  const freeShippingThreshold = siteSettings ? siteSettings.freeShippingThresholdPaise : 0;
+  const isFreeDeliveryUnlocked = freeShippingThreshold <= 0 || subtotal >= freeShippingThreshold;
+  const freeShippingProgress = isFreeDeliveryUnlocked
+    ? 100
+    : Math.min(100, Math.round((subtotal / freeShippingThreshold) * 100));
+  const amountNeededForFreeShipping = isFreeDeliveryUnlocked
+    ? 0
+    : Math.max(0, freeShippingThreshold - subtotal);
 
   const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault();

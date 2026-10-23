@@ -8,6 +8,7 @@ import { StoreHeader } from '@/components/store/StoreHeader';
 import { BottomNav } from '@/components/store/BottomNav';
 import { CartDrawer } from '@/components/store/CartDrawer';
 import { Footer } from '@/components/store/Footer';
+import { db } from '@/lib/db';
 
 const outfit = Outfit({
   subsets: ['latin'],
@@ -168,11 +169,18 @@ const structuredData = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  let initialSettings = null;
+  try {
+    initialSettings = await db.getSiteSettings();
+  } catch (err) {
+    console.error('Failed to pre-fetch initial settings in RootLayout:', err);
+  }
+
   return (
     <html lang="en" className={`dark ${outfit.variable} ${plusJakartaSans.variable}`} suppressHydrationWarning>
       <head>
@@ -198,7 +206,7 @@ export default function RootLayout({
       </head>
       <body className="bg-surface text-on-surface antialiased selection:bg-primary selection:text-surface-base">
         <ThemeProvider>
-          <StoreProvider>
+          <StoreProvider initialSettings={initialSettings}>
             <ToastProvider>
               <StoreHeader />
               <CartDrawer />
