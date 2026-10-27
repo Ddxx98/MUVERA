@@ -108,15 +108,17 @@ if (!global._muveraDb) {
 }
 
 async function connectToMongo(): Promise<boolean> {
-  if (!env.mongoUri) return false;
+  const uri = process.env.MONGODB_URI || env.mongoUri;
+  if (!uri) return false;
 
   try {
     if ((mongoose.connection.readyState as number) === 1) return true;
 
-    if (!global._mongooseConn) {
-      global._mongooseConn = mongoose.connect(env.mongoUri, {
-        maxPoolSize: 5,
-        serverSelectionTimeoutMS: 5000,
+    // Reset cached connection if disconnected (state 0) or uninitialized
+    if (!global._mongooseConn || (mongoose.connection.readyState as number) === 0) {
+      global._mongooseConn = mongoose.connect(uri, {
+        maxPoolSize: 10,
+        serverSelectionTimeoutMS: 8000,
       });
     }
     await global._mongooseConn;
@@ -127,9 +129,9 @@ async function connectToMongo(): Promise<boolean> {
       try {
         const dns = await import('dns');
         dns.setServers(['8.8.8.8', '1.1.1.1']);
-        global._mongooseConn = mongoose.connect(env.mongoUri, {
-          maxPoolSize: 5,
-          serverSelectionTimeoutMS: 5000,
+        global._mongooseConn = mongoose.connect(uri, {
+          maxPoolSize: 10,
+          serverSelectionTimeoutMS: 8000,
         });
         await global._mongooseConn;
         return (mongoose.connection.readyState as number) === 1;
