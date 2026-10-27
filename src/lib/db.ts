@@ -514,14 +514,12 @@ export const db = {
   async updateUserPassword(userIdOrEmail: string, newPasswordHash: string): Promise<boolean> {
     const isConnected = await connectToMongo();
     if (isConnected) {
-      if (mongoose.isValidObjectId(userIdOrEmail)) {
-        await UserModel.findByIdAndUpdate(userIdOrEmail, { $set: { passwordHash: newPasswordHash } });
-      } else {
-        await UserModel.updateOne(
-          { $or: [{ email: userIdOrEmail.toLowerCase() }, { _id: userIdOrEmail }] },
-          { $set: { passwordHash: newPasswordHash } }
-        );
-      }
+      const isObjectId = mongoose.isValidObjectId(userIdOrEmail);
+      const query = isObjectId
+        ? { $or: [{ _id: userIdOrEmail }, { email: userIdOrEmail.toLowerCase() }] }
+        : { email: userIdOrEmail.toLowerCase() };
+
+      await UserModel.updateOne(query, { $set: { passwordHash: newPasswordHash } });
     }
 
     const user = global._muveraDb!.users.find(
@@ -537,14 +535,12 @@ export const db = {
   async setUserEmailVerified(userIdOrEmail: string, verified = true): Promise<boolean> {
     const isConnected = await connectToMongo();
     if (isConnected) {
-      if (mongoose.isValidObjectId(userIdOrEmail)) {
-        await UserModel.findByIdAndUpdate(userIdOrEmail, { $set: { emailVerified: verified } });
-      } else {
-        await UserModel.updateOne(
-          { $or: [{ email: userIdOrEmail.toLowerCase() }, { _id: userIdOrEmail }] },
-          { $set: { emailVerified: verified } }
-        );
-      }
+      const isObjectId = mongoose.isValidObjectId(userIdOrEmail);
+      const query = isObjectId
+        ? { $or: [{ _id: userIdOrEmail }, { email: userIdOrEmail.toLowerCase() }] }
+        : { email: userIdOrEmail.toLowerCase() };
+
+      await UserModel.updateOne(query, { $set: { emailVerified: verified } });
     }
 
     const user = global._muveraDb!.users.find(

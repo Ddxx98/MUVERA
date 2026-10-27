@@ -179,10 +179,10 @@ export const authService = {
     }
 
     // Mark user verified
-    await db.setUserEmailVerified(consumedToken.userId, true);
+    await db.setUserEmailVerified(cleanEmail, true);
     await db.invalidateUserTokens(consumedToken.userId, 'email_verify');
 
-    const user = (await db.getUserById(consumedToken.userId)) || (await db.getUserByEmail(consumedToken.email));
+    const user = (await db.getUserByEmail(cleanEmail)) || (await db.getUserById(consumedToken.userId));
     if (!user) {
       throw new AppError('USER_NOT_FOUND', 'User record not found.');
     }
@@ -556,13 +556,13 @@ export const authService = {
     }
 
     const newPasswordHash = hashPassword(newPassword);
-    await db.updateUserPassword(consumedToken.userId, newPasswordHash);
+    await db.updateUserPassword(consumedToken.email, newPasswordHash);
 
     // Invalidate any remaining tokens for this user
     await db.invalidateUserTokens(consumedToken.userId, 'password_reset');
 
     // Send confirmation email
-    const user = (await db.getUserById(consumedToken.userId)) || (await db.getUserByEmail(consumedToken.email));
+    const user = (await db.getUserByEmail(consumedToken.email)) || (await db.getUserById(consumedToken.userId));
     if (user) {
       try {
         await notificationService.sendPasswordChangedEmail(user.email, user.name);
@@ -611,13 +611,13 @@ export const authService = {
     }
 
     const newPasswordHash = hashPassword(newPassword);
-    await db.updateUserPassword(consumedToken.userId, newPasswordHash);
+    await db.updateUserPassword(consumedToken.email, newPasswordHash);
 
     // Invalidate any remaining tokens for this user
     await db.invalidateUserTokens(consumedToken.userId, 'password_reset');
 
     // Send confirmation email
-    const user = (await db.getUserById(consumedToken.userId)) || (await db.getUserByEmail(consumedToken.email));
+    const user = (await db.getUserByEmail(consumedToken.email)) || (await db.getUserById(consumedToken.userId));
     if (user) {
       try {
         await notificationService.sendPasswordChangedEmail(user.email, user.name);
