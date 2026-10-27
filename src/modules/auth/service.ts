@@ -86,10 +86,8 @@ export const authService = {
 
     // Check duplicate phone
     const existingPhone = await db.getUserByPhone(cleanPhone);
-    if (existingPhone) {
-      if (existingPhone.emailVerified) {
-        throw new AppError('PHONE_EXISTS', 'An account with this mobile number already exists.');
-      }
+    if (existingPhone && existingPhone.email.toLowerCase() !== cleanEmail) {
+      throw new AppError('PHONE_EXISTS', 'An account with this mobile number already exists. Please use a different number or sign in.');
     }
 
     const passwordHash = hashPassword(input.password);

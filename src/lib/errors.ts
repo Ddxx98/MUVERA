@@ -57,11 +57,18 @@ export function handleActionError(err: unknown): ServiceResult<never> {
   }
 
   if ((err as { code?: number })?.code === 11000) {
+    const errorMsg = String((err as any)?.message || '');
+    let friendlyMessage = 'This record already exists. Please check your details.';
+    if (errorMsg.includes('phone')) {
+      friendlyMessage = 'An account with this mobile number already exists. Please use a different mobile number or sign in.';
+    } else if (errorMsg.includes('email')) {
+      friendlyMessage = 'An account with this email address already exists. Please sign in.';
+    }
     return {
       ok: false,
       error: {
         code: 'CONFLICT',
-        message: 'This record or transaction has already been processed.',
+        message: friendlyMessage,
       },
     };
   }
