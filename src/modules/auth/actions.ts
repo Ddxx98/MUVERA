@@ -53,14 +53,39 @@ function getSessionToken(): string | undefined {
 }
 
 /**
- * Server Action: Registers a new user and sets session cookie.
+ * Server Action: Registers a new user and sends 4-digit verification OTP.
+ * Session cookie is NOT set until the 4-digit OTP is verified.
  */
-export async function registerAction(input: RegisterInput): Promise<ServiceResult<UserProfile>> {
+export async function registerAction(input: RegisterInput): Promise<ServiceResult<{ requiresVerification: boolean; email: string }>> {
   try {
-    const { user, token } = await authService.registerUser(input);
+    const result = await authService.registerUser(input);
+    return { ok: true, data: { requiresVerification: result.requiresVerification, email: result.email } };
+  } catch (err) {
+    return handleActionError(err);
+  }
+}
+
+/**
+ * Server Action: Verifies 4-digit OTP, marks account verified, and issues session cookie.
+ */
+export async function verifySignupOtpAction(email: string, otp: string): Promise<ServiceResult<UserProfile>> {
+  try {
+    const { user, token } = await authService.verifySignupOtp(email, otp);
     setSessionCookie(token, user.role);
     revalidatePath('/account');
     return { ok: true, data: user };
+  } catch (err) {
+    return handleActionError(err);
+  }
+}
+
+/**
+ * Server Action: Resends 4-digit OTP for email verification.
+ */
+export async function resendSignupOtpAction(email: string): Promise<ServiceResult<{ message: string }>> {
+  try {
+    const result = await authService.resendSignupOtp(email);
+    return { ok: true, data: result };
   } catch (err) {
     return handleActionError(err);
   }

@@ -20,6 +20,7 @@ export interface UserProfile {
   role: UserRole;
   addresses: UserAddress[];
   loyaltyTier: 'VIP Gold' | 'Streetwear Insider' | 'Club Member';
+  emailVerified?: boolean;
   createdAt: string;
 }
 

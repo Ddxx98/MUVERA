@@ -20,6 +20,7 @@ export interface UserDocument extends Document {
   role: string;
   addresses: UserAddress[];
   loyaltyTier: 'VIP Gold' | 'Streetwear Insider' | 'Club Member';
+  emailVerified: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -52,6 +53,7 @@ const UserSchema = new Schema<UserDocument>(
       enum: ['VIP Gold', 'Streetwear Insider', 'Club Member'],
       default: 'Club Member',
     },
+    emailVerified: { type: Boolean, default: false, index: true },
   },
   { timestamps: true }
 );

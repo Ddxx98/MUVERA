@@ -5,21 +5,91 @@ import { EmailJSEmailProvider } from './providers/emailjs';
 import { serverEnv } from '@/config/env.server';
 
 class NotificationService {
-  private provider: EmailProvider;
+  private defaultProvider: EmailProvider;
+  private brevoProvider: BrevoEmailProvider;
+  private emailjsProvider: EmailJSEmailProvider;
+  private consoleProvider: ConsoleEmailProvider;
 
   constructor() {
+    this.consoleProvider = new ConsoleEmailProvider();
+    this.brevoProvider = new BrevoEmailProvider();
+    this.emailjsProvider = new EmailJSEmailProvider();
+
+    // Set fallback default provider based on environment setting
     if (serverEnv.EMAIL_PROVIDER === 'emailjs') {
-      this.provider = new EmailJSEmailProvider();
+      this.defaultProvider = this.emailjsProvider;
     } else if (serverEnv.EMAIL_PROVIDER === 'brevo' && serverEnv.BREVO_API_KEY) {
-      this.provider = new BrevoEmailProvider();
+      this.defaultProvider = this.brevoProvider;
     } else {
-      this.provider = new ConsoleEmailProvider();
+      this.defaultProvider = this.consoleProvider;
     }
   }
 
   /**
+   * Dispatches a 4-digit OTP code for account creation email verification.
+   * Prefers EmailJS using template_4ck851n, falling back to Brevo or Console.
+   */
+  async sendSignupOtp(to: string, name: string, otp: string): Promise<string> {
+    const subject = `Your MUVERA Verification Code: ${otp}`;
+    const text = `Hi ${name},\n\nWelcome to MUVERA. Your 4-digit verification code is:\n\n${otp}\n\nThis code is valid for 10 minutes. Please enter it to verify your email address and activate your account.\n\nBest regards,\nMUVERA Team`;
+
+    const html = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; background-color: #0E0E10; color: #FFFFFF; border: 1px solid #27272A; border-radius: 16px; overflow: hidden; padding: 32px;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h1 style="color: #FACC15; font-size: 28px; font-weight: 900; letter-spacing: 4px; margin: 0;">MUVERA</h1>
+          <p style="color: #A1A1AA; font-size: 11px; margin-top: 4px; text-transform: uppercase; letter-spacing: 2px;">Security &amp; Member Verification</p>
+        </div>
+        
+        <div style="background-color: #121216; border: 1px solid #27272A; border-radius: 12px; padding: 24px; margin-bottom: 24px; text-align: center;">
+          <p style="font-size: 15px; line-height: 1.6; color: #FFFFFF; text-align: left; margin: 0 0 16px;">Hi <strong style="color: #FACC15;">${name}</strong>,</p>
+          <p style="font-size: 14px; line-height: 1.6; color: #A1A1AA; text-align: left; margin: 0 0 24px;">
+            Welcome to MUVERA. Please enter the single-use 4-digit verification code below to confirm your email address and activate your account.
+          </p>
+          
+          <div style="margin: 20px 0; background-color: #0A0A0D; border: 1px solid #FACC15; border-radius: 12px; padding: 20px 24px; display: inline-block;">
+            <p style="margin: 0 0 6px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #A1A1AA; font-weight: 700;">YOUR 4-DIGIT CODE</p>
+            <span style="font-family: 'Courier New', Courier, monospace; font-size: 40px; font-weight: 900; letter-spacing: 12px; color: #FACC15; padding-left: 12px;">
+              ${otp}
+            </span>
+            <p style="margin: 8px 0 0 0; font-size: 11px; color: #71717A;">Expires in 10 minutes</p>
+          </div>
+
+          <p style="font-size: 12px; line-height: 1.5; color: #71717A; margin: 24px 0 0; text-align: left;">
+            If you did not initiate this request, you can safely disregard this email. Never share this code with anyone.
+          </p>
+        </div>
+      </div>
+    `;
+
+    // Route: If EmailJS template/service configured, dispatch via EmailJS
+    const provider = (serverEnv.EMAILJS_TEMPLATE_ID && (serverEnv.EMAILJS_SERVICE_ID || serverEnv.EMAIL_PROVIDER === 'emailjs'))
+      ? this.emailjsProvider
+      : (serverEnv.BREVO_API_KEY ? this.brevoProvider : this.defaultProvider);
+
+    return provider.send({
+      to,
+      name,
+      subject,
+      html,
+      text,
+      otp,
+      tags: ['signup_otp_verification'],
+      templateParams: {
+        otp,
+        otp_code: otp,
+        passcode: otp,
+        to_name: name,
+        to_email: to,
+        email: to,
+        expiry_minutes: '10',
+        subject,
+      },
+    });
+  }
+
+  /**
    * Dispatches a 6-digit OTP code for password reset.
-   * Supports EmailJS template parameters, Brevo rich HTML, and Console logging.
+   * Prefers Brevo rich HTML with fallback to EmailJS or Console.
    */
   async sendPasswordResetOtp(to: string, name: string, otp: string, resetUrl?: string): Promise<string> {
     const subject = `Your MUVERA Password Reset OTP: ${otp}`;
@@ -62,7 +132,10 @@ class NotificationService {
       </div>
     `;
 
-    return this.provider.send({
+    // Route: Prefer Brevo for Password Reset
+    const provider = serverEnv.BREVO_API_KEY ? this.brevoProvider : this.defaultProvider;
+
+    return provider.send({
       to,
       name,
       subject,
@@ -82,20 +155,20 @@ class NotificationService {
   }
 
   /**
-   * Creates an email marketing / announcement campaign.
+   * Creates an email marketing / announcement campaign via Brevo.
    */
   async createEmailCampaign(input: CreateCampaignInput): Promise<CampaignResult> {
-    if (this.provider.createCampaign) {
-      return this.provider.createCampaign(input);
+    if (this.brevoProvider.createCampaign) {
+      return this.brevoProvider.createCampaign(input);
     }
     return {
       success: false,
-      message: `Current email provider "${this.provider.name}" does not support campaigns. Configure Brevo to send campaigns.`,
+      message: 'Brevo configuration is required to create email campaigns.',
     };
   }
 
   /**
-   * Sends a 30-minute single-use password reset link.
+   * Sends a 30-minute single-use password reset link via Brevo.
    */
   async sendPasswordResetEmail(to: string, name: string, resetUrl: string): Promise<string> {
     const subject = 'Reset Your MUVERA Account Password';
@@ -134,7 +207,9 @@ class NotificationService {
       </div>
     `;
 
-    return this.provider.send({
+    const provider = serverEnv.BREVO_API_KEY ? this.brevoProvider : this.defaultProvider;
+
+    return provider.send({
       to,
       subject,
       html,
@@ -144,7 +219,7 @@ class NotificationService {
   }
 
   /**
-   * Sends confirmation that the password was successfully updated.
+   * Sends confirmation that the password was successfully updated via Brevo.
    */
   async sendPasswordChangedEmail(to: string, name: string): Promise<string> {
     const subject = 'Your MUVERA Password Was Changed';
@@ -171,7 +246,9 @@ class NotificationService {
       </div>
     `;
 
-    return this.provider.send({
+    const provider = serverEnv.BREVO_API_KEY ? this.brevoProvider : this.defaultProvider;
+
+    return provider.send({
       to,
       subject,
       html,

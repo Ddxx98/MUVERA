@@ -534,6 +534,29 @@ export const db = {
     return false;
   },
 
+  async setUserEmailVerified(userIdOrEmail: string, verified = true): Promise<boolean> {
+    const isConnected = await connectToMongo();
+    if (isConnected) {
+      if (mongoose.isValidObjectId(userIdOrEmail)) {
+        await UserModel.findByIdAndUpdate(userIdOrEmail, { $set: { emailVerified: verified } });
+      } else {
+        await UserModel.updateOne(
+          { $or: [{ email: userIdOrEmail.toLowerCase() }, { _id: userIdOrEmail }] },
+          { $set: { emailVerified: verified } }
+        );
+      }
+    }
+
+    const user = global._muveraDb!.users.find(
+      (u) => u.id === userIdOrEmail || u.email.toLowerCase() === userIdOrEmail.toLowerCase()
+    );
+    if (user) {
+      user.emailVerified = verified;
+      return true;
+    }
+    return true;
+  },
+
   // Site Settings (Singleton)
   async getSiteSettings(): Promise<SiteSettingsData> {
     try {

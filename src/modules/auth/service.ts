@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { db } from '@/lib/db';
 import { hashPassword, verifyPassword, signJwt, verifyJwt, signSessionToken, verifySessionToken } from './crypto';
 import { newToken, hashToken } from './tokens';
@@ -19,9 +20,9 @@ export const SESSION_DURATION_MS = 6 * 60 * 60 * 1000; // 6 hours auto-logout
 
 export const authService = {
   /**
-   * Registers a new customer user.
+   * Registers a new customer user and dispatches a 4-digit verification OTP.
    */
-  async registerUser(input: RegisterInput): Promise<{ user: UserProfile; token: string }> {
+  async registerUser(input: RegisterInput): Promise<{ user: UserProfile; requiresVerification: boolean; email: string }> {
     const cleanEmail = input.email.toLowerCase().trim();
     const cleanPhone = input.phone.replace(/\D/g, '');
 
@@ -41,13 +42,54 @@ export const authService = {
     // Check duplicate email
     const existingEmail = await db.getUserByEmail(cleanEmail);
     if (existingEmail) {
-      throw new AppError('EMAIL_EXISTS', 'An account with this email address already exists.');
+      if (existingEmail.emailVerified) {
+        throw new AppError('EMAIL_EXISTS', 'An account with this email address already exists. Please log in.');
+      }
+      // If unverified, update credentials and resend 4-digit OTP
+      const passwordHash = hashPassword(input.password);
+      await db.updateUserPassword(existingEmail.id, passwordHash);
+      await db.invalidateUserTokens(existingEmail.id, 'email_verify');
+
+      const otp = crypto.randomInt(1000, 10000).toString();
+      const otpHash = hashToken(otp);
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+      await db.createAuthToken({
+        userId: existingEmail.id,
+        email: cleanEmail,
+        type: 'email_verify',
+        tokenHash: otpHash,
+        expiresAt,
+      });
+
+      try {
+        await notificationService.sendSignupOtp(cleanEmail, existingEmail.name, otp);
+      } catch (notifErr) {
+        console.error('[AUTH] Failed to send signup verification OTP:', notifErr);
+      }
+
+      const role = normalizeUserRole(existingEmail.role);
+      const profile: UserProfile = {
+        id: existingEmail.id,
+        name: existingEmail.name,
+        email: existingEmail.email,
+        phone: existingEmail.phone,
+        role,
+        addresses: existingEmail.addresses,
+        loyaltyTier: existingEmail.loyaltyTier,
+        emailVerified: false,
+        createdAt: existingEmail.createdAt,
+      };
+
+      return { user: profile, requiresVerification: true, email: cleanEmail };
     }
 
     // Check duplicate phone
     const existingPhone = await db.getUserByPhone(cleanPhone);
     if (existingPhone) {
-      throw new AppError('PHONE_EXISTS', 'An account with this mobile number already exists.');
+      if (existingPhone.emailVerified) {
+        throw new AppError('PHONE_EXISTS', 'An account with this mobile number already exists.');
+      }
     }
 
     const passwordHash = hashPassword(input.password);
@@ -63,25 +105,36 @@ export const authService = {
       role,
       addresses: [],
       loyaltyTier: 'Club Member',
+      emailVerified: false,
       createdAt: new Date().toISOString(),
     };
 
     const saved = await db.saveUser(newUser);
     const savedRole = normalizeUserRole(saved.role);
 
-    const token = signJwt(
-      {
-        sub: saved.id,
-        email: saved.email,
-        name: saved.name,
-        role: savedRole,
-        aud: savedRole === 'admin' ? 'admin' : 'customer',
-      },
-      SESSION_DURATION_MS / 1000
-    );
+    await db.invalidateUserTokens(saved.id, 'email_verify');
+
+    // Generate 4-digit OTP
+    const otp = crypto.randomInt(1000, 10000).toString();
+    const otpHash = hashToken(otp);
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await db.createAuthToken({
+      userId: saved.id,
+      email: cleanEmail,
+      type: 'email_verify',
+      tokenHash: otpHash,
+      expiresAt,
+    });
+
+    try {
+      await notificationService.sendSignupOtp(cleanEmail, saved.name, otp);
+    } catch (notifErr) {
+      console.error('[AUTH] Failed to dispatch signup OTP:', notifErr);
+    }
 
     await auditService.recordAudit({
-      action: 'USER_REGISTER',
+      action: 'USER_REGISTER_INITIATED',
       entity: 'customer' as any,
       entityId: saved.id,
       actor: saved.email,
@@ -96,10 +149,117 @@ export const authService = {
       role: savedRole,
       addresses: saved.addresses,
       loyaltyTier: saved.loyaltyTier,
+      emailVerified: false,
       createdAt: saved.createdAt,
     };
 
+    return { user: profile, requiresVerification: true, email: cleanEmail };
+  },
+
+  /**
+   * Verifies a 4-digit OTP for signup email verification.
+   * On success, marks emailVerified = true and returns user & session token.
+   */
+  async verifySignupOtp(email: string, otp: string): Promise<{ user: UserProfile; token: string }> {
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanOtp = otp.trim().replace(/\D/g, '');
+
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      throw new AppError('INVALID_EMAIL', 'Please provide a valid email address.');
+    }
+    if (cleanOtp.length !== 4) {
+      throw new AppError('INVALID_OTP', 'Please enter a valid 4-digit verification code.');
+    }
+
+    const otpHash = hashToken(cleanOtp);
+    const consumedToken = await db.consumeAuthToken(otpHash, 'email_verify');
+
+    if (!consumedToken || consumedToken.email.toLowerCase() !== cleanEmail) {
+      throw new AppError('INVALID_OTP', 'The verification code is invalid or has expired.');
+    }
+
+    // Mark user verified
+    await db.setUserEmailVerified(consumedToken.userId, true);
+    await db.invalidateUserTokens(consumedToken.userId, 'email_verify');
+
+    const user = (await db.getUserById(consumedToken.userId)) || (await db.getUserByEmail(consumedToken.email));
+    if (!user) {
+      throw new AppError('USER_NOT_FOUND', 'User record not found.');
+    }
+
+    const role = normalizeUserRole(user.role);
+    const token = signJwt(
+      {
+        sub: user.id,
+        email: user.email,
+        name: user.name,
+        role,
+        aud: role === 'admin' ? 'admin' : 'customer',
+      },
+      SESSION_DURATION_MS / 1000
+    );
+
+    await auditService.recordAudit({
+      action: 'USER_EMAIL_VERIFIED',
+      entity: 'customer' as any,
+      entityId: user.id,
+      actor: user.email,
+    });
+
+    const profile: UserProfile = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role,
+      addresses: user.addresses,
+      loyaltyTier: user.loyaltyTier,
+      emailVerified: true,
+      createdAt: user.createdAt,
+    };
+
     return { user: profile, token };
+  },
+
+  /**
+   * Resends a 4-digit OTP for signup email verification.
+   */
+  async resendSignupOtp(email: string): Promise<{ success: boolean; message: string }> {
+    const cleanEmail = email.toLowerCase().trim();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      throw new AppError('INVALID_EMAIL', 'Please provide a valid email address.');
+    }
+
+    const user = await db.getUserByEmail(cleanEmail);
+    if (!user) {
+      throw new AppError('USER_NOT_FOUND', 'No account found with this email.');
+    }
+
+    if (user.emailVerified) {
+      throw new AppError('ALREADY_VERIFIED', 'This account is already verified. Please log in.');
+    }
+
+    await db.invalidateUserTokens(user.id, 'email_verify');
+
+    const otp = crypto.randomInt(1000, 10000).toString();
+    const otpHash = hashToken(otp);
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await db.createAuthToken({
+      userId: user.id,
+      email: cleanEmail,
+      type: 'email_verify',
+      tokenHash: otpHash,
+      expiresAt,
+    });
+
+    try {
+      await notificationService.sendSignupOtp(cleanEmail, user.name, otp);
+    } catch (notifErr) {
+      console.error('[AUTH] Failed to resend signup OTP:', notifErr);
+    }
+
+    return { success: true, message: 'A new 4-digit verification code has been sent to your email.' };
   },
 
   /**
@@ -120,6 +280,33 @@ export const authService = {
     }
 
     const role = normalizeUserRole(user.role);
+
+    // Enforce email verification for customers
+    if (role !== 'admin' && user.emailVerified === false) {
+      await db.invalidateUserTokens(user.id, 'email_verify');
+      const otp = crypto.randomInt(1000, 10000).toString();
+      const otpHash = hashToken(otp);
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+      await db.createAuthToken({
+        userId: user.id,
+        email: cleanEmail,
+        type: 'email_verify',
+        tokenHash: otpHash,
+        expiresAt,
+      });
+
+      try {
+        await notificationService.sendSignupOtp(cleanEmail, user.name, otp);
+      } catch (err) {
+        console.error('[AUTH] Failed to send verification OTP on unverified login attempt:', err);
+      }
+
+      throw new AppError(
+        'EMAIL_NOT_VERIFIED',
+        'Your email address is not verified. A 4-digit verification code has been sent to your email.'
+      );
+    }
 
     const token = signJwt(
       {

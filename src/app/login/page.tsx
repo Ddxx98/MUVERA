@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
-import { loginAction, loginWithOtpAction } from '@/modules/auth/actions';
-import { ShieldCheck, Mail, Lock, Phone, ArrowRight, Zap, ShieldAlert, Sparkles, UserCheck } from 'lucide-react';
+import { loginAction, verifySignupOtpAction, resendSignupOtpAction } from '@/modules/auth/actions';
+import { ShieldCheck, Mail, Lock, ShieldAlert, ArrowLeft, RefreshCw, CheckCircle2 } from 'lucide-react';
 
 function LoginFormContent() {
   const router = useRouter();
@@ -15,15 +15,19 @@ function LoginFormContent() {
   const errorParam = searchParams.get('error');
   const messageParam = searchParams.get('message');
 
-  const [mode, setMode] = useState<'password' | 'otp'>('password');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
+
+  // Unverified account inline OTP verification state
+  const [needsEmailVerify, setNeedsEmailVerify] = useState(false);
+  const [verifyEmail, setVerifyEmail] = useState('');
+  const [otp, setOtp] = useState<string[]>(['', '', '', '']);
+  const [resendCooldown, setResendCooldown] = useState(60);
+  const [resending, setResending] = useState(false);
+  const otpInputs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
     if (errorParam === 'admin_required') {
@@ -34,14 +38,44 @@ function LoginFormContent() {
     }
   }, [errorParam, messageParam]);
 
+  // Countdown timer for OTP resend
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (needsEmailVerify && resendCooldown > 0) {
+      timer = setInterval(() => {
+        setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [needsEmailVerify, resendCooldown]);
+
+  // Focus first OTP box when entering OTP state
+  useEffect(() => {
+    if (needsEmailVerify) {
+      setTimeout(() => {
+        otpInputs.current[0]?.focus();
+      }, 100);
+    }
+  }, [needsEmailVerify]);
+
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setInfoMessage(null);
     setLoading(true);
 
     try {
       const res = await loginAction({ email, password });
       if (!res.ok) {
+        if (res.error.code === 'EMAIL_NOT_VERIFIED') {
+          setVerifyEmail(email.trim());
+          setNeedsEmailVerify(true);
+          setResendCooldown(60);
+          setInfoMessage('A 4-digit verification code has been sent to your email. Enter it below to activate your account.');
+          setLoading(false);
+          return;
+        }
+
         setErrorMessage(res.error.message);
         setLoading(false);
         return;
@@ -59,47 +93,106 @@ function LoginFormContent() {
     }
   };
 
-  const handleSendOtp = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (phone.replace(/\D/g, '').length < 10) {
-      setErrorMessage('Please enter a valid 10-digit mobile number.');
-      return;
-    }
+  // OTP Handlers for Unverified Accounts
+  const handleOtpChange = (index: number, value: string) => {
+    const digit = value.replace(/\D/g, '').slice(-1);
+    const newOtp = [...otp];
+    newOtp[index] = digit;
+    setOtp(newOtp);
     setErrorMessage(null);
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setOtpSent(true);
-    }, 500);
+
+    if (digit && index < 3) {
+      otpInputs.current[index + 1]?.focus();
+    }
+
+    if (digit && index === 3 && newOtp.every((d) => d.length === 1)) {
+      handleOtpVerify(newOtp.join(''));
+    }
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      otpInputs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
-    setErrorMessage(null);
+    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 4);
+    if (!pastedData) return;
+
+    const newOtp = ['', '', '', ''];
+    for (let i = 0; i < pastedData.length; i++) {
+      newOtp[i] = pastedData[i];
+    }
+    setOtp(newOtp);
+
+    if (pastedData.length === 4) {
+      otpInputs.current[3]?.focus();
+      handleOtpVerify(pastedData);
+    } else {
+      otpInputs.current[pastedData.length]?.focus();
+    }
+  };
+
+  const handleOtpVerify = async (codeToVerify?: string) => {
+    const fullCode = codeToVerify || otp.join('');
+    if (fullCode.length !== 4) {
+      setErrorMessage('Please enter the complete 4-digit verification code.');
+      return;
+    }
+
     setLoading(true);
+    setErrorMessage(null);
 
     try {
-      const res = await loginWithOtpAction(phone, otp);
+      const res = await verifySignupOtpAction(verifyEmail, fullCode);
       if (!res.ok) {
         setErrorMessage(res.error.message);
         setLoading(false);
         return;
       }
 
-      if (res.data.role === 'admin') {
-        router.push(callbackUrl.startsWith('/admin') ? callbackUrl : '/admin');
-      } else {
-        router.push(callbackUrl.startsWith('/admin') ? '/account' : callbackUrl);
-      }
+      setInfoMessage('Email verified successfully! Signing in...');
+      setTimeout(() => {
+        if (res.data.role === 'admin') {
+          router.push(callbackUrl.startsWith('/admin') ? callbackUrl : '/admin');
+        } else {
+          router.push(callbackUrl.startsWith('/admin') ? '/account' : callbackUrl);
+        }
+      }, 500);
     } catch (err: any) {
       setErrorMessage(err?.message || 'Verification failed. Try again.');
       setLoading(false);
     }
   };
 
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0 || resending) return;
+    setResending(true);
+    setErrorMessage(null);
+
+    try {
+      const res = await resendSignupOtpAction(verifyEmail);
+      if (!res.ok) {
+        setErrorMessage(res.error.message);
+      } else {
+        setInfoMessage('A fresh 4-digit code has been sent to your email.');
+        setResendCooldown(60);
+        setOtp(['', '', '', '']);
+        otpInputs.current[0]?.focus();
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Failed to resend code.');
+    } finally {
+      setResending(false);
+    }
+  };
+
   return (
     <div className="max-w-md mx-auto px-4 py-12 space-y-6">
       <div className="p-8 rounded-3xl bg-surface-card border border-surface-border shadow-2xl space-y-6">
+        
         {/* Brand Header */}
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center gap-2">
@@ -112,21 +205,25 @@ function LoginFormContent() {
               priority
             />
           </div>
-          <h1 className="font-headline font-bold text-xl text-text-primary">Sign In to Your Account</h1>
+          <h1 className="font-headline font-bold text-xl text-text-primary">
+            {needsEmailVerify ? 'Verify Email Address' : 'Sign In to Your Account'}
+          </h1>
           <p className="text-xs text-text-muted">
-            Access VIP drops, express tracking &amp; inventory operations
+            {needsEmailVerify
+              ? `Enter the 4-digit code sent to ${verifyEmail}`
+              : 'Access VIP drops, express tracking & inventory operations'}
           </p>
         </div>
 
         {/* Success or Informational Banner */}
         {infoMessage && (
           <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium flex items-start gap-2">
-            <ShieldCheck className="w-4 h-4 flex-shrink-0 mt-0.5 text-emerald-400" />
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5 text-emerald-400" />
             <span>{infoMessage}</span>
           </div>
         )}
 
-        {/* Security or Access Denied Alert */}
+        {/* Error Alert */}
         {errorMessage && (
           <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-medium flex items-start gap-2">
             <ShieldAlert className="w-4 h-4 flex-shrink-0 mt-0.5" />
@@ -134,40 +231,8 @@ function LoginFormContent() {
           </div>
         )}
 
-        {/* Mode Switcher Tabs (WhatsApp OTP commented out as not implemented yet) */}
-        {/* <div className="flex p-1 rounded-xl bg-surface-raised border border-surface-border">
-          <button
-            type="button"
-            onClick={() => {
-              setMode('password');
-              setErrorMessage(null);
-            }}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
-              mode === 'password'
-                ? 'bg-surface-card text-text-primary shadow-sm'
-                : 'text-text-muted hover:text-text-primary'
-            }`}
-          >
-            Email &amp; Password
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setMode('otp');
-              setErrorMessage(null);
-            }}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
-              mode === 'otp'
-                ? 'bg-surface-card text-text-primary shadow-sm'
-                : 'text-text-muted hover:text-text-primary'
-            }`}
-          >
-            WhatsApp OTP
-          </button>
-        </div> */}
-
-        {/* Password Login Mode */}
-        {mode === 'password' && (
+        {/* Normal Login Form */}
+        {!needsEmailVerify ? (
           <form onSubmit={handlePasswordLogin} className="space-y-4">
             <div>
               <label className="text-xs font-bold text-text-muted mb-1 block">Email Address *</label>
@@ -211,64 +276,79 @@ function LoginFormContent() {
               {loading ? 'Authenticating...' : 'Sign In'}
             </Button>
           </form>
-        )}
+        ) : (
+          /* Unverified User 4-Digit Verification View */
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <label className="text-xs font-bold text-text-muted block text-center uppercase tracking-wider">
+                Enter 4-Digit Code
+              </label>
 
-        {/* WhatsApp OTP Mode (Commented out as not implemented yet) */}
-        {/* {mode === 'otp' && (
-          <div>
-            {!otpSent ? (
-              <form onSubmit={handleSendOtp} className="space-y-4">
-                <div>
-                  <label className="text-xs font-bold text-text-muted mb-1 block">Mobile Number *</label>
-                  <div className="flex items-center bg-surface-raised border border-surface-border focus-within:border-primary rounded-xl px-3.5 py-2.5">
-                    <span className="text-xs font-bold text-primary mr-2 pr-2 border-r border-surface-border">+91</span>
-                    <input
-                      type="tel"
-                      required
-                      maxLength={10}
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                      placeholder="98765 43210"
-                      className="w-full bg-transparent text-xs text-text-primary font-mono font-bold focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <Button type="submit" size="lg" fullWidth disabled={loading || phone.length < 10}>
-                  {loading ? 'Sending OTP...' : 'Send WhatsApp OTP Code'}
-                </Button>
-              </form>
-            ) : (
-              <form onSubmit={handleVerifyOtp} className="space-y-4">
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="text-xs font-bold text-text-muted">Enter 4-Digit OTP</label>
-                    <button
-                      type="button"
-                      onClick={() => setOtpSent(false)}
-                      className="text-xs text-primary underline font-bold"
-                    >
-                      Change Number
-                    </button>
-                  </div>
+              <div className="flex justify-center gap-3 sm:gap-4" onPaste={handleOtpPaste}>
+                {[0, 1, 2, 3].map((idx) => (
                   <input
+                    key={idx}
+                    ref={(el) => {
+                      otpInputs.current[idx] = el;
+                    }}
                     type="text"
-                    required
-                    maxLength={4}
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    placeholder="••••"
-                    className="w-full bg-surface-raised border border-surface-border focus-within:border-primary rounded-xl p-3 text-center text-xl font-mono font-black text-primary tracking-widest focus:outline-none"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={otp[idx]}
+                    onChange={(e) => handleOtpChange(idx, e.target.value)}
+                    onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                    className="w-14 h-16 sm:w-16 sm:h-20 text-center font-mono text-3xl font-black bg-surface-raised border-2 border-surface-border focus:border-primary focus:bg-surface-card rounded-2xl text-primary transition-all shadow-inner focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
-                </div>
+                ))}
+              </div>
+              <p className="text-[11px] text-text-muted text-center">
+                Valid for 10 minutes. Code sent to <strong className="text-text-primary">{verifyEmail}</strong>
+              </p>
+            </div>
 
-                <Button type="submit" size="lg" fullWidth disabled={loading || otp.length < 4}>
-                  {loading ? 'Verifying...' : 'Verify OTP & Sign In'}
-                </Button>
-              </form>
-            )}
+            <Button
+              type="button"
+              size="lg"
+              fullWidth
+              disabled={loading || otp.join('').length !== 4}
+              onClick={() => handleOtpVerify()}
+            >
+              {loading ? 'Verifying...' : 'Verify & Sign In'}
+            </Button>
+
+            <div className="flex flex-col items-center gap-3 pt-2 border-t border-surface-border text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="text-text-muted">Didn&apos;t receive code?</span>
+                {resendCooldown > 0 ? (
+                  <span className="text-primary font-mono font-bold">Resend in {resendCooldown}s</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    disabled={resending}
+                    className="text-primary font-bold hover:underline inline-flex items-center gap-1 disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${resending ? 'animate-spin' : ''}`} />
+                    Resend Code
+                  </button>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setNeedsEmailVerify(false);
+                  setErrorMessage(null);
+                  setInfoMessage(null);
+                }}
+                className="text-text-muted hover:text-text-primary text-xs inline-flex items-center gap-1 transition-colors"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                Back to Sign In
+              </button>
+            </div>
           </div>
-        )} */}
+        )}
 
         {/* Links to Register */}
         <div className="text-center pt-2 border-t border-surface-border">
