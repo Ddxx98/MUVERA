@@ -652,16 +652,16 @@ export const db = {
     return token;
   },
 
-  async invalidateUserTokens(userId: string, type: 'email_verify' | 'password_reset') {
+  async invalidateUserTokens(userIdOrEmail: string, type: 'email_verify' | 'password_reset') {
     const isConnected = await connectToMongo();
     if (isConnected) {
       await AuthTokenModel.updateMany(
-        { userId, type, usedAt: null },
+        { $or: [{ userId: userIdOrEmail }, { email: userIdOrEmail.toLowerCase() }], type, usedAt: null },
         { $set: { usedAt: new Date() } }
       );
     }
     for (const t of global._muveraDb!.authTokens) {
-      if (t.userId === userId && t.type === type && t.usedAt === null) {
+      if ((t.userId === userIdOrEmail || t.email.toLowerCase() === userIdOrEmail.toLowerCase()) && t.type === type && t.usedAt === null) {
         t.usedAt = new Date();
       }
     }
