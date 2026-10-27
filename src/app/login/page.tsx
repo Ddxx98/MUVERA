@@ -134,8 +134,8 @@ function LoginFormContent() {
           </div>
         )}
 
-        {/* Mode Switcher Tabs */}
-        <div className="flex p-1 rounded-xl bg-surface-raised border border-surface-border">
+        {/* Mode Switcher Tabs (WhatsApp OTP commented out as not implemented yet) */}
+        {/* <div className="flex p-1 rounded-xl bg-surface-raised border border-surface-border">
           <button
             type="button"
             onClick={() => {
@@ -164,7 +164,7 @@ function LoginFormContent() {
           >
             WhatsApp OTP
           </button>
-        </div>
+        </div> */}
 
         {/* Password Login Mode */}
         {mode === 'password' && (
@@ -213,8 +213,8 @@ function LoginFormContent() {
           </form>
         )}
 
-        {/* WhatsApp OTP Mode */}
-        {mode === 'otp' && (
+        {/* WhatsApp OTP Mode (Commented out as not implemented yet) */}
+        {/* {mode === 'otp' && (
           <div>
             {!otpSent ? (
               <form onSubmit={handleSendOtp} className="space-y-4">
@@ -268,7 +268,7 @@ function LoginFormContent() {
               </form>
             )}
           </div>
-        )}
+        )} */}
 
         {/* Links to Register */}
         <div className="text-center pt-2 border-t border-surface-border">

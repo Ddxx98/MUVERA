@@ -27,16 +27,41 @@ export async function POST(req: Request) {
     await requireAdmin();
 
     const product: Product = await req.json();
+    if (!product.title || !product.slug) {
+      return NextResponse.json({ error: 'Title and slug are required' }, { status: 400 });
+    }
+
+    // Ensure variants have deterministic IDs and required schema fields
+    if (Array.isArray(product.variants)) {
+      product.variants = product.variants.map((v, i) => ({
+        ...v,
+        id: v.id || `var_${product.slug}_${v.size || i}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        sku: v.sku || `${product.slug.toUpperCase()}-${v.size || i}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+        color: v.color || 'Obsidian Black',
+        colorHex: v.colorHex || '#0E0E10',
+        pricePaise: typeof v.pricePaise === 'number' ? v.pricePaise : product.sellingPricePaise,
+        mrpPaise: typeof v.mrpPaise === 'number' ? v.mrpPaise : product.mrpPaise,
+      }));
+    }
+
     const saved = await catalogService.upsertProduct(product, 'Admin API');
 
     // Automatically initialize inventory for each variant
     if (saved && Array.isArray(saved.variants)) {
       for (const v of saved.variants) {
-        const existingInv = await db.getInventoryItem(v.id, 'loc_blr_ind_01');
+        const variantId = v.id || (v as any)._id?.toString();
+        if (!variantId) continue;
+
+        const existingInv = await db.getInventoryItem(variantId, 'loc_blr_ind_01');
         if (!existingInv) {
-          const stockQty = typeof (v as any).initialStock === 'number' ? (v as any).initialStock : 10;
+          const stockQty = typeof (v as any).initialStock === 'number'
+            ? (v as any).initialStock
+            : typeof (v as any).stock === 'number'
+            ? (v as any).stock
+            : 10;
+
           await db.saveInventoryItem({
-            variantId: v.id,
+            variantId,
             locationId: 'loc_blr_ind_01',
             sku: v.sku,
             onHand: stockQty,
@@ -49,7 +74,7 @@ export async function POST(req: Request) {
           if (stockQty > 0) {
             await db.addStockMovement({
               id: `mov_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-              variantId: v.id,
+              variantId,
               sku: v.sku,
               locationId: 'loc_blr_ind_01',
               type: 'receiving',
@@ -70,6 +95,12 @@ export async function POST(req: Request) {
     revalidatePath('/');
     return NextResponse.json({ success: true, product: saved });
   } catch (err: any) {
+    if (err?.code === 11000) {
+      return NextResponse.json(
+        { error: 'A product with this slug, title, or variant SKU already exists in the catalog.' },
+        { status: 409 }
+      );
+    }
     const status = err?.statusCode || (err?.code === 'UNAUTHORIZED' ? 401 : err?.code === 'FORBIDDEN' ? 403 : 400);
     return NextResponse.json({ error: err.message }, { status });
   }

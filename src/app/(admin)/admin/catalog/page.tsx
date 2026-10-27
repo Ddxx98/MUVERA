@@ -625,10 +625,11 @@ export default function AdminCatalogPage() {
       return;
     }
 
+    const randomSuffix = Math.random().toString(36).slice(2, 6).toUpperCase();
     const basePrefix = skuPrefix.trim() ? skuPrefix.trim().toUpperCase() : title.slice(0, 3).toUpperCase();
     const variants: Variant[] = selectedSizes.map(({ size, stock }) => ({
       id: `var_${basePrefix.toLowerCase()}_${size.toLowerCase()}_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
-      sku: `${basePrefix}-${size}`.toUpperCase(),
+      sku: `${basePrefix}-${size}-${randomSuffix}`,
       size,
       color: 'Obsidian Black',
       colorHex: '#0E0E10',
@@ -661,23 +662,32 @@ export default function AdminCatalogPage() {
       createdAt: new Date().toISOString(),
     };
 
-    await fetch('/api/products', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newProd),
-    });
+    try {
+      const res = await fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newProd),
+      });
 
-    setFeedback(`Product "${title}" created with ${imageUrls.length} photos & ${variants.length} SKUs!`);
-    setTimeout(() => setFeedback(''), 3500);
-    setIsModalOpen(false);
-    loadProducts();
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to create product');
+      }
 
-    // Reset
-    setTitle('');
-    setDescription('');
-    setImageUrls([]);
-    setUploadError('');
-    setSkuPrefix('');
+      setFeedback(`✅ Product "${title}" created with ${imageUrls.length} photos & ${variants.length} SKUs!`);
+      setTimeout(() => setFeedback(''), 4000);
+      setIsModalOpen(false);
+      loadProducts();
+
+      // Reset
+      setTitle('');
+      setDescription('');
+      setImageUrls([]);
+      setUploadError('');
+      setSkuPrefix('');
+    } catch (err: any) {
+      alert(`Error creating product: ${err.message}`);
+    }
   };
 
   const filtered = products.filter((p) => {

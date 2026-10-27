@@ -121,7 +121,22 @@ async function connectToMongo(): Promise<boolean> {
     }
     await global._mongooseConn;
     return (mongoose.connection.readyState as number) === 1;
-  } catch (err) {
+  } catch (err: any) {
+    // If local network DNS refuses MongoDB SRV queries (common on Windows home Wi-Fi), retry with standard DNS
+    if (typeof window === 'undefined' && (err?.code === 'ECONNREFUSED' || err?.syscall === 'querySrv')) {
+      try {
+        const dns = await import('dns');
+        dns.setServers(['8.8.8.8', '1.1.1.1']);
+        global._mongooseConn = mongoose.connect(env.mongoUri, {
+          maxPoolSize: 5,
+          serverSelectionTimeoutMS: 5000,
+        });
+        await global._mongooseConn;
+        return (mongoose.connection.readyState as number) === 1;
+      } catch (retryErr) {
+        console.error('MongoDB retry with public DNS failed:', retryErr);
+      }
+    }
     global._mongooseConn = null;
     console.error('MongoDB connection error, falling back to local store:', err);
     return false;
@@ -180,21 +195,26 @@ export const db = {
 
   async saveProduct(product: Product): Promise<Product> {
     const isConnected = await connectToMongo();
+    let savedProduct = product;
     if (isConnected) {
+      let doc: any = null;
       if (product.id && mongoose.isValidObjectId(product.id)) {
-        await ProductModel.findByIdAndUpdate(product.id, product, { upsert: true, new: true });
+        doc = await ProductModel.findByIdAndUpdate(product.id, product, { upsert: true, new: true }).lean();
       } else {
-        await ProductModel.findOneAndUpdate({ slug: product.slug }, product, { upsert: true, new: true });
+        doc = await ProductModel.findOneAndUpdate({ slug: product.slug }, product, { upsert: true, new: true }).lean();
+      }
+      if (doc) {
+        savedProduct = normalizeProduct(doc);
       }
     }
 
-    const existingIndex = global._muveraDb!.products.findIndex((p) => p.id === product.id || p.slug === product.slug);
+    const existingIndex = global._muveraDb!.products.findIndex((p) => p.id === savedProduct.id || p.slug === savedProduct.slug);
     if (existingIndex >= 0) {
-      global._muveraDb!.products[existingIndex] = product;
+      global._muveraDb!.products[existingIndex] = savedProduct;
     } else {
-      global._muveraDb!.products.unshift(product);
+      global._muveraDb!.products.unshift(savedProduct);
     }
-    return product;
+    return savedProduct;
   },
 
   async deleteProduct(idOrSlug: string): Promise<boolean> {
