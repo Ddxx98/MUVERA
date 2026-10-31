@@ -10,6 +10,22 @@ export default function SearchPage() {
   const [results, setResults] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const [recentSearches, setRecentSearches] = useState<string[]>([
+    'Oversized T-Shirts',
+    'Satin Bomber',
+    'Heavyweight Fleece',
+    'Parachute Cargoes',
+  ]);
+
+  const trendingTags = [
+    'Oversized Tees',
+    'Heavyweight Hoodies',
+    'Satin Bomber',
+    'Club & Party Fits',
+    'Tactical Cargoes',
+    'Express Delivery Drops',
+  ];
+
   useEffect(() => {
     const q = query.trim();
     if (!q) {

@@ -346,7 +346,7 @@ export const db = {
   async getProductById(id: string): Promise<Product | undefined> {
     const isConnected = await connectToMongo();
     if (isConnected) {
-      const query = mongoose.isValidObjectId(id)
+      const query: any = mongoose.isValidObjectId(id)
         ? { $or: [{ _id: id }, { id }, { slug: id }] }
         : { $or: [{ id }, { slug: id }] };
       const doc = await ProductModel.findOne(query).lean();
@@ -545,7 +545,7 @@ export const db = {
   async getOrderById(id: string): Promise<OrderSnapshot | undefined> {
     const isConnected = await connectToMongo();
     if (isConnected) {
-      const query = mongoose.isValidObjectId(id)
+      const query: any = mongoose.isValidObjectId(id)
         ? { $or: [{ _id: id }, { orderNo: id }, { id: id }, { orderId: id }] }
         : { $or: [{ orderNo: id }, { id: id }, { orderId: id }] };
       const doc = await OrderModel.findOne(query).lean();
@@ -649,7 +649,7 @@ export const db = {
   async getReturnById(id: string): Promise<ReturnRequest | undefined> {
     const isConnected = await connectToMongo();
     if (isConnected) {
-      const query = mongoose.isValidObjectId(id)
+      const query: any = mongoose.isValidObjectId(id)
         ? { $or: [{ _id: id }, { returnNo: id }, { id: id }] }
         : { $or: [{ returnNo: id }, { id: id }] };
       const doc = await ReturnModel.findOne(query).lean();
@@ -1104,7 +1104,7 @@ export const db = {
   async getCategoryById(id: string): Promise<Category | undefined> {
     const isConnected = await connectToMongo();
     if (isConnected) {
-      const query = mongoose.isValidObjectId(id) ? { _id: id } : { slug: id };
+      const query: any = mongoose.isValidObjectId(id) ? { _id: id } : { slug: id };
       const doc = await CategoryModel.findOne(query).lean();
       if (doc) {
         return {
