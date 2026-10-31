@@ -117,6 +117,15 @@ export async function GET(
               order.orderStatus = 'cancelled';
               await db.saveOrder(order);
             }
+          } else if (job.type === 'process_logistics_event') {
+            const { processLogisticsEventJob } = await import('@/modules/shipping/jobs/process-logistics-event');
+            await processLogisticsEventJob(job.payload as any);
+          } else if (job.type === 'fulfill_shipment') {
+            const { fulfillShipmentJob } = await import('@/modules/shipping/jobs/fulfill-shipment');
+            await fulfillShipmentJob(job.payload as any);
+          } else if (job.type === 'verify_cod_delivery') {
+            const { verifyCodDeliveryJob } = await import('@/modules/shipping/jobs/verify-cod-delivery');
+            await verifyCodDeliveryJob(job.payload as any);
           }
 
           await jobService.completeJob(job._id.toString());
@@ -130,6 +139,12 @@ export async function GET(
           );
           return NextResponse.json({ success: false, error: String(jobErr) }, { status: 500 });
         }
+      }
+
+      case 'sweep-logistics': {
+        const { sweepStuckLogisticsEvents } = await import('@/modules/shipping/jobs/process-logistics-event');
+        const count = await sweepStuckLogisticsEvents();
+        return NextResponse.json({ success: true, reEnqueuedCount: count });
       }
 
       default:
