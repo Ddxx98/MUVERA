@@ -3,47 +3,36 @@ import { Product } from '@/lib/types';
 import { auditService } from '@/modules/audit';
 
 export interface CatalogFilterOptions {
+  categoryId?: string;
   category?: string;
+  categorySlug?: string;
   brand?: string;
+  brandSlug?: string;
   search?: string;
+  isBlitzDrop?: boolean;
+  isDealOfTheHour?: boolean;
   minPricePaise?: number;
   maxPricePaise?: number;
+  limit?: number;
+  skip?: number;
 }
 
 export const catalogService = {
   async getProducts(filters: CatalogFilterOptions = {}): Promise<Product[]> {
-    let products = await db.getProducts();
-
-    if (filters.category && filters.category !== 'all') {
-      const catLower = filters.category.toLowerCase();
-      products = products.filter((p) => p.category.toLowerCase() === catLower);
-    }
-
-    if (filters.brand && filters.brand !== 'all') {
-      const brandLower = filters.brand.toLowerCase();
-      products = products.filter((p) => p.brand.toLowerCase() === brandLower);
-    }
-
-    if (filters.search) {
-      const q = filters.search.toLowerCase().trim();
-      products = products.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          p.brand.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q) ||
-          p.category.toLowerCase().includes(q)
-      );
-    }
-
-    if (filters.minPricePaise !== undefined) {
-      products = products.filter((p) => p.sellingPricePaise >= filters.minPricePaise!);
-    }
-
-    if (filters.maxPricePaise !== undefined) {
-      products = products.filter((p) => p.sellingPricePaise <= filters.maxPricePaise!);
-    }
-
-    return products;
+    return db.getProducts({
+      categoryId: filters.categoryId,
+      category: filters.category,
+      categorySlug: filters.categorySlug,
+      brand: filters.brand,
+      brandSlug: filters.brandSlug,
+      search: filters.search,
+      isBlitzDrop: filters.isBlitzDrop,
+      isDealOfTheHour: filters.isDealOfTheHour,
+      minPricePaise: filters.minPricePaise,
+      maxPricePaise: filters.maxPricePaise,
+      limit: filters.limit,
+      skip: filters.skip,
+    });
   },
 
   async getProductBySlug(slug: string): Promise<Product | undefined> {

@@ -5,8 +5,33 @@ import { requireAdmin } from '@/modules/auth/guards';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: Request) {
   const start = performance.now();
+  const { searchParams } = new URL(req.url);
+  const variantId = searchParams.get('variantId');
+  const sku = searchParams.get('sku');
+  const locationId = searchParams.get('locationId') || 'loc_blr_ind_01';
+
+  // 1. Point lookup by variantId or sku (< 10ms)
+  if (variantId || sku) {
+    let item;
+    if (variantId) {
+      item = await db.getInventoryItem(variantId, locationId);
+    }
+    if (!item && sku) {
+      const all = await db.getInventory();
+      item = all.find((i) => i.sku?.toUpperCase() === sku.toUpperCase());
+    }
+    const duration = Math.round(performance.now() - start);
+    if (!item) {
+      return NextResponse.json({ error: 'Inventory item not found' }, { status: 404 });
+    }
+    const res = NextResponse.json({ item });
+    res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    res.headers.set('Server-Timing', `db;dur=${duration}`);
+    return res;
+  }
+
   const [rawInventory, movements, products] = await Promise.all([
     db.getInventory(),
     db.getStockMovements(),

@@ -49,6 +49,7 @@ const OrderSchema = new Schema(
     orderNo: { type: String, required: true, unique: true, index: true },
     id: { type: String, index: true },
     orderId: { type: String, index: true },
+    customerId: { type: String, index: true },
     customerName: { type: String, required: true },
     customerPhone: { type: String, required: true, index: true },
     customerEmail: { type: String },
@@ -93,6 +94,8 @@ const OrderSchema = new Schema(
   },
   { timestamps: true }
 );
+
+OrderSchema.index({ customerId: 1, createdAt: -1 });
 
 export const OrderModel: Model<OrderDocument> =
   mongoose.models.Order || mongoose.model<OrderDocument>('Order', OrderSchema);

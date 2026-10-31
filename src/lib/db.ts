@@ -161,15 +161,176 @@ function normalizeProduct(doc: any): Product {
   };
 }
 
+export interface ProductQueryOptions {
+  categoryId?: string;
+  category?: string;
+  categorySlug?: string;
+  brand?: string;
+  brandSlug?: string;
+  search?: string;
+  isBlitzDrop?: boolean;
+  isDealOfTheHour?: boolean;
+  minPricePaise?: number;
+  maxPricePaise?: number;
+  tags?: string[];
+  limit?: number;
+  skip?: number;
+  projection?: string | Record<string, number>;
+}
+
+export interface OrderQueryOptions {
+  customerId?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  fulfilmentStatus?: string;
+  paymentStatus?: string;
+  orderStatus?: string;
+  limit?: number;
+  skip?: number;
+}
+
+// In-memory cache for fast user session lookups (TTL: 30 seconds)
+const _userSessionCache = new Map<string, { user: UserRecord; expires: number }>();
+
+function getCachedUser(idOrEmail: string): UserRecord | undefined {
+  const item = _userSessionCache.get(idOrEmail.toLowerCase().trim());
+  if (item && item.expires > Date.now()) {
+    return item.user;
+  }
+  if (item) {
+    _userSessionCache.delete(idOrEmail.toLowerCase().trim());
+  }
+  return undefined;
+}
+
+function setCachedUser(user: UserRecord): void {
+  const expires = Date.now() + 30 * 1000;
+  if (user.id) _userSessionCache.set(user.id.toLowerCase().trim(), { user, expires });
+  if (user.email) _userSessionCache.set(user.email.toLowerCase().trim(), { user, expires });
+}
+
+export function invalidateUserCache(idOrEmail?: string): void {
+  if (!idOrEmail) {
+    _userSessionCache.clear();
+    return;
+  }
+  const clean = idOrEmail.toLowerCase().trim();
+  _userSessionCache.forEach((entry, key) => {
+    if (key === clean || entry.user.id?.toLowerCase() === clean || entry.user.email?.toLowerCase() === clean) {
+      _userSessionCache.delete(key);
+    }
+  });
+}
+
+// In-memory cache for site settings and categories (TTL: 60 seconds)
+let _cachedSettings: { data: SiteSettingsData; expires: number } | null = null;
+let _cachedCategories: { data: Category[]; expires: number } | null = null;
+
 export const db = {
   // Products
-  async getProducts(): Promise<Product[]> {
+  async getProducts(options?: ProductQueryOptions): Promise<Product[]> {
     const isConnected = await connectToMongo();
     if (isConnected) {
-      const docs = await ProductModel.find().lean();
+      const query: any = {};
+      if (options?.categoryId) {
+        query.categoryId = options.categoryId;
+      }
+      if (options?.category && options.category !== 'all') {
+        const cat = options.category.toLowerCase().trim();
+        query.$or = [{ categorySlug: cat }, { category: new RegExp(`^${cat}$`, 'i') }];
+      }
+      if (options?.categorySlug && options.categorySlug !== 'all') {
+        query.categorySlug = options.categorySlug.toLowerCase().trim();
+      }
+      if (options?.brand && options.brand !== 'all') {
+        const br = options.brand.toLowerCase().trim();
+        query.$or = [{ brandSlug: br }, { brand: new RegExp(`^${br}$`, 'i') }];
+      }
+      if (options?.brandSlug && options.brandSlug !== 'all') {
+        query.brandSlug = options.brandSlug.toLowerCase().trim();
+      }
+      if (options?.isBlitzDrop !== undefined) {
+        query.isBlitzDrop = options.isBlitzDrop;
+      }
+      if (options?.isDealOfTheHour !== undefined) {
+        query.isDealOfTheHour = options.isDealOfTheHour;
+      }
+      if (options?.minPricePaise !== undefined || options?.maxPricePaise !== undefined) {
+        query.sellingPricePaise = {};
+        if (options.minPricePaise !== undefined) query.sellingPricePaise.$gte = options.minPricePaise;
+        if (options.maxPricePaise !== undefined) query.sellingPricePaise.$lte = options.maxPricePaise;
+      }
+      if (options?.tags && options.tags.length > 0) {
+        query.tags = { $in: options.tags };
+      }
+      if (options?.search) {
+        const q = options.search.trim();
+        const searchRegex = new RegExp(q, 'i');
+        query.$or = [
+          { title: searchRegex },
+          { brand: searchRegex },
+          { category: searchRegex },
+          { tags: { $in: [searchRegex] } },
+        ];
+      }
+
+      let mQuery = ProductModel.find(query).sort({ createdAt: -1 });
+      if (options?.projection) {
+        mQuery = mQuery.select(options.projection);
+      }
+      if (options?.skip) {
+        mQuery = mQuery.skip(options.skip);
+      }
+      if (options?.limit) {
+        mQuery = mQuery.limit(options.limit);
+      }
+
+      const docs = await mQuery.lean();
       return docs.map(normalizeProduct);
     }
-    return global._muveraDb!.products.map(normalizeProduct);
+
+    let items = global._muveraDb!.products;
+    if (options?.categoryId) {
+      items = items.filter((p) => p.categoryId === options.categoryId);
+    }
+    if (options?.category && options.category !== 'all') {
+      const c = options.category.toLowerCase().trim();
+      items = items.filter((p) => p.category.toLowerCase() === c || p.categorySlug?.toLowerCase() === c);
+    }
+    if (options?.brand && options.brand !== 'all') {
+      const b = options.brand.toLowerCase().trim();
+      items = items.filter((p) => p.brand.toLowerCase() === b || p.brandSlug?.toLowerCase() === b);
+    }
+    if (options?.isBlitzDrop !== undefined) {
+      items = items.filter((p) => Boolean(p.isBlitzDrop) === options.isBlitzDrop);
+    }
+    if (options?.isDealOfTheHour !== undefined) {
+      items = items.filter((p) => Boolean(p.isDealOfTheHour) === options.isDealOfTheHour);
+    }
+    if (options?.minPricePaise !== undefined) {
+      items = items.filter((p) => p.sellingPricePaise >= options.minPricePaise!);
+    }
+    if (options?.maxPricePaise !== undefined) {
+      items = items.filter((p) => p.sellingPricePaise <= options.maxPricePaise!);
+    }
+    if (options?.search) {
+      const q = options.search.toLowerCase().trim();
+      items = items.filter(
+        (p) =>
+          p.title.toLowerCase().includes(q) ||
+          p.brand.toLowerCase().includes(q) ||
+          p.description.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q) ||
+          p.tags?.some((t) => t.toLowerCase().includes(q))
+      );
+    }
+    if (options?.skip) {
+      items = items.slice(options.skip);
+    }
+    if (options?.limit) {
+      items = items.slice(0, options.limit);
+    }
+    return items.map(normalizeProduct);
   },
 
   async getProductBySlug(slug: string): Promise<Product | undefined> {
@@ -185,13 +346,13 @@ export const db = {
   async getProductById(id: string): Promise<Product | undefined> {
     const isConnected = await connectToMongo();
     if (isConnected) {
-      if (mongoose.isValidObjectId(id)) {
-        const doc = await ProductModel.findById(id).lean();
-        return doc ? normalizeProduct(doc) : undefined;
-      }
-      return undefined;
+      const query = mongoose.isValidObjectId(id)
+        ? { $or: [{ _id: id }, { id }, { slug: id }] }
+        : { $or: [{ id }, { slug: id }] };
+      const doc = await ProductModel.findOne(query).lean();
+      return doc ? normalizeProduct(doc) : undefined;
     }
-    const found = global._muveraDb!.products.find((p) => p.id === id);
+    const found = global._muveraDb!.products.find((p) => p.id === id || p.slug === id);
     return found ? normalizeProduct(found) : undefined;
   },
 
@@ -307,13 +468,78 @@ export const db = {
   },
 
   // Orders
-  async getOrders(): Promise<OrderSnapshot[]> {
+  async getOrders(options?: OrderQueryOptions): Promise<OrderSnapshot[]> {
     const isConnected = await connectToMongo();
     if (isConnected) {
-      const docs = await OrderModel.find().sort({ createdAt: -1 }).lean();
+      const query: any = {};
+      const cleanEmail = options?.customerEmail?.toLowerCase().trim();
+      const cleanPhone = options?.customerPhone?.replace(/\D/g, '').slice(-10);
+
+      if (options?.customerId) {
+        if (cleanEmail || cleanPhone) {
+          query.$or = [
+            { customerId: options.customerId },
+            ...(cleanEmail ? [{ customerEmail: cleanEmail }] : []),
+            ...(cleanPhone ? [{ customerPhone: cleanPhone }, { customerPhone: options?.customerPhone?.trim() }] : []),
+          ];
+        } else {
+          query.customerId = options.customerId;
+        }
+      } else if (cleanEmail && cleanPhone) {
+        query.$or = [
+          { customerEmail: cleanEmail },
+          { customerPhone: options?.customerPhone?.trim() },
+          { customerPhone: cleanPhone },
+          { customerPhone: new RegExp(`${cleanPhone}$`) },
+        ];
+      } else if (cleanEmail) {
+        query.customerEmail = cleanEmail;
+      } else if (cleanPhone) {
+        query.$or = [
+          { customerPhone: options?.customerPhone?.trim() },
+          { customerPhone: cleanPhone },
+          { customerPhone: new RegExp(`${cleanPhone}$`) },
+        ];
+      }
+
+      if (options?.fulfilmentStatus) query.fulfilmentStatus = options.fulfilmentStatus;
+      if (options?.paymentStatus) query.paymentStatus = options.paymentStatus;
+      if (options?.orderStatus) query.orderStatus = options.orderStatus;
+
+      let mQuery = OrderModel.find(query).sort({ createdAt: -1 });
+      if (options?.skip) mQuery = mQuery.skip(options.skip);
+      if (options?.limit) mQuery = mQuery.limit(options.limit);
+
+      const docs = await mQuery.lean();
       return docs.map((d: any) => ({ ...d, id: d._id.toString() }));
     }
-    return global._muveraDb!.orders;
+
+    let items = global._muveraDb!.orders;
+    if (options?.customerId) {
+      items = items.filter((o) => o.customerId === options.customerId);
+    } else if (options?.customerEmail || options?.customerPhone) {
+      const cleanEmail = options?.customerEmail?.toLowerCase().trim();
+      const cleanPhone = options?.customerPhone?.replace(/\D/g, '').slice(-10);
+      items = items.filter((o) => {
+        const orderEmail = (o.customerEmail || '').toLowerCase().trim();
+        const orderPhone = (o.customerPhone || '').replace(/\D/g, '').slice(-10);
+        const emailMatch = Boolean(cleanEmail && orderEmail && cleanEmail === orderEmail);
+        const phoneMatch = Boolean(cleanPhone && orderPhone && cleanPhone === orderPhone);
+        return emailMatch || phoneMatch;
+      });
+    }
+    if (options?.fulfilmentStatus) {
+      items = items.filter((o) => o.fulfilmentStatus === options.fulfilmentStatus);
+    }
+    if (options?.paymentStatus) {
+      items = items.filter((o) => o.paymentStatus === options.paymentStatus);
+    }
+    if (options?.orderStatus) {
+      items = items.filter((o) => o.orderStatus === options.orderStatus);
+    }
+    if (options?.skip) items = items.slice(options.skip);
+    if (options?.limit) items = items.slice(0, options.limit);
+    return items;
   },
 
   async getOrderById(id: string): Promise<OrderSnapshot | undefined> {
@@ -335,6 +561,7 @@ export const db = {
         ...order,
         id: order.id,
         orderId: order.id,
+        customerId: order.customerId,
       };
       const savedDoc = await OrderModel.findOneAndUpdate({ orderNo: order.orderNo }, payloadToSave, {
         upsert: true,
@@ -389,21 +616,58 @@ export const db = {
   },
 
   // Returns
-  async getReturns(): Promise<ReturnRequest[]> {
+  async getReturns(options?: { customerId?: string; orderId?: string; limit?: number }): Promise<ReturnRequest[]> {
     const isConnected = await connectToMongo();
     if (isConnected) {
-      const docs = await ReturnModel.find().sort({ createdAt: -1 }).lean();
+      const query: Record<string, any> = {};
+      if (options?.customerId) {
+        query.customerId = options.customerId;
+      }
+      if (options?.orderId) {
+        query.orderId = options.orderId;
+      }
+      const mongoQuery = ReturnModel.find(query).sort({ createdAt: -1 });
+      if (options?.limit && options.limit > 0) {
+        mongoQuery.limit(options.limit);
+      }
+      const docs = await mongoQuery.lean();
       return docs.map((d: any) => ({ ...d, id: d._id.toString() }));
     }
-    return global._muveraDb!.returns;
+    let list = global._muveraDb!.returns;
+    if (options?.customerId) {
+      list = list.filter((r) => r.customerId === options.customerId);
+    }
+    if (options?.orderId) {
+      list = list.filter((r) => r.orderId === options.orderId);
+    }
+    if (options?.limit && options.limit > 0) {
+      list = list.slice(0, options.limit);
+    }
+    return list;
+  },
+
+  async getReturnById(id: string): Promise<ReturnRequest | undefined> {
+    const isConnected = await connectToMongo();
+    if (isConnected) {
+      const query = mongoose.isValidObjectId(id)
+        ? { $or: [{ _id: id }, { returnNo: id }, { id: id }] }
+        : { $or: [{ returnNo: id }, { id: id }] };
+      const doc = await ReturnModel.findOne(query).lean();
+      if (doc) return { ...(doc as any), id: (doc as any)._id.toString() };
+    }
+    return global._muveraDb!.returns.find((r) => r.id === id || r.returnNo === id);
   },
 
   async saveReturn(returnReq: ReturnRequest): Promise<ReturnRequest> {
     const isConnected = await connectToMongo();
     if (isConnected) {
+      const payload = {
+        ...returnReq,
+        customerId: returnReq.customerId,
+      };
       const savedDoc = await ReturnModel.findOneAndUpdate(
         { returnNo: returnReq.returnNo },
-        returnReq,
+        payload,
         { upsert: true, new: true }
       );
       if (savedDoc) {
@@ -457,36 +721,116 @@ export const db = {
 
   async getUserByEmail(email: string): Promise<UserRecord | undefined> {
     const cleanEmail = email.toLowerCase().trim();
+    const cached = getCachedUser(cleanEmail);
+    if (cached) return cached;
+
     const isConnected = await connectToMongo();
     if (isConnected) {
       const doc = await UserModel.findOne({ email: cleanEmail }).lean();
-      if (doc) return { ...(doc as any), id: (doc as any)._id.toString() };
+      if (doc) {
+        const u = { ...(doc as any), id: (doc as any)._id.toString() };
+        setCachedUser(u);
+        return u;
+      }
     }
-    return global._muveraDb!.users.find((u) => u.email.toLowerCase() === cleanEmail);
+    const found = global._muveraDb!.users.find((u) => u.email.toLowerCase() === cleanEmail);
+    if (found) setCachedUser(found);
+    return found;
   },
 
   async getUserByPhone(phone: string): Promise<UserRecord | undefined> {
     const cleanPhone = phone.replace(/\D/g, '');
+    const clean10 = cleanPhone.slice(-10);
+    const cached = getCachedUser(clean10);
+    if (cached) return cached;
+
     const isConnected = await connectToMongo();
     if (isConnected) {
-      const doc = await UserModel.findOne({ phone: cleanPhone }).lean();
-      if (doc) return { ...(doc as any), id: (doc as any)._id.toString() };
+      const doc = await UserModel.findOne({
+        $or: [
+          { phone: cleanPhone },
+          { phone: clean10 },
+          { phone: new RegExp(`${clean10}$`) },
+        ],
+      }).lean();
+      if (doc) {
+        const u = { ...(doc as any), id: (doc as any)._id.toString() };
+        setCachedUser(u);
+        return u;
+      }
     }
-    return global._muveraDb!.users.find((u) => u.phone.replace(/\D/g, '') === cleanPhone);
+    const found = global._muveraDb!.users.find(
+      (u) => u.phone.replace(/\D/g, '').slice(-10) === clean10
+    );
+    if (found) setCachedUser(found);
+    return found;
+  },
+
+  async getUserByEmailOrPhone(email: string, phone: string): Promise<UserRecord | undefined> {
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+    const cachedEmail = getCachedUser(cleanEmail);
+    if (cachedEmail) return cachedEmail;
+    const cachedPhone = getCachedUser(cleanPhone);
+    if (cachedPhone) return cachedPhone;
+
+    const isConnected = await connectToMongo();
+    if (isConnected) {
+      const doc = await UserModel.findOne({
+        $or: [
+          { email: cleanEmail },
+          { phone: phone.trim() },
+          { phone: cleanPhone },
+          { phone: new RegExp(`${cleanPhone}$`) },
+        ],
+      }).lean();
+      if (doc) {
+        const u = { ...(doc as any), id: (doc as any)._id.toString() };
+        setCachedUser(u);
+        return u;
+      }
+    }
+    const found = global._muveraDb!.users.find(
+      (u) =>
+        u.email.toLowerCase() === cleanEmail ||
+        u.phone.replace(/\D/g, '').slice(-10) === cleanPhone
+    );
+    if (found) setCachedUser(found);
+    return found;
   },
 
   async getUserById(id: string): Promise<UserRecord | undefined> {
+    const cached = getCachedUser(id);
+    if (cached) return cached;
+
     const isConnected = await connectToMongo();
     if (isConnected) {
       if (mongoose.isValidObjectId(id)) {
         const doc = await UserModel.findById(id).lean();
-        if (doc) return { ...(doc as any), id: (doc as any)._id.toString() };
+        if (doc) {
+          const u = { ...(doc as any), id: (doc as any)._id.toString() };
+          setCachedUser(u);
+          return u;
+        }
+      } else {
+        const doc = await UserModel.findOne({ $or: [{ id }, { email: id.toLowerCase() }] }).lean();
+        if (doc) {
+          const u = { ...(doc as any), id: (doc as any)._id.toString() };
+          setCachedUser(u);
+          return u;
+        }
       }
     }
-    return global._muveraDb!.users.find((u) => u.id === id);
+    const found = global._muveraDb!.users.find((u) => u.id === id);
+    if (found) setCachedUser(found);
+    return found;
   },
 
   async saveUser(user: UserRecord): Promise<UserRecord> {
+    invalidateUserCache(user.id);
+    invalidateUserCache(user.email);
+    invalidateUserCache(user.phone);
+
     const isConnected = await connectToMongo();
     if (isConnected) {
       // Use $set to avoid Mongoose trying to write the custom `id` string field as `_id`
@@ -507,10 +851,12 @@ export const db = {
     } else {
       global._muveraDb!.users.unshift(user);
     }
+    setCachedUser(user);
     return user;
   },
 
   async updateUserPassword(userIdOrEmail: string, newPasswordHash: string): Promise<boolean> {
+    invalidateUserCache(userIdOrEmail);
     const isConnected = await connectToMongo();
     if (isConnected) {
       const isObjectId = mongoose.isValidObjectId(userIdOrEmail);
@@ -526,12 +872,15 @@ export const db = {
     );
     if (user) {
       user.passwordHash = newPasswordHash;
+      invalidateUserCache(user.id);
+      invalidateUserCache(user.email);
       return true;
     }
     return false;
   },
 
   async setUserEmailVerified(userIdOrEmail: string, verified = true): Promise<boolean> {
+    invalidateUserCache(userIdOrEmail);
     const isConnected = await connectToMongo();
     if (isConnected) {
       const isObjectId = mongoose.isValidObjectId(userIdOrEmail);
@@ -547,26 +896,36 @@ export const db = {
     );
     if (user) {
       user.emailVerified = verified;
+      invalidateUserCache(user.id);
+      invalidateUserCache(user.email);
       return true;
     }
     return true;
   },
 
-  // Site Settings (Singleton)
+  // Site Settings (Singleton with 60s in-memory TTL cache)
   async getSiteSettings(): Promise<SiteSettingsData> {
+    if (_cachedSettings && _cachedSettings.expires > Date.now()) {
+      return _cachedSettings.data;
+    }
     try {
       const isConnected = await connectToMongo();
       if (isConnected && mongoose.connection.readyState === 1) {
         const doc = await SiteSettingsModel.findOne().lean();
-        if (doc) return doc as any;
+        if (doc) {
+          _cachedSettings = { data: doc as any, expires: Date.now() + 60 * 1000 };
+          return doc as any;
+        }
       }
     } catch (err) {
       console.warn('Error fetching site settings from Mongo, using in-memory store:', err);
     }
+    _cachedSettings = { data: global._muveraDb!.siteSettings, expires: Date.now() + 60 * 1000 };
     return global._muveraDb!.siteSettings;
   },
 
   async saveSiteSettings(settings: Partial<SiteSettingsData>, actor = 'Admin'): Promise<SiteSettingsData> {
+    _cachedSettings = null; // Invalidate cache
     const updated = {
       ...global._muveraDb!.siteSettings,
       ...settings,
@@ -580,6 +939,7 @@ export const db = {
     }
 
     global._muveraDb!.siteSettings = updated;
+    _cachedSettings = { data: updated, expires: Date.now() + 60 * 1000 };
     return updated;
   },
 
@@ -669,8 +1029,12 @@ export const db = {
     }
   },
 
-  // Categories
+  // Categories (with 60s in-memory TTL cache)
   async getCategories(): Promise<Category[]> {
+    if (_cachedCategories && _cachedCategories.expires > Date.now()) {
+      return _cachedCategories.data;
+    }
+
     const isConnected = await connectToMongo();
     if (isConnected) {
       let docs = await CategoryModel.find().sort({ order: 1, createdAt: 1 }).lean();
@@ -702,7 +1066,7 @@ export const db = {
       // Count products per category
       const products = await ProductModel.find().select('category categorySlug').lean();
 
-      return docs.map((d: any) => {
+      const result = docs.map((d: any) => {
         const catCount = products.filter(
           (p: any) =>
             p.categorySlug === d.slug ||
@@ -720,9 +1084,12 @@ export const db = {
           createdAt: d.createdAt,
         };
       });
+
+      _cachedCategories = { data: result, expires: Date.now() + 60 * 1000 };
+      return result;
     }
 
-    return global._muveraDb?.categories || siteConfig.categories.map((c, i) => ({
+    const fallback = global._muveraDb?.categories || siteConfig.categories.map((c, i) => ({
       id: c.id,
       name: c.name,
       slug: c.slug,
@@ -730,6 +1097,45 @@ export const db = {
       count: c.count,
       order: i,
     }));
+    _cachedCategories = { data: fallback, expires: Date.now() + 60 * 1000 };
+    return fallback;
+  },
+
+  async getCategoryById(id: string): Promise<Category | undefined> {
+    const isConnected = await connectToMongo();
+    if (isConnected) {
+      const query = mongoose.isValidObjectId(id) ? { _id: id } : { slug: id };
+      const doc = await CategoryModel.findOne(query).lean();
+      if (doc) {
+        return {
+          id: (doc as any)._id.toString(),
+          name: (doc as any).name,
+          slug: (doc as any).slug,
+          image: (doc as any).image,
+          description: (doc as any).description,
+          order: (doc as any).order,
+        };
+      }
+    }
+    return (global._muveraDb?.categories || siteConfig.categories).find((c) => c.id === id || c.slug === id);
+  },
+
+  async getCategoryBySlug(slug: string): Promise<Category | undefined> {
+    const isConnected = await connectToMongo();
+    if (isConnected) {
+      const doc = await CategoryModel.findOne({ slug }).lean();
+      if (doc) {
+        return {
+          id: (doc as any)._id.toString(),
+          name: (doc as any).name,
+          slug: (doc as any).slug,
+          image: (doc as any).image,
+          description: (doc as any).description,
+          order: (doc as any).order,
+        };
+      }
+    }
+    return (global._muveraDb?.categories || siteConfig.categories).find((c) => c.slug === slug);
   },
 
   async saveCategory(category: {
@@ -740,6 +1146,7 @@ export const db = {
     description?: string;
     order?: number;
   }): Promise<Category> {
+    _cachedCategories = null; // Invalidate cache
     const isConnected = await connectToMongo();
     const slug = (category.slug || category.name)
       .toLowerCase()

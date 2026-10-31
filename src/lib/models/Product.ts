@@ -23,6 +23,7 @@ const ProductSchema = new Schema(
     brandSlug: { type: String, required: true },
     category: { type: String, required: true, index: true },
     categorySlug: { type: String, required: true },
+    categoryId: { type: String, index: true },
     description: { type: String, required: true },
     fabricDetails: { type: String },
     mrpPaise: { type: Number, required: true },
@@ -44,6 +45,8 @@ const ProductSchema = new Schema(
   },
   { timestamps: true }
 );
+
+ProductSchema.index({ categoryId: 1, createdAt: -1 });
 
 // Prevent re-compilation in development
 export const ProductModel: Model<ProductDocument> =

@@ -24,6 +24,7 @@ export interface Product {
   brandSlug: string;
   category: string;
   categorySlug: string;
+  categoryId?: string;
   description: string;
   fabricDetails?: string;
   mrpPaise: number;
@@ -145,6 +146,7 @@ export interface OrderEvent {
 export interface OrderSnapshot {
   id: string;
   orderNo: string;
+  customerId?: string;
   invoiceNo?: string;
   trackingNumber?: string;
   customerName: string;
@@ -189,6 +191,7 @@ export interface ReturnRequest {
   returnNo: string;
   orderId: string;
   orderNo: string;
+  customerId?: string;
   customerPhone: string;
   items: Array<{
     variantId: string;

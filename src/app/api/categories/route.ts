@@ -3,9 +3,36 @@ import { db } from '@/lib/db';
 import { requireAdmin } from '@/modules/auth/guards';
 import { revalidatePath } from 'next/cache';
 
-export async function GET() {
+export async function GET(req: Request) {
   const start = performance.now();
   try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    if (id) {
+      const category = await db.getCategoryById(id);
+      const duration = Math.round(performance.now() - start);
+      if (!category) {
+        return NextResponse.json({ error: 'Category not found' }, { status: 404 });
+      }
+      const res = NextResponse.json({ category });
+      res.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=1800');
+      res.headers.set('Server-Timing', `db;dur=${duration}`);
+      return res;
+    }
+
+    const slug = searchParams.get('slug');
+    if (slug) {
+      const category = await db.getCategoryBySlug(slug);
+      const duration = Math.round(performance.now() - start);
+      if (!category) {
+        return NextResponse.json({ error: 'Category not found' }, { status: 404 });
+      }
+      const res = NextResponse.json({ category });
+      res.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=1800');
+      res.headers.set('Server-Timing', `db;dur=${duration}`);
+      return res;
+    }
+
     const categories = await db.getCategories();
     const duration = Math.round(performance.now() - start);
 

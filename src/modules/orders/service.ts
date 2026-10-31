@@ -11,6 +11,7 @@ import { AppError } from '@/lib/errors';
 import { clientEnv } from '@/config/env.client';
 
 export interface CreateOrderInput {
+  customerId?: string;
   customerName: string;
   customerPhone: string;
   customerEmail?: string;
@@ -113,6 +114,7 @@ export const orderService = {
     const order: OrderSnapshot = {
       id: orderId,
       orderNo,
+      customerId: input.customerId,
       customerName: input.customerName,
       customerPhone: input.customerPhone,
       customerEmail: input.customerEmail,
@@ -475,8 +477,16 @@ export const orderService = {
     return saved;
   },
 
-  async getOrders(): Promise<OrderSnapshot[]> {
-    return db.getOrders();
+  async getOrders(options?: {
+    customerEmail?: string;
+    customerPhone?: string;
+    fulfilmentStatus?: string;
+    paymentStatus?: string;
+    orderStatus?: string;
+    limit?: number;
+    skip?: number;
+  }): Promise<OrderSnapshot[]> {
+    return db.getOrders(options);
   },
 
   async getOrderById(id: string): Promise<OrderSnapshot | undefined> {

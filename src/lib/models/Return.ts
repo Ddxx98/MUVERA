@@ -10,6 +10,7 @@ const ReturnSchema = new Schema(
     returnNo: { type: String, required: true, unique: true, index: true },
     orderId: { type: String, required: true, index: true },
     orderNo: { type: String, required: true, index: true },
+    customerId: { type: String, index: true },
     customerPhone: { type: String, required: true, index: true },
     items: [
       {
@@ -38,6 +39,8 @@ const ReturnSchema = new Schema(
   },
   { timestamps: true }
 );
+
+ReturnSchema.index({ customerId: 1, createdAt: -1 });
 
 export const ReturnModel: Model<ReturnDocument> =
   mongoose.models.Return || mongoose.model<ReturnDocument>('Return', ReturnSchema);

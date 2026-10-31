@@ -39,55 +39,57 @@ export const authService = {
       throw new AppError('INVALID_PASSWORD', 'Password must be at least 6 characters long.');
     }
 
-    // Check duplicate email
-    const existingEmail = await db.getUserByEmail(cleanEmail);
-    if (existingEmail) {
-      if (existingEmail.emailVerified) {
-        throw new AppError('EMAIL_EXISTS', 'An account with this email address already exists. Please log in.');
+    // Check duplicate email or phone atomically using compound indexed query
+    const existingUser = await db.getUserByEmailOrPhone(cleanEmail, cleanPhone);
+    if (existingUser) {
+      const isEmailMatch = existingUser.email.toLowerCase() === cleanEmail;
+      const isPhoneMatch = existingUser.phone.replace(/\D/g, '').slice(-10) === cleanPhone.slice(-10);
+
+      if (isEmailMatch) {
+        if (existingUser.emailVerified) {
+          throw new AppError('EMAIL_EXISTS', 'An account with this email address already exists. Please log in.');
+        }
+        // If unverified, update credentials and resend 4-digit OTP
+        const passwordHash = hashPassword(input.password);
+        await db.updateUserPassword(existingUser.id, passwordHash);
+        await db.invalidateUserTokens(existingUser.id, 'email_verify');
+
+        const otp = crypto.randomInt(1000, 10000).toString();
+        const otpHash = hashToken(otp);
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+        await db.createAuthToken({
+          userId: existingUser.id,
+          email: cleanEmail,
+          type: 'email_verify',
+          tokenHash: otpHash,
+          expiresAt,
+        });
+
+        // Dispatch OTP asynchronously without blocking response latency
+        notificationService.sendSignupOtp(cleanEmail, existingUser.name, otp).catch((notifErr) => {
+          console.error('[AUTH] Failed to send signup verification OTP:', notifErr);
+        });
+
+        const role = normalizeUserRole(existingUser.role);
+        const profile: UserProfile = {
+          id: existingUser.id,
+          name: existingUser.name,
+          email: existingUser.email,
+          phone: existingUser.phone,
+          role,
+          addresses: existingUser.addresses,
+          loyaltyTier: existingUser.loyaltyTier,
+          emailVerified: false,
+          createdAt: existingUser.createdAt,
+        };
+
+        return { user: profile, requiresVerification: true, email: cleanEmail };
       }
-      // If unverified, update credentials and resend 4-digit OTP
-      const passwordHash = hashPassword(input.password);
-      await db.updateUserPassword(existingEmail.id, passwordHash);
-      await db.invalidateUserTokens(existingEmail.id, 'email_verify');
 
-      const otp = crypto.randomInt(1000, 10000).toString();
-      const otpHash = hashToken(otp);
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-
-      await db.createAuthToken({
-        userId: existingEmail.id,
-        email: cleanEmail,
-        type: 'email_verify',
-        tokenHash: otpHash,
-        expiresAt,
-      });
-
-      try {
-        await notificationService.sendSignupOtp(cleanEmail, existingEmail.name, otp);
-      } catch (notifErr) {
-        console.error('[AUTH] Failed to send signup verification OTP:', notifErr);
+      if (isPhoneMatch) {
+        throw new AppError('PHONE_EXISTS', 'An account with this mobile number already exists. Please use a different number or sign in.');
       }
-
-      const role = normalizeUserRole(existingEmail.role);
-      const profile: UserProfile = {
-        id: existingEmail.id,
-        name: existingEmail.name,
-        email: existingEmail.email,
-        phone: existingEmail.phone,
-        role,
-        addresses: existingEmail.addresses,
-        loyaltyTier: existingEmail.loyaltyTier,
-        emailVerified: false,
-        createdAt: existingEmail.createdAt,
-      };
-
-      return { user: profile, requiresVerification: true, email: cleanEmail };
-    }
-
-    // Check duplicate phone
-    const existingPhone = await db.getUserByPhone(cleanPhone);
-    if (existingPhone && existingPhone.email.toLowerCase() !== cleanEmail) {
-      throw new AppError('PHONE_EXISTS', 'An account with this mobile number already exists. Please use a different number or sign in.');
     }
 
     const passwordHash = hashPassword(input.password);
@@ -125,19 +127,19 @@ export const authService = {
       expiresAt,
     });
 
-    try {
-      await notificationService.sendSignupOtp(cleanEmail, saved.name, otp);
-    } catch (notifErr) {
+    // Dispatch OTP asynchronously so client doesn't wait on external email gateway
+    notificationService.sendSignupOtp(cleanEmail, saved.name, otp).catch((notifErr) => {
       console.error('[AUTH] Failed to dispatch signup OTP:', notifErr);
-    }
+    });
 
-    await auditService.recordAudit({
+    // Record audit asynchronously
+    auditService.recordAudit({
       action: 'USER_REGISTER_INITIATED',
       entity: 'customer' as any,
       entityId: saved.id,
       actor: saved.email,
       after: { email: saved.email, role: savedRole },
-    });
+    }).catch(() => {});
 
     const profile: UserProfile = {
       id: saved.id,
@@ -251,11 +253,9 @@ export const authService = {
       expiresAt,
     });
 
-    try {
-      await notificationService.sendSignupOtp(cleanEmail, user.name, otp);
-    } catch (notifErr) {
+    notificationService.sendSignupOtp(cleanEmail, user.name, otp).catch((notifErr) => {
       console.error('[AUTH] Failed to resend signup OTP:', notifErr);
-    }
+    });
 
     return { success: true, message: 'A new 4-digit verification code has been sent to your email.' };
   },
@@ -294,11 +294,9 @@ export const authService = {
         expiresAt,
       });
 
-      try {
-        await notificationService.sendSignupOtp(cleanEmail, user.name, otp);
-      } catch (err) {
+      notificationService.sendSignupOtp(cleanEmail, user.name, otp).catch((err) => {
         console.error('[AUTH] Failed to send verification OTP on unverified login attempt:', err);
-      }
+      });
 
       throw new AppError(
         'EMAIL_NOT_VERIFIED',

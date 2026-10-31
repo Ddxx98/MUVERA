@@ -2,9 +2,59 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireAdmin } from '@/modules/auth/guards';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     await requireAdmin();
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+
+    // 1. Direct point query for single customer by ID (< 10ms)
+    if (id) {
+      const user = await db.getUserById(id);
+      if (!user) {
+        return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
+      }
+
+      // Query customer orders directly via indexed customerId or phone/email
+      const userOrders = await db.getOrders({
+        customerId: user.id,
+        customerEmail: user.email,
+        customerPhone: user.phone ? user.phone.slice(-10) : undefined,
+      });
+
+      const ordersCount = userOrders.length;
+      const ltvPaise = userOrders.reduce((sum, o) => sum + o.totalPaise, 0);
+
+      const defaultAddr = user.addresses?.find((a) => a.isDefault) || user.addresses?.[0];
+      const city = defaultAddr?.city || 'Bengaluru';
+      const hub = defaultAddr?.pincode ? `Hub Pincode ${defaultAddr.pincode}` : 'Indiranagar Hub';
+
+      let tier: string = user.loyaltyTier || 'Club Member';
+      if (ltvPaise >= 1000000) {
+        tier = 'MUVERA Black VIP';
+      } else if (ltvPaise >= 500000) {
+        tier = 'Gold Member';
+      }
+
+      return NextResponse.json({
+        customer: {
+          id: user.id,
+          name: user.name || 'Member',
+          phone: user.phone,
+          email: user.email,
+          role: user.role,
+          city,
+          hub,
+          ordersCount,
+          ltvPaise,
+          tier,
+          addresses: user.addresses || [],
+          orders: userOrders,
+          createdAt: user.createdAt,
+        },
+      });
+    }
 
     const [users, orders] = await Promise.all([
       db.getUsers(),

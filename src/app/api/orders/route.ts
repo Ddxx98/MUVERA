@@ -18,12 +18,13 @@ export async function GET(req: Request) {
 
       // Enforce ownership: customers can only access their own orders
       if (ctx && ctx.role !== 'admin') {
+        const idMatch = ctx.id && order.customerId && ctx.id === order.customerId;
         const ownerEmail = order.customerEmail || '';
         const ownerPhone = (order.customerPhone || '').replace(/\D/g, '').slice(-10);
         const userPhone = (ctx.phone || '').replace(/\D/g, '').slice(-10);
         const emailMatch = ownerEmail && ctx.email.toLowerCase() === ownerEmail.toLowerCase();
         const phoneMatch = ownerPhone && userPhone && userPhone === ownerPhone;
-        if (!emailMatch && !phoneMatch) {
+        if (!idMatch && !emailMatch && !phoneMatch) {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
       }
@@ -37,26 +38,24 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Authentication required to view orders' }, { status: 401 });
     }
 
-    // Admins see all store orders
+    // Admins see all store orders, or filter by userId
     if (ctx.role === 'admin') {
-      const orders = await orderService.getOrders();
+      const orders = await orderService.getOrders(userId ? { customerId: userId } : undefined);
       return NextResponse.json({ orders });
     }
 
-    // Authenticated customers see only their own orders (matching email or mobile)
-    const allOrders = await orderService.getOrders();
+    // Authenticated customers see only their own orders using direct index-backed query (customerId or email/phone)
     const userPhone = (ctx.phone || '').replace(/\D/g, '').slice(-10);
     const userEmail = (ctx.email || '').toLowerCase().trim();
 
-    const customerOrders = allOrders.filter((o) => {
-      const orderEmail = (o.customerEmail || '').toLowerCase().trim();
-      const orderPhone = (o.customerPhone || '').replace(/\D/g, '').slice(-10);
-      const emailMatch = Boolean(userEmail && orderEmail && userEmail === orderEmail);
-      const phoneMatch = Boolean(userPhone && orderPhone && userPhone === orderPhone);
-      return emailMatch || phoneMatch;
+    const orders = await orderService.getOrders({
+      customerId: ctx.id,
+      customerEmail: userEmail,
+      customerPhone: userPhone,
+      limit: 50,
     });
 
-    return NextResponse.json({ orders: customerOrders });
+    return NextResponse.json({ orders });
   } catch (err: any) {
     const status = err?.statusCode || 500;
     return NextResponse.json({ error: err.message || 'Failed to fetch orders' }, { status });
@@ -77,6 +76,7 @@ export async function POST(req: Request) {
     }
 
     const order = await orderService.createOrder({
+      customerId: ctx?.id || body.customerId || undefined,
       customerName,
       customerPhone,
       customerEmail,

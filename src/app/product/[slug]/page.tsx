@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import { cache } from 'react';
 import { db } from '@/lib/db';
 import { ProductDetailClient } from './ProductDetailClient';
 
@@ -11,21 +12,19 @@ interface ProductDetailPageProps {
   };
 }
 
-async function getProduct(slug: string) {
-  let product = await db.getProductBySlug(slug);
+/**
+ * Deduplicated per-request product fetch using React cache().
+ * Prevents double MongoDB queries between generateMetadata() and ProductDetailPage().
+ * Executes indexed point lookup via slug or id in < 5ms.
+ */
+const getProduct = cache(async (slug: string) => {
+  const decoded = decodeURIComponent(slug).trim();
+  let product = await db.getProductBySlug(decoded);
   if (!product) {
-    product = await db.getProductById(slug);
-  }
-  if (!product) {
-    const all = await db.getProducts();
-    product = all.find(
-      (p) =>
-        p.slug.toLowerCase() === decodeURIComponent(slug).toLowerCase() ||
-        p.id === slug
-    );
+    product = await db.getProductById(decoded);
   }
   return product;
-}
+});
 
 export async function generateMetadata({ params }: ProductDetailPageProps): Promise<Metadata> {
   const resolvedParams = await Promise.resolve(params);

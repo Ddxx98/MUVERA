@@ -8,11 +8,59 @@ import { revalidatePath } from 'next/cache';
 export async function GET(req: Request) {
   const start = performance.now();
   const { searchParams } = new URL(req.url);
+
+  // 1. Direct ID point lookup (< 10ms)
+  const id = searchParams.get('id');
+  if (id) {
+    const product = await catalogService.getProductById(id);
+    const duration = Math.round(performance.now() - start);
+    if (!product) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
+    const res = NextResponse.json({ product });
+    res.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+    res.headers.set('Server-Timing', `db;dur=${duration}`);
+    return res;
+  }
+
+  // 2. Direct slug point lookup (< 10ms)
+  const slug = searchParams.get('slug');
+  if (slug) {
+    const product = await catalogService.getProductBySlug(slug);
+    const duration = Math.round(performance.now() - start);
+    if (!product) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
+    const res = NextResponse.json({ product });
+    res.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+    res.headers.set('Server-Timing', `db;dur=${duration}`);
+    return res;
+  }
+
+  // 3. Filtered list query
+  const categoryId = searchParams.get('categoryId') || undefined;
   const category = searchParams.get('category') || undefined;
   const brand = searchParams.get('brand') || undefined;
-  const search = searchParams.get('search') || undefined;
+  const search = searchParams.get('search') || searchParams.get('q') || undefined;
+  const isBlitzDrop = searchParams.get('isBlitzDrop') === 'true' ? true : undefined;
+  const isDealOfTheHour = searchParams.get('isDealOfTheHour') === 'true' ? true : undefined;
+  const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!, 10) : undefined;
+  const skip = searchParams.get('skip') ? parseInt(searchParams.get('skip')!, 10) : undefined;
+  const minPricePaise = searchParams.get('minPrice') ? parseInt(searchParams.get('minPrice')!, 10) : undefined;
+  const maxPricePaise = searchParams.get('maxPrice') ? parseInt(searchParams.get('maxPrice')!, 10) : undefined;
 
-  const products = await catalogService.getProducts({ category, brand, search });
+  const products = await catalogService.getProducts({
+    categoryId,
+    category,
+    brand,
+    search,
+    isBlitzDrop,
+    isDealOfTheHour,
+    limit,
+    skip,
+    minPricePaise,
+    maxPricePaise,
+  });
   const duration = Math.round(performance.now() - start);
 
   const res = NextResponse.json({ products });

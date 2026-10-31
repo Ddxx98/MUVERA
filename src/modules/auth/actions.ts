@@ -98,8 +98,11 @@ export async function loginAction(input: LoginInput): Promise<ServiceResult<User
   try {
     const { user, token } = await authService.loginWithCredentials(input);
     setSessionCookie(token, user.role);
-    revalidatePath('/account');
-    revalidatePath('/admin');
+    if (user.role === 'admin') {
+      revalidatePath('/admin');
+    } else {
+      revalidatePath('/account');
+    }
     return { ok: true, data: user };
   } catch (err) {
     return handleActionError(err);

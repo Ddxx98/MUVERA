@@ -7,44 +7,29 @@ import { Search, X, Sparkles, TrendingUp, History } from 'lucide-react';
 
 export default function SearchPage() {
   const [query, setQuery] = useState('');
-  const [products, setProducts] = useState<Product[]>([]);
+  const [results, setResults] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetch('/api/products')
-      .then((r) => r.json())
-      .then((d) => {
-        if (d?.products) setProducts(d.products);
-      })
-      .catch(() => {});
-  }, []);
+    const q = query.trim();
+    if (!q) {
+      setResults([]);
+      return;
+    }
 
-  const [recentSearches, setRecentSearches] = useState<string[]>([
-    'Oversized T-Shirts',
-    'Satin Bomber',
-    'Heavyweight Fleece',
-    'Parachute Cargoes',
-  ]);
+    const timer = setTimeout(() => {
+      setLoading(true);
+      fetch(`/api/products?search=${encodeURIComponent(q)}&limit=24`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (d?.products) setResults(d.products);
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    }, 200);
 
-  const trendingTags = [
-    'Oversized Tees',
-    'Heavyweight Hoodies',
-    'Satin Bomber',
-    'Club & Party Fits',
-    'Tactical Cargoes',
-    'Express Delivery Drops',
-  ];
-
-  const results = useMemo(() => {
-    if (!query.trim()) return [];
-    const q = query.toLowerCase();
-    return products.filter(
-      (p) =>
-        p.title.toLowerCase().includes(q) ||
-        p.brand.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q) ||
-        p.tags.some((t) => t.toLowerCase().includes(q))
-    );
-  }, [query, products]);
+    return () => clearTimeout(timer);
+  }, [query]);
 
   const handleTagClick = (tag: string) => {
     setQuery(tag);
