@@ -1,4 +1,4 @@
-import { db } from '@/lib/db';
+import { db, OrderQueryOptions } from '@/lib/db';
 import { OrderSnapshot, OrderItemSnapshot, ShippingAddress, FulfilmentStatus, PaymentStatus, OrderStatus } from '@/lib/types';
 import { inventoryService } from '@/modules/inventory';
 import { couponService } from '@/modules/coupons';
@@ -477,15 +477,7 @@ export const orderService = {
     return saved;
   },
 
-  async getOrders(options?: {
-    customerEmail?: string;
-    customerPhone?: string;
-    fulfilmentStatus?: string;
-    paymentStatus?: string;
-    orderStatus?: string;
-    limit?: number;
-    skip?: number;
-  }): Promise<OrderSnapshot[]> {
+  async getOrders(options?: OrderQueryOptions): Promise<OrderSnapshot[]> {
     return db.getOrders(options);
   },
 
