@@ -1,0 +1,32 @@
+{
+  "awb": "143258712345",
+  "order_id": "ord_muv_test_001",
+  "shipment_id": 9823412,
+  "current_status": "RTO INITIATED",
+  "current_status_id": 13,
+  "shipment_status": "RTO INITIATED",
+  "shipment_status_id": 13,
+  "current_timestamp": "2026-11-03 10:00:00",
+  "courier_name": "Delhivery Direct",
+  "courier_id": 10,
+  "is_return": 0,
+  "rto_reason": "Max NDR delivery attempts exhausted",
+  "scans": [
+    {
+      "date": "2026-11-03 10:00:00",
+      "status": "RTO INITIATED",
+      "activity": "Return to origin initiated by courier hub",
+      "location": "Mumbai Hub",
+      "sr-status": "13",
+      "sr-status-label": "RTO INITIATED"
+    },
+    {
+      "date": "2026-11-01 17:30:00",
+      "status": "UNDELIVERED",
+      "activity": "Delivery attempted: Customer phone unreachable and door locked",
+      "location": "Mumbai Andheri Hub",
+      "sr-status": "21",
+      "sr-status-label": "UNDELIVERED"
+    }
+  ]
+}

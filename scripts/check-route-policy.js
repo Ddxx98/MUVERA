@@ -37,11 +37,14 @@ const ROUTE_POLICIES = [
   /^\/api\/returns$/,
   /^\/api\/settings$/,
   /^\/api\/inventory$/,
+  /^\/api\/shipping\/label\//,
 
   // Public API routes
   /^\/api\/categories$/,
   /^\/api\/products/,
   /^\/api\/coupons/,
+  /^\/api\/shipping\/serviceability/,
+  /^\/api\/shipping\/ndr/,
 
   // Admin pages
   /^\/admin/,
@@ -55,6 +58,7 @@ const ROUTE_POLICIES = [
 
   // Public pages
   /^\/$/,
+  /^\/shipping\/ndr/,
   /^\/products/,
   /^\/product\//,
   /^\/categories$/,

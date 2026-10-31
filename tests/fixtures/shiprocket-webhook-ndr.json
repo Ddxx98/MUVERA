@@ -1,0 +1,33 @@
+{
+  "awb": "143258712345",
+  "order_id": "ord_muv_test_001",
+  "shipment_id": 9823412,
+  "current_status": "UNDELIVERED",
+  "current_status_id": 21,
+  "shipment_status": "UNDELIVERED",
+  "shipment_status_id": 21,
+  "current_timestamp": "2026-11-01 17:30:00",
+  "courier_name": "Delhivery Direct",
+  "courier_id": 10,
+  "is_return": 0,
+  "ndr_status": "Customer premise closed / unreachable",
+  "attempt": 1,
+  "scans": [
+    {
+      "date": "2026-11-01 17:30:00",
+      "status": "UNDELIVERED",
+      "activity": "Delivery attempted: Customer phone unreachable and door locked",
+      "location": "Mumbai Andheri Hub",
+      "sr-status": "21",
+      "sr-status-label": "UNDELIVERED"
+    },
+    {
+      "date": "2026-11-01 09:15:00",
+      "status": "OUT FOR DELIVERY",
+      "activity": "Shipment out for delivery with delivery executive Rahul",
+      "location": "Mumbai Andheri Hub",
+      "sr-status": "17",
+      "sr-status-label": "OUT FOR DELIVERY"
+    }
+  ]
+}

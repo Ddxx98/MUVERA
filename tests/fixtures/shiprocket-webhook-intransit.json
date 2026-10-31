@@ -1,0 +1,31 @@
+{
+  "awb": "143258712345",
+  "order_id": "ord_muv_test_001",
+  "shipment_id": 9823412,
+  "current_status": "IN TRANSIT",
+  "current_status_id": 18,
+  "shipment_status": "IN TRANSIT",
+  "shipment_status_id": 18,
+  "current_timestamp": "2026-10-31 16:45:00",
+  "courier_name": "Delhivery Direct",
+  "courier_id": 10,
+  "is_return": 0,
+  "scans": [
+    {
+      "date": "2026-10-31 16:45:00",
+      "status": "IN TRANSIT",
+      "activity": "Bag dispatched to Mumbai Sorting Center",
+      "location": "Bengaluru Hub",
+      "sr-status": "18",
+      "sr-status-label": "IN TRANSIT"
+    },
+    {
+      "date": "2026-10-31 11:30:00",
+      "status": "PICKED UP",
+      "activity": "Shipment arrived at origin processing hub",
+      "location": "Bengaluru Hub",
+      "sr-status": "6",
+      "sr-status-label": "PICKED UP"
+    }
+  ]
+}

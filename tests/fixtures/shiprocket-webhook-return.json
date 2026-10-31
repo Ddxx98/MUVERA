@@ -1,0 +1,30 @@
+{
+  "awb": "992348123456",
+  "order_id": "ord_muv_test_001",
+  "return_order_id": "RET_MUV_901",
+  "shipment_id": 9945112,
+  "current_status": "RETURN PICKED UP",
+  "current_status_id": 42,
+  "shipment_status": "RETURN PICKED UP",
+  "shipment_status_id": 42,
+  "current_timestamp": "2026-11-05 11:00:00",
+  "courier_name": "Shadowfax Reverse",
+  "courier_id": 24,
+  "is_return": 1,
+  "qc_status": "passed",
+  "qc_image": [
+    "https://qc.muvera.in/returns/ret_901_front.jpg",
+    "https://qc.muvera.in/returns/ret_901_tag.jpg"
+  ],
+  "qc_failure_reason": null,
+  "scans": [
+    {
+      "date": "2026-11-05 11:00:00",
+      "status": "RETURN PICKED UP",
+      "activity": "Return parcel picked up from customer with doorstep QC passed",
+      "location": "Mumbai Customer Address",
+      "sr-status": "42",
+      "sr-status-label": "RETURN PICKED UP"
+    }
+  ]
+}

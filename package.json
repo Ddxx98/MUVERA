@@ -10,6 +10,8 @@
     "check:layout": "node scripts/check-fixed-pixels.js",
     "check:routes": "node scripts/check-route-policy.js",
     "test:auth": "node --test tests/auth-architecture.test.js",
+    "test:logistics": "node --test tests/logistics-architecture.test.js",
+    "test": "node --test tests/auth-architecture.test.js tests/logistics-architecture.test.js",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

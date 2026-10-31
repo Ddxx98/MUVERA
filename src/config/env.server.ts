@@ -24,12 +24,33 @@ const serverEnvSchema = z.object({
   EMAIL_FROM_ADDRESS: z.string().default('security@muvera.club'),
   EMAIL_FROM_NAME: z.string().default('MUVERA Security'),
   SITE_URL: z.string().default('http://localhost:3000'),
+
+  // Logistics & Shiprocket Config
+  SHIPPING_PROVIDER: z.enum(['manual', 'mock', 'shiprocket']).default('mock'),
+  SHIPROCKET_EMAIL: z.string().optional().default(''),
+  SHIPROCKET_PASSWORD: z.string().optional().default(''),
+  SHIPROCKET_PICKUP_LOCATION: z.string().default('MAIN_WAREHOUSE'),
+  LOGISTICS_WEBHOOK_SECRET: z.string().min(32).default('muvera_logistics_webhook_secret_32chars_2026'),
+  SHIPROCKET_MIN_WALLET_BALANCE_PAISE: z.coerce.number().default(100000),
+  TOKEN_ENCRYPTION_KEY: z.string().min(32).default('muvera_token_encryption_key_32bytes_2026'),
+  SHIPROCKET_ENABLE_COD: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((v) => v === 'true'),
 });
 
 const parsed = serverEnvSchema.safeParse(process.env);
 
 if (!parsed.success) {
   console.error('Invalid server environment variables:', parsed.error.format());
+}
+
+if (process.env.NODE_ENV === 'production') {
+  if (process.env.SHIPPING_PROVIDER === 'shiprocket') {
+    if (!process.env.SHIPROCKET_EMAIL || !process.env.SHIPROCKET_PASSWORD) {
+      throw new Error('[ENV] SHIPROCKET_EMAIL and SHIPROCKET_PASSWORD are required when SHIPPING_PROVIDER=shiprocket');
+    }
+  }
 }
 
 export const serverEnv = parsed.success ? parsed.data : {
@@ -53,5 +74,12 @@ export const serverEnv = parsed.success ? parsed.data : {
   EMAIL_FROM_ADDRESS: process.env.EMAIL_FROM_ADDRESS || 'security@muvera.club',
   EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME || 'MUVERA Security',
   SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || 'http://localhost:3000',
+  SHIPPING_PROVIDER: (process.env.SHIPPING_PROVIDER as any) || 'mock',
+  SHIPROCKET_EMAIL: process.env.SHIPROCKET_EMAIL || '',
+  SHIPROCKET_PASSWORD: process.env.SHIPROCKET_PASSWORD || '',
+  SHIPROCKET_PICKUP_LOCATION: process.env.SHIPROCKET_PICKUP_LOCATION || 'MAIN_WAREHOUSE',
+  LOGISTICS_WEBHOOK_SECRET: process.env.LOGISTICS_WEBHOOK_SECRET || 'muvera_logistics_webhook_secret_32chars_2026',
+  SHIPROCKET_MIN_WALLET_BALANCE_PAISE: Number(process.env.SHIPROCKET_MIN_WALLET_BALANCE_PAISE) || 100000,
+  TOKEN_ENCRYPTION_KEY: process.env.TOKEN_ENCRYPTION_KEY || 'muvera_token_encryption_key_32bytes_2026',
+  SHIPROCKET_ENABLE_COD: process.env.SHIPROCKET_ENABLE_COD !== 'false',
 };
-

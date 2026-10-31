@@ -1,0 +1,31 @@
+{
+  "awb": "143258712345",
+  "order_id": "ord_muv_test_001",
+  "shipment_id": 9823412,
+  "current_status": "SHIPPED",
+  "current_status_id": 6,
+  "shipment_status": "PICKED UP",
+  "shipment_status_id": 6,
+  "current_timestamp": "2026-10-31 11:30:00",
+  "courier_name": "Delhivery Direct",
+  "courier_id": 10,
+  "is_return": 0,
+  "scans": [
+    {
+      "date": "2026-10-31 11:30:00",
+      "status": "PICKED UP",
+      "activity": "Shipment arrived at origin processing hub",
+      "location": "Bengaluru Hub",
+      "sr-status": "6",
+      "sr-status-label": "PICKED UP"
+    },
+    {
+      "date": "2026-10-31 09:00:00",
+      "status": "MANIFEST GENERATED",
+      "activity": "AWB assigned and manifest generated at warehouse",
+      "location": "Bengaluru Warehouse",
+      "sr-status": "5",
+      "sr-status-label": "MANIFEST GENERATED"
+    }
+  ]
+}

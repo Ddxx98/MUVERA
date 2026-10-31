@@ -125,6 +125,48 @@ async function createIndexes() {
         { key: { order: 1 }, options: { background: true } },
       ],
     },
+    {
+      collection: 'shipments',
+      indexes: [
+        { key: { awb: 1 }, options: { unique: true, background: true } },
+        { key: { orderId: 1, direction: 1 }, options: { background: true } },
+        { key: { status: 1, lastStatusTimestamp: -1 }, options: { background: true } },
+      ],
+    },
+    {
+      collection: 'shipmentscans',
+      indexes: [
+        { key: { awb: 1, timestamp: 1, status: 1, location: 1 }, options: { unique: true, background: true } },
+      ],
+    },
+    {
+      collection: 'webhookevents',
+      indexes: [
+        { key: { source: 1, eventKey: 1 }, options: { unique: true, background: true } },
+        { key: { status: 1, createdAt: -1 }, options: { background: true } },
+      ],
+    },
+    {
+      collection: 'codremittances',
+      indexes: [
+        { key: { batchNo: 1 }, options: { unique: true, background: true } },
+        { key: { crfId: 1 }, options: { unique: true, background: true } },
+        { key: { utr: 1 }, options: { background: true } },
+        { key: { fileHash: 1 }, options: { background: true } },
+      ],
+    },
+    {
+      collection: 'systemlocks',
+      indexes: [
+        { key: { expiresAt: 1 }, options: { background: true } },
+      ],
+    },
+    {
+      collection: 'systemsettings',
+      indexes: [
+        { key: { key: 1 }, options: { unique: true, background: true } },
+      ],
+    },
   ];
 
   for (const { collection, indexes } of indexDefinitions) {

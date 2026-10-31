@@ -37,18 +37,22 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
 
   // ─── Machine routes (no cookies; verified by signature/secret in handler) ──
   { pattern: /^\/api\/cron\//, class: 'machine', description: 'Background cron jobs; verified by CRON_SECRET' },
+  { pattern: /^\/api\/webhooks\/logistics/, class: 'machine', description: 'Shiprocket logistics webhooks; timing-safe secret verified' },
   { pattern: /^\/api\/webhooks\/razorpay/, class: 'machine', description: 'Razorpay payment webhooks; HMAC-SHA256 verified' },
   { pattern: /^\/api\/webhooks\/brevo/, class: 'machine', description: 'Brevo email webhooks; key verified' },
   { pattern: /^\/api\/seed/, class: 'machine', description: 'Seed route; dev/test only' },
 
   // ─── Admin API routes ──────────────────────────────────────────────────────
   { pattern: /^\/api\/admin\//, class: 'admin', description: 'Admin REST API; require aud=admin session' },
+  { pattern: /^\/api\/shipping\/label\//, class: 'admin', description: 'Shipping label PDF proxy; require admin session' },
   { pattern: /^\/api\/returns$/, class: 'admin', description: 'Returns GET/PATCH for admin inspection; POST is customer' },
 
   // ─── Public & Customer Storefront API routes ────────────────────────────────
   { pattern: /^\/api\/settings$/, class: 'public', description: 'Settings GET is public for storefront CMS, PUT is admin-only (checked in handler)' },
   { pattern: /^\/api\/orders$/, class: 'public', description: 'Orders API: POST creates order, GET returns customer/admin orders, PATCH requires admin' },
   { pattern: /^\/api\/inventory$/, class: 'public', description: 'Inventory availability read; public for storefront' },
+  { pattern: /^\/api\/shipping\/serviceability/, class: 'public', description: 'Pincode delivery & COD serviceability check' },
+  { pattern: /^\/api\/shipping\/ndr/, class: 'public', description: 'NDR customer reattempt dispatch; verified by signed token' },
   { pattern: /^\/api\/categories$/, class: 'public', description: 'Category list' },
   { pattern: /^\/api\/products/, class: 'public', description: 'Product catalog' },
   { pattern: /^\/api\/coupons/, class: 'public', description: 'Coupon validation' },
@@ -65,6 +69,7 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
 
   // ─── Public pages ──────────────────────────────────────────────────────────
   { pattern: /^\/$/, class: 'public', description: 'Storefront home' },
+  { pattern: /^\/shipping\/ndr/, class: 'public', description: 'NDR customer reattempt landing page' },
   { pattern: /^\/products/, class: 'public', description: 'Product listing pages' },
   { pattern: /^\/product\//, class: 'public', description: 'Product detail pages' },
   { pattern: /^\/categories$/, class: 'public', description: 'Category hub' },

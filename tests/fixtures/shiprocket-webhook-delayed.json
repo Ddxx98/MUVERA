@@ -1,0 +1,31 @@
+{
+  "awb": "143258712345",
+  "order_id": "ord_muv_test_001",
+  "shipment_id": 9823412,
+  "current_status": "DELAYED",
+  "current_status_id": 19,
+  "shipment_status": "DELAYED",
+  "shipment_status_id": 19,
+  "current_timestamp": "2026-10-31 22:00:00",
+  "courier_name": "Delhivery Direct",
+  "courier_id": 10,
+  "is_return": 0,
+  "scans": [
+    {
+      "date": "2026-10-31 22:00:00",
+      "status": "DELAYED",
+      "activity": "Transit delayed due to highway traffic restrictions",
+      "location": "Pune Transit Hub",
+      "sr-status": "19",
+      "sr-status-label": "DELAYED"
+    },
+    {
+      "date": "2026-10-31 16:45:00",
+      "status": "IN TRANSIT",
+      "activity": "Bag dispatched to Mumbai Sorting Center",
+      "location": "Bengaluru Hub",
+      "sr-status": "18",
+      "sr-status-label": "IN TRANSIT"
+    }
+  ]
+}

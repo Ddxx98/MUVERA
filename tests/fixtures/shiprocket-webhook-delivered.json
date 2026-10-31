@@ -1,0 +1,31 @@
+{
+  "awb": "143258712345",
+  "order_id": "ord_muv_test_001",
+  "shipment_id": 9823412,
+  "current_status": "DELIVERED",
+  "current_status_id": 7,
+  "shipment_status": "DELIVERED",
+  "shipment_status_id": 7,
+  "current_timestamp": "2026-11-01 14:20:00",
+  "courier_name": "Delhivery Direct",
+  "courier_id": 10,
+  "is_return": 0,
+  "scans": [
+    {
+      "date": "2026-11-01 14:20:00",
+      "status": "DELIVERED",
+      "activity": "Delivered to recipient with OTP verification",
+      "location": "Mumbai Andheri",
+      "sr-status": "7",
+      "sr-status-label": "DELIVERED"
+    },
+    {
+      "date": "2026-11-01 09:15:00",
+      "status": "OUT FOR DELIVERY",
+      "activity": "Shipment out for delivery with delivery executive Rahul",
+      "location": "Mumbai Andheri Hub",
+      "sr-status": "17",
+      "sr-status-label": "OUT FOR DELIVERY"
+    }
+  ]
+}
