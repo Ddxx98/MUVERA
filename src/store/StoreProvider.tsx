@@ -53,17 +53,16 @@ export default function StoreProvider({ children }: { children: React.ReactNode 
     }
 
     // Subscribe to state changes to persist cart & wishlist to localStorage
-    let prevCartJson = '';
-    let prevWishlistJson = '';
+    let prevCartItems = store.getState().cart.items;
+    let prevWishlistIds = store.getState().wishlist.productIds;
 
     const unsubscribeStore = store.subscribe(() => {
       const state = store.getState();
 
-      const currentCartJson = JSON.stringify(state.cart.items);
-      if (currentCartJson !== prevCartJson) {
-        prevCartJson = currentCartJson;
+      if (state.cart.items !== prevCartItems) {
+        prevCartItems = state.cart.items;
         try {
-          localStorage.setItem('muvera_cart', currentCartJson);
+          localStorage.setItem('muvera_cart', JSON.stringify(state.cart.items));
         } catch {}
 
         // Update reservation active status based on cart contents
@@ -73,11 +72,10 @@ export default function StoreProvider({ children }: { children: React.ReactNode 
         }
       }
 
-      const currentWishlistJson = JSON.stringify(state.wishlist.productIds);
-      if (currentWishlistJson !== prevWishlistJson) {
-        prevWishlistJson = currentWishlistJson;
+      if (state.wishlist.productIds !== prevWishlistIds) {
+        prevWishlistIds = state.wishlist.productIds;
         try {
-          localStorage.setItem('muvera_wishlist', currentWishlistJson);
+          localStorage.setItem('muvera_wishlist', JSON.stringify(state.wishlist.productIds));
         } catch {}
       }
     });

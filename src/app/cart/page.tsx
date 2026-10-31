@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useStore } from '@/lib/store-context';
+import { useStore, useReservationTimer } from '@/lib/store-context';
 import { formatPaise } from '@/lib/money';
 import { generateInstantWhatsAppCartUrl } from '@/lib/whatsapp';
 import { getCurrentUserAction } from '@/modules/auth/actions';
@@ -19,13 +19,14 @@ export default function CartPage() {
     removeFromCart,
     appliedCoupon,
     removeCoupon,
-    reservationTimeRemainingSeconds,
     getCartSubtotalPaise,
     getDiscountPaise,
     getDeliveryFeePaise,
     getGrandTotalPaise,
     siteSettings,
   } = useStore();
+
+  const reservationTimeRemainingSeconds = useReservationTimer();
 
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
 

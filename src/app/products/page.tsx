@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Product } from '@/lib/types';
 import { ProductCard } from '@/components/store/ProductCard';
 import { siteConfig } from '@/config/site';
+import { useGetProductsQuery, useGetCategoriesQuery } from '@/store/api';
 import { SlidersHorizontal, ArrowUpDown, X, Zap, Search } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
@@ -14,9 +15,13 @@ function ProductsContent() {
   const initialBrand = searchParams.get('brand') || 'all';
   const initialQuery = searchParams.get('q') || '';
 
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<{ id: string; name: string; slug: string; count?: number }[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: products = [], isLoading: productsLoading } = useGetProductsQuery();
+  const { data: fetchedCategories = [], isLoading: categoriesLoading } = useGetCategoriesQuery();
+
+  const loading = productsLoading || categoriesLoading;
+  const categories = fetchedCategories.length > 0
+    ? fetchedCategories
+    : siteConfig.categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug, count: c.count }));
 
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
@@ -25,22 +30,6 @@ function ProductsContent() {
   const [sortBy, setSortBy] = useState<'featured' | 'price-asc' | 'price-desc' | 'rating' | 'discount'>('featured');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [maxPrice, setMaxPrice] = useState<number>(10000);
-
-  useEffect(() => {
-    Promise.all([
-      fetch('/api/products').then((r) => r.json()).catch(() => ({ products: [] })),
-      fetch('/api/categories').then((r) => r.json()).catch(() => ({ categories: [] })),
-    ])
-      .then(([prodData, catData]) => {
-        if (prodData?.products) setProducts(prodData.products);
-        if (catData?.categories && catData.categories.length > 0) {
-          setCategories(catData.categories);
-        } else {
-          setCategories(siteConfig.categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug, count: c.count })));
-        }
-      })
-      .finally(() => setLoading(false));
-  }, []);
 
   useEffect(() => {
     if (searchParams.get('category')) setSelectedCategory(searchParams.get('category')!);

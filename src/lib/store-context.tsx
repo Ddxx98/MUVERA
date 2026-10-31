@@ -58,6 +58,15 @@ interface StoreContextType {
 
 const StoreContext = createContext<StoreContextType | null>(null);
 
+/**
+ * Dedicated hook for stock hold reservation countdown.
+ * Components subscribing to this hook only re-render when the seconds tick,
+ * completely isolating the timer from other store components.
+ */
+export function useReservationTimer() {
+  return useAppSelector(selectReservationTimeRemainingSeconds);
+}
+
 function StoreBridge({
   children,
   initialSettings,
@@ -72,7 +81,6 @@ function StoreBridge({
   const activeLocation = useAppSelector(selectActiveLocation);
   const isCartDrawerOpen = useAppSelector(selectIsCartDrawerOpen);
   const appliedCoupon = useAppSelector(selectAppliedCoupon);
-  const reservationTimeRemainingSeconds = useAppSelector(selectReservationTimeRemainingSeconds);
   const subtotalPaise = useAppSelector(selectCartSubtotalPaise);
   const discountPaise = useAppSelector(selectDiscountPaise);
   const deliveryFeePaise = useAppSelector(selectDeliveryFeePaise);
@@ -189,7 +197,7 @@ function StoreBridge({
     activeLocation,
     isCartDrawerOpen,
     appliedCoupon,
-    reservationTimeRemainingSeconds,
+    reservationTimeRemainingSeconds: 900,
     siteSettings: initialSettings || null,
     addToCart,
     removeFromCart,
