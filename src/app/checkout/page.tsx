@@ -128,7 +128,7 @@ export default function CheckoutPage() {
     const timer = setTimeout(async () => {
       setPincodeServiceability((prev) => ({ ...prev, loading: true, error: undefined }));
       try {
-        const res = await fetch(`/api/shipping/serviceability?deliveryPincode=${rawPincode}&cod=${paymentPreference === 'cod' ? '1' : '0'}`);
+        const res = await fetch(`/api/shipping/serviceability?pincode=${rawPincode}&cod=${paymentPreference === 'cod' ? '1' : '0'}`);
         const data = await res.json();
 
         if (!isMounted) return;

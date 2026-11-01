@@ -12,7 +12,7 @@ const serviceabilityCache = new Map<string, CacheEntry>();
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const pincode = searchParams.get('pincode')?.trim() || '';
+    const pincode = searchParams.get('pincode')?.trim() || searchParams.get('deliveryPincode')?.trim() || '';
     const cod = searchParams.get('cod') === 'true' || searchParams.get('cod') === '1';
     const weight = searchParams.get('weight') || '0.5';
 
