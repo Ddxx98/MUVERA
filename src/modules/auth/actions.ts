@@ -225,7 +225,7 @@ export async function saveAddressAction(
   try {
     const token = getSessionToken();
     if (!token) throw new Error('You must be signed in to save delivery addresses');
-    const user = await authService.getUserFromToken(token);
+    const user = await authService.getSessionUser(token);
     if (!user) throw new Error('User account not found');
 
     const updatedAddresses = await authService.addOrUpdateAddress(user.id, address, setAsDefault);
@@ -246,7 +246,7 @@ export async function deleteAddressAction(
   try {
     const token = getSessionToken();
     if (!token) throw new Error('You must be signed in to delete saved addresses');
-    const user = await authService.getUserFromToken(token);
+    const user = await authService.getSessionUser(token);
     if (!user) throw new Error('User account not found');
 
     const updatedAddresses = await authService.deleteAddress(user.id, addressId);
@@ -267,7 +267,7 @@ export async function setDefaultAddressAction(
   try {
     const token = getSessionToken();
     if (!token) throw new Error('You must be signed in to manage saved addresses');
-    const user = await authService.getUserFromToken(token);
+    const user = await authService.getSessionUser(token);
     if (!user) throw new Error('User account not found');
 
     const updatedAddresses = await authService.setDefaultAddress(user.id, addressId);

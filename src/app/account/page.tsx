@@ -157,11 +157,14 @@ export default function AccountPage() {
       };
 
       const res = await saveAddressAction(payload, payload.isDefault);
-      if (!res.ok || !res.data) {
-        throw new Error(res.error || 'Failed to save address.');
+      if (!res.ok) {
+        throw new Error(res.error?.message || 'Failed to save address.');
+      }
+      if (!res.data) {
+        throw new Error('Failed to save address.');
       }
 
-      setUser((prev) => (prev ? { ...prev, addresses: res.data!.addresses } : null));
+      setUser((prev) => (prev ? { ...prev, addresses: res.data.addresses } : null));
       setIsAddressModalOpen(false);
     } catch (err: any) {
       setAddressError(err.message || 'Failed to save address.');

@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import { db } from '@/lib/db';
 import { hashPassword, verifyPassword, signJwt, verifyJwt, signSessionToken, verifySessionToken } from './crypto';
 import { newToken, hashToken } from './tokens';
-import { RegisterInput, LoginInput, UserProfile, UserRecord, AuthSession, UserRole } from './types';
+import { RegisterInput, LoginInput, UserProfile, UserRecord, AuthSession, UserRole, UserAddress } from './types';
 import { AppError } from '@/lib/errors';
 import { auditService } from '@/modules/audit';
 import { notificationService } from '@/modules/notifications';
