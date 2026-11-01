@@ -88,16 +88,8 @@ export async function POST(req: Request) {
     const settings = await SiteSettingsModel.findOne().lean().catch(() => null);
     const isV2Enabled = settings?.checkoutV2Enabled ?? false;
 
-    // In V2 direct commerce mode, customer account is mandatory
-    if (isV2Enabled && !ctx) {
-      return NextResponse.json(
-        { error: 'Login required to place an order. Please create an account or sign in.' },
-        { status: 401 }
-      );
-    }
-
     const idempotencyKey = req.headers.get('Idempotency-Key')?.trim();
-    const customerId = ctx?.id || body.customerId || 'guest';
+    const customerId = ctx?.id || (body.customerPhone ? `phone_${body.customerPhone.replace(/\D/g, '').slice(-10)}` : 'guest');
     const requestHash = crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex');
 
     let idempotencyDoc: any = null;

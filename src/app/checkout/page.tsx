@@ -2,37 +2,29 @@
 
 export const dynamic = 'force-dynamic';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import Script from 'next/script';
 import { useStore } from '@/lib/store-context';
 import { formatPaise } from '@/lib/money';
-import { generateWhatsAppOrderUrl, generateInstantWhatsAppCartUrl } from '@/lib/whatsapp';
-import { generateUpiQrDataUrl, generateUpiPaymentUrl } from '@/lib/upi';
 import { OrderSnapshot, ShippingAddress } from '@/lib/types';
 import { getCurrentUserAction } from '@/modules/auth/actions';
 import { UserProfile } from '@/modules/auth/types';
 import {
   MapPin,
-  Zap,
-  QrCode,
-  MessageCircle,
   ShieldCheck,
   CheckCircle,
   Truck,
   ArrowRight,
-  Info,
-  Copy,
-  Check,
   User,
   LogIn,
   CreditCard,
   Lock,
-  RefreshCw,
   AlertCircle,
   X,
+  Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
@@ -63,20 +55,8 @@ export default function CheckoutPage() {
   });
 
   const [deliveryMethod, setDeliveryMethod] = useState<'express_60' | 'standard'>('standard');
-  const [paymentPreference, setPaymentPreference] = useState<'cod' | 'razorpay' | 'upi_whatsapp' | 'cod_whatsapp'>('cod');
+  const [paymentPreference, setPaymentPreference] = useState<'razorpay' | 'cod'>('razorpay');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Runtime flags
-  const isV2Enabled = siteSettings?.checkoutV2Enabled ?? false;
-  const isPrepaidEnabled = (siteSettings?.prepaidEnabled ?? false) || (siteSettings?.razorpayEnabled ?? false);
-
-  // Legacy dynamic settings
-  const businessUpiId = siteSettings?.businessUpiId || '';
-  const businessUpiMerchantName = siteSettings?.businessUpiMerchantName || siteSettings?.businessName || '';
-  const businessWhatsAppNumber = (siteSettings?.whatsappNumber || '').replace(/\D/g, '');
-  const codEnabled = siteSettings?.codEnabled ?? true;
-  const upiEnabled = siteSettings?.upiEnabled ?? true;
-  const [copiedUpi, setCopiedUpi] = useState<boolean>(false);
 
   // Pincode serviceability state
   const [pincodeServiceability, setPincodeServiceability] = useState<{
@@ -100,11 +80,6 @@ export default function CheckoutPage() {
 
   // Order submission error
   const [orderError, setOrderError] = useState<string | null>(null);
-
-  // Temporary order no for QR display
-  const [tempOrderNo] = useState<string>(() => `MUV-${Math.floor(1000 + Math.random() * 9000)}`);
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  const [qrLoading, setQrLoading] = useState<boolean>(true);
 
   // Load User profile
   useEffect(() => {
@@ -141,101 +116,62 @@ export default function CheckoutPage() {
     return () => clearInterval(timer);
   }, [otpCooldown]);
 
-  // Adjust payment preference based on V2 settings
+  // Pincode lookup with debounce
   useEffect(() => {
-    if (isV2Enabled) {
-      if (paymentPreference === 'upi_whatsapp' || paymentPreference === 'cod_whatsapp') {
-        setPaymentPreference('cod');
-      }
-    } else {
-      if (paymentPreference === 'cod' || paymentPreference === 'razorpay') {
-        setPaymentPreference(upiEnabled ? 'upi_whatsapp' : 'cod_whatsapp');
-      }
-    }
-  }, [isV2Enabled, upiEnabled]);
-
-  // Debounced pincode serviceability check
-  useEffect(() => {
-    const cleanPin = address.pincode.replace(/\D/g, '').slice(0, 6);
-    if (cleanPin.length !== 6) {
+    const rawPincode = address.pincode.trim();
+    if (rawPincode.length !== 6 || !/^\d{6}$/.test(rawPincode)) {
       setPincodeServiceability({ loading: false, checked: false, serviceable: true });
       return;
     }
 
+    let isMounted = true;
     const timer = setTimeout(async () => {
-      setPincodeServiceability((prev) => ({ ...prev, loading: true }));
+      setPincodeServiceability((prev) => ({ ...prev, loading: true, error: undefined }));
       try {
-        const res = await fetch(`/api/shipping/serviceability?pincode=${cleanPin}`);
+        const res = await fetch(`/api/shipping/serviceability?deliveryPincode=${rawPincode}&cod=${paymentPreference === 'cod' ? '1' : '0'}`);
         const data = await res.json();
-        if (data.serviceable) {
-          setPincodeServiceability({
-            loading: false,
-            checked: true,
-            serviceable: true,
-            estimatedDays: data.estimatedDays,
-            codAvailable: data.codAvailable,
-          });
-        } else {
+
+        if (!isMounted) return;
+
+        if (!res.ok) {
           setPincodeServiceability({
             loading: false,
             checked: true,
             serviceable: false,
-            error: data.message || 'Pincode not serviceable by express couriers',
+            error: data.error || 'Pincode not serviceable.',
           });
+          return;
         }
-      } catch {
+
+        setPincodeServiceability({
+          loading: false,
+          checked: true,
+          serviceable: data.serviceable,
+          estimatedDays: data.estimatedDays || 3,
+          codAvailable: data.codAvailable ?? true,
+          error: data.serviceable ? undefined : 'This pincode is currently outside courier service area.',
+        });
+      } catch (err) {
+        if (!isMounted) return;
         setPincodeServiceability({
           loading: false,
           checked: true,
           serviceable: true,
+          estimatedDays: 3,
         });
       }
-    }, 400);
+    }, 600);
 
-    return () => clearTimeout(timer);
-  }, [address.pincode]);
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [address.pincode, paymentPreference]);
 
   const subtotal = getCartSubtotalPaise();
   const discount = getDiscountPaise();
   const delivery = getDeliveryFeePaise();
   const grandTotal = getGrandTotalPaise();
-  const amountRupees = grandTotal / 100;
-
-  // UPI QR for legacy fallback
-  useEffect(() => {
-    if (isV2Enabled) return;
-    let isMounted = true;
-    setQrLoading(true);
-
-    generateUpiQrDataUrl({
-      amountRupees,
-      orderNo: tempOrderNo,
-      upiId: businessUpiId,
-      payeeName: businessUpiMerchantName,
-    })
-      .then((dataUrl) => {
-        if (isMounted) {
-          setQrDataUrl(dataUrl);
-          setQrLoading(false);
-        }
-      })
-      .catch((err) => {
-        console.error('Failed to generate UPI QR code:', err);
-        if (isMounted) setQrLoading(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [amountRupees, tempOrderNo, businessUpiId, businessUpiMerchantName, isV2Enabled]);
-
-  const handleCopyUpi = () => {
-    if (typeof navigator !== 'undefined' && businessUpiId) {
-      navigator.clipboard.writeText(businessUpiId);
-      setCopiedUpi(true);
-      setTimeout(() => setCopiedUpi(false), 2000);
-    }
-  };
 
   // Dynamically load Razorpay SDK
   const loadRazorpayScript = (): Promise<boolean> => {
@@ -264,14 +200,8 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Phone validation
     if (!/^[6-9]\d{9}$/.test(customerPhone)) {
       setOrderError('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
-      return;
-    }
-
-    if (isV2Enabled && !currentUser) {
-      setOrderError('Please log in or create an account to place a direct commerce order.');
       return;
     }
 
@@ -279,7 +209,7 @@ export default function CheckoutPage() {
 
     try {
       const orderPayload: any = {
-        orderNo: tempOrderNo,
+        orderNo: `MUV-${Math.floor(1000 + Math.random() * 9000)}`,
         customerName,
         customerPhone,
         customerEmail: currentUser?.email || undefined,
@@ -333,7 +263,7 @@ export default function CheckoutPage() {
 
       const createdOrder: OrderSnapshot = data.order;
 
-      // ─── Razorpay Standard Checkout Flow ───────────────────────────────────
+      // ─── 1. Online Payment via Razorpay ──────────────────────────────────────
       if (paymentPreference === 'razorpay') {
         const sdkLoaded = await loadRazorpayScript();
         if (!sdkLoaded) {
@@ -353,7 +283,7 @@ export default function CheckoutPage() {
 
         const rzpData = await rzpRes.json();
         if (!rzpRes.ok) {
-          throw new Error(rzpData.error || 'Failed to initialize payment.');
+          throw new Error(rzpData.error || 'Failed to initialize payment gateway.');
         }
 
         const options = {
@@ -398,7 +328,7 @@ export default function CheckoutPage() {
           modal: {
             ondismiss: function () {
               setIsSubmitting(false);
-              setOrderError('Payment was not completed. You can retry payment from your account orders.');
+              setOrderError('Payment was cancelled. You can retry payment whenever you are ready.');
             },
           },
         };
@@ -407,30 +337,24 @@ export default function CheckoutPage() {
         rzpInstance.on('payment.failed', function (failureResponse: any) {
           setIsSubmitting(false);
           const failureReason = failureResponse?.error?.description || 'Payment was declined or failed.';
-          setOrderError(`Payment failed: ${failureReason}. You can retry or choose another payment method.`);
+          setOrderError(`Payment failed: ${failureReason}. Please retry or choose another payment method.`);
         });
         rzpInstance.open();
         return;
       }
 
-      // ─── Direct Commerce Flows (V2 COD) ──────────────────────────────────────
-      if (isV2Enabled && paymentPreference === 'cod') {
-        // Open COD OTP modal and request code
+      // ─── 2. Cash on Delivery (COD) ──────────────────────────────────────────
+      if (currentUser?.email) {
+        // Trigger COD OTP verification
         setActiveOrderId(createdOrder.id);
         setActiveOrderNo(createdOrder.orderNo);
         setIsCodModalOpen(true);
         setIsSubmitting(false);
-
-        // Trigger OTP send
         await handleSendCodOtp(createdOrder.id);
         return;
       }
 
-      // ─── Legacy Fallback Flow (V1 WhatsApp) ──────────────────────────────────
-      const whatsappUrl = generateWhatsAppOrderUrl(createdOrder, businessWhatsAppNumber, businessUpiMerchantName);
-      if (typeof window !== 'undefined') {
-        window.open(whatsappUrl, '_blank');
-      }
+      // Guest COD direct completion
       clearCart();
       router.push(`/order-success/${createdOrder.id}`);
     } catch (err: any) {
@@ -482,7 +406,6 @@ export default function CheckoutPage() {
         throw new Error(data.error || 'Invalid or expired code.');
       }
 
-      // Verification successful
       setIsCodModalOpen(false);
       clearCart();
       router.push(`/order-success/${activeOrderId}`);
@@ -496,6 +419,7 @@ export default function CheckoutPage() {
   if (cart.length === 0) {
     return (
       <div className="max-w-md mx-auto px-4 py-20 text-center space-y-4">
+        <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
         <h2 className="font-headline font-bold text-xl text-text-primary">Your bag is empty</h2>
         <p className="text-xs text-text-muted">Add some drops to your bag before checking out.</p>
         <Button onClick={() => router.push('/products')} size="sm">
@@ -508,14 +432,13 @@ export default function CheckoutPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
+
       <div>
         <h1 className="font-headline font-black text-2xl sm:text-3xl text-text-primary">
-          {isV2Enabled ? 'Direct Express Checkout' : 'WhatsApp Fast Checkout & Payment'}
+          Secure Express Checkout
         </h1>
         <p className="text-xs text-text-muted mt-1">
-          {isV2Enabled
-            ? 'Real-time inventory hold • Direct courier fulfillment • Instant dispatch'
-            : 'Instant order booking • Inventory held • Direct WhatsApp confirmation'}
+          Direct courier fulfillment • Instant dispatch • Real-time tracking
         </p>
       </div>
 
@@ -528,12 +451,10 @@ export default function CheckoutPage() {
             </div>
             <div>
               <h3 className="font-headline font-bold text-sm sm:text-base text-text-primary">
-                {isV2Enabled ? 'Account Required to Checkout' : 'Have an account? Log in to save orders to your profile'}
+                Have an account? Log in for 1-click checkout &amp; order tracking
               </h3>
               <p className="text-xs text-text-muted mt-0.5 max-w-xl">
-                {isV2Enabled
-                  ? 'Please log in or register to place your order with verified email delivery & live tracking.'
-                  : 'Log in to link this order to your account for live tracking & GST invoices.'}
+                Log in to link this order to your profile for live delivery updates &amp; GST tax invoices.
               </p>
             </div>
           </div>
@@ -702,7 +623,7 @@ export default function CheckoutPage() {
                     <Truck className="w-3.5 h-3.5 text-primary" />
                     Express Air &amp; Surface Dispatch
                   </p>
-                  <p className="text-[11px] text-text-muted">Direct dispatch from Indiranagar dark store • 2-4 Business Days</p>
+                  <p className="text-[11px] text-text-muted">Direct dispatch from Indiranagar dark store Hub • 2-4 Business Days</p>
                 </div>
               </div>
               <span className="text-xs font-bold text-primary font-mono">
@@ -711,227 +632,132 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* Step 3: Payment Modes */}
+          {/* Step 3: Payment Modes (Razorpay Standard & COD) */}
           <div className="p-6 rounded-2xl bg-surface-card border border-surface-border space-y-4 shadow-xl">
             <div className="flex items-center gap-2 pb-2 border-b border-surface-border">
               <CreditCard className="w-5 h-5 text-primary" />
-              <h2 className="font-headline font-bold text-base text-text-primary">3. Payment Preference</h2>
+              <h2 className="font-headline font-bold text-base text-text-primary">3. Payment Method</h2>
             </div>
 
-            {isV2Enabled ? (
-              /* V2 Payment Tabs: COD vs Online Gateway */
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setPaymentPreference('cod')}
-                    className={`p-3.5 rounded-xl border font-bold text-xs flex items-center gap-3 transition-all text-left ${
-                      paymentPreference === 'cod'
-                        ? 'border-primary bg-primary/15 text-primary shadow-gold-glow'
-                        : 'border-surface-border bg-surface-raised text-text-muted hover:bg-surface-bright'
-                    }`}
-                  >
-                    <div className="w-4 h-4 rounded-full border border-primary flex items-center justify-center flex-shrink-0">
-                      {paymentPreference === 'cod' && <div className="w-2 h-2 rounded-full bg-primary" />}
-                    </div>
-                    <div>
-                      <p className="font-bold text-text-primary">💵 Cash on Delivery (COD)</p>
-                      <p className="text-[10px] text-text-muted mt-0.5">Verified via single-use email OTP</p>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (isPrepaidEnabled) setPaymentPreference('razorpay');
-                    }}
-                    disabled={!isPrepaidEnabled}
-                    className={`p-3.5 rounded-xl border font-bold text-xs flex items-center gap-3 transition-all text-left ${
-                      !isPrepaidEnabled
-                        ? 'opacity-60 cursor-not-allowed border-surface-border bg-surface-raised'
-                        : paymentPreference === 'razorpay'
-                        ? 'border-primary bg-primary/15 text-primary shadow-gold-glow'
-                        : 'border-surface-border bg-surface-raised text-text-muted hover:bg-surface-bright'
-                    }`}
-                  >
-                    <div className="w-4 h-4 rounded-full border border-primary flex items-center justify-center flex-shrink-0">
-                      {paymentPreference === 'razorpay' && <div className="w-2 h-2 rounded-full bg-primary" />}
-                    </div>
-                    <div>
-                      <p className="font-bold text-text-primary">⚡ Online Payment</p>
-                      <p className="text-[10px] text-text-muted mt-0.5">
-                        {isPrepaidEnabled ? 'UPI, Cards, NetBanking (Razorpay)' : 'Activating soon'}
-                      </p>
-                    </div>
-                  </button>
-                </div>
-
-                {paymentPreference === 'cod' && (
-                  <div className="p-3.5 rounded-xl bg-surface-raised border border-surface-border text-xs text-text-muted space-y-1">
-                    <p className="font-bold text-text-primary">How COD works:</p>
-                    <p>1. When you click Confirm, a 6-digit verification code will be sent to your email.</p>
-                    <p>2. Enter the code to verify your address and allocate parcel stock.</p>
-                    <p>3. Pay cash or UPI directly to the courier upon delivery.</p>
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Option 1: Razorpay Online */}
+                <button
+                  type="button"
+                  onClick={() => setPaymentPreference('razorpay')}
+                  className={`p-4 rounded-xl border font-bold text-xs flex items-start gap-3 transition-all text-left ${
+                    paymentPreference === 'razorpay'
+                      ? 'border-primary bg-primary/15 text-primary shadow-gold-glow'
+                      : 'border-surface-border bg-surface-raised text-text-muted hover:bg-surface-bright'
+                  }`}
+                >
+                  <div className="w-4 h-4 rounded-full border border-primary flex items-center justify-center flex-shrink-0 mt-0.5">
+                    {paymentPreference === 'razorpay' && <div className="w-2 h-2 rounded-full bg-primary" />}
                   </div>
-                )}
-              </div>
-            ) : (
-              /* V1 Payment Tabs: WhatsApp UPI QR & Razorpay Fallback */
-              <div className="space-y-4">
-                <div className={`grid ${isPrepaidEnabled ? 'grid-cols-1 sm:grid-cols-3' : upiEnabled && codEnabled ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
-                  {isPrepaidEnabled && (
-                    <button
-                      type="button"
-                      onClick={() => setPaymentPreference('razorpay')}
-                      className={`p-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 transition-all ${
-                        paymentPreference === 'razorpay'
-                          ? 'border-primary bg-primary text-surface-base shadow-gold-glow'
-                          : 'border-surface-border bg-surface-raised text-text-surface hover:bg-surface-bright'
-                      }`}
-                    >
-                      <CreditCard className="w-4 h-4" />
-                      <span>⚡ Razorpay Online</span>
-                    </button>
-                  )}
-
-                  {upiEnabled && (
-                    <button
-                      type="button"
-                      onClick={() => setPaymentPreference('upi_whatsapp')}
-                      className={`p-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 transition-all ${
-                        paymentPreference === 'upi_whatsapp'
-                          ? 'border-primary bg-primary text-surface-base shadow-gold-glow'
-                          : 'border-surface-border bg-surface-raised text-text-surface hover:bg-surface-bright'
-                      }`}
-                    >
-                      <Zap className="w-4 h-4" />
-                      <span>UPI &amp; WhatsApp</span>
-                    </button>
-                  )}
-
-                  {codEnabled && (
-                    <button
-                      type="button"
-                      onClick={() => setPaymentPreference('cod_whatsapp')}
-                      className={`p-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 transition-all ${
-                        paymentPreference === 'cod_whatsapp'
-                          ? 'border-primary bg-primary text-surface-base shadow-gold-glow'
-                          : 'border-surface-border bg-surface-raised text-text-surface hover:bg-surface-bright'
-                      }`}
-                    >
-                      <span>💵 Cash on Delivery</span>
-                    </button>
-                  )}
-                </div>
-
-                {paymentPreference === 'razorpay' && (
-                  <div className="p-4 rounded-2xl bg-surface-raised border border-surface-border space-y-2 text-center">
-                    <p className="text-xs font-bold text-text-primary">⚡ Instant Razorpay Gateway</p>
-                    <p className="text-[11px] text-text-muted">
-                      Pay securely with UPI (GPay, PhonePe, Paytm), Credit/Debit Cards, or NetBanking.
+                  <div>
+                    <p className="font-bold text-text-primary text-sm flex items-center gap-1.5">
+                      <Zap className="w-4 h-4 text-primary fill-current" />
+                      <span>Online Payment</span>
+                    </p>
+                    <p className="text-[11px] text-text-muted mt-1 leading-relaxed">
+                      UPI (GPay, PhonePe, Paytm), Credit / Debit Cards, &amp; NetBanking via Razorpay.
                     </p>
                   </div>
-                )}
+                </button>
 
-                {paymentPreference === 'upi_whatsapp' && (
-                  <div className="p-4 rounded-2xl bg-surface-raised border border-surface-border space-y-4 text-center">
-                    <div className="space-y-1">
-                      <span className="text-[11px] font-black uppercase text-primary tracking-wider">
-                        Instant UPI QR Payment
-                      </span>
-                      <p className="text-xs text-text-muted">
-                        Scan with GPay, PhonePe, Paytm, or BHIM to pay <strong className="text-text-primary font-mono font-bold">{formatPaise(grandTotal)}</strong>
-                      </p>
-                    </div>
-
-                    <div className="inline-block p-3 rounded-2xl bg-white shadow-2xl border-4 border-amber-400">
-                      {qrLoading || !qrDataUrl ? (
-                        <div className="w-48 h-48 sm:w-56 sm:h-56 flex flex-col items-center justify-center bg-zinc-100 rounded-lg animate-pulse text-zinc-500">
-                          <QrCode className="w-10 h-10 stroke-[1.5] mb-2 animate-spin text-amber-500" />
-                          <span className="text-[11px] font-bold">Generating UPI QR...</span>
-                        </div>
-                      ) : (
-                        <img
-                          src={qrDataUrl}
-                          alt="UPI Payment QR Code"
-                          className="w-48 h-48 sm:w-56 sm:h-56 object-contain rounded-lg block mx-auto"
-                        />
-                      )}
-                    </div>
-
-                    <div className="flex flex-col items-center gap-2.5">
-                      <div className="flex items-center gap-2 bg-surface-card px-3.5 py-1.5 rounded-full border border-surface-border">
-                        <span className="text-xs font-mono font-bold text-amber-500 dark:text-primary select-all">
-                          {businessUpiId}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={handleCopyUpi}
-                          className="p-1 hover:text-primary transition-colors text-slate-700 dark:text-zinc-300 text-[11px] flex items-center gap-1 font-sans font-bold"
-                          title="Copy UPI ID"
-                        >
-                          {copiedUpi ? (
-                            <>
-                              <Check className="w-3.5 h-3.5 text-emerald-400" />
-                              <span className="text-emerald-400 font-bold">Copied!</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3.5 h-3.5" />
-                              <span>Copy</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
+                {/* Option 2: Cash on Delivery */}
+                <button
+                  type="button"
+                  onClick={() => setPaymentPreference('cod')}
+                  className={`p-4 rounded-xl border font-bold text-xs flex items-start gap-3 transition-all text-left ${
+                    paymentPreference === 'cod'
+                      ? 'border-primary bg-primary/15 text-primary shadow-gold-glow'
+                      : 'border-surface-border bg-surface-raised text-text-muted hover:bg-surface-bright'
+                  }`}
+                >
+                  <div className="w-4 h-4 rounded-full border border-primary flex items-center justify-center flex-shrink-0 mt-0.5">
+                    {paymentPreference === 'cod' && <div className="w-2 h-2 rounded-full bg-primary" />}
                   </div>
-                )}
+                  <div>
+                    <p className="font-bold text-text-primary text-sm">
+                      💵 Cash on Delivery
+                    </p>
+                    <p className="text-[11px] text-text-muted mt-1 leading-relaxed">
+                      Pay cash or UPI directly to the courier upon doorstep parcel delivery.
+                    </p>
+                  </div>
+                </button>
               </div>
-            )}
+
+              {paymentPreference === 'razorpay' && (
+                <div className="p-3.5 rounded-xl bg-surface-raised border border-surface-border text-xs text-text-muted space-y-1">
+                  <p className="font-bold text-text-primary flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <span>Instant &amp; 100% Encrypted Gateway</span>
+                  </p>
+                  <p>All major UPI apps, RuPay, Visa, Mastercard, and NetBanking are accepted securely.</p>
+                </div>
+              )}
+
+              {paymentPreference === 'cod' && (
+                <div className="p-3.5 rounded-xl bg-surface-raised border border-surface-border text-xs text-text-muted space-y-1">
+                  <p className="font-bold text-text-primary">How Cash on Delivery works:</p>
+                  <p>1. Confirm your order to allocate inventory stock for express dispatch.</p>
+                  <p>2. Keep exact cash or your UPI app ready when the courier arrives at your door.</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Right Column: Order Summary & Action (5 cols) */}
-        <div className="lg:col-span-5 space-y-6">
-          <div className="p-6 rounded-2xl bg-surface-card border border-surface-border space-y-4 shadow-xl sticky top-24">
-            <h3 className="font-headline font-bold text-lg text-text-primary">Order Review</h3>
+        {/* Right Column: Order Summary (5 cols) */}
+        <div className="lg:col-span-5">
+          <div className="p-6 rounded-2xl bg-surface-card border border-surface-border space-y-6 shadow-xl sticky top-24">
+            <h3 className="font-headline font-bold text-base text-text-primary pb-2 border-b border-surface-border">
+              Order Review
+            </h3>
 
-            {/* Item List Summary */}
-            <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
-              {cart.map((item) => (
-                <div key={item.variantId} className="flex gap-3 items-center text-xs">
-                  <div className="relative w-12 h-14 rounded-lg overflow-hidden bg-surface-raised flex-shrink-0">
-                    <Image src={item.image} alt={item.title} fill className="object-cover" />
+            {/* Item Thumbnails */}
+            <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+              {cart.map((item, idx) => (
+                <div key={idx} className="flex items-center gap-3 text-xs">
+                  <div className="w-12 h-14 relative bg-surface-raised rounded-lg overflow-hidden flex-shrink-0 border border-surface-border">
+                    <Image
+                      src={item.image || 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=200&auto=format&fit=crop&q=80'}
+                      alt={item.title}
+                      fill
+                      className="object-cover"
+                    />
                   </div>
-                  <div className="flex-1">
-                    <p className="font-bold text-text-primary line-clamp-1">{item.title}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-text-primary truncate">{item.title}</p>
                     <p className="text-[11px] text-text-muted">
-                      Size: {item.size} • Qty: {item.quantity}
+                      Size: <span className="font-bold text-text-primary">{item.size}</span> • Qty: {item.quantity}
                     </p>
                   </div>
-                  <span className="font-mono font-bold text-text-primary">
+                  <div className="text-right font-mono font-bold text-text-primary">
                     {formatPaise(item.sellingPricePaise * item.quantity)}
-                  </span>
+                  </div>
                 </div>
               ))}
             </div>
 
-            {/* Bill Totals */}
-            <div className="space-y-2 text-xs border-t border-surface-border pt-4">
+            {/* Calculations */}
+            <div className="space-y-2 text-xs pt-3 border-t border-surface-border">
               <div className="flex justify-between text-text-muted">
                 <span>Items Subtotal</span>
                 <span className="font-mono text-text-primary">{formatPaise(subtotal)}</span>
               </div>
               {discount > 0 && (
-                <div className="flex justify-between text-emerald-400 font-bold">
-                  <span>Coupon ({appliedCoupon?.code})</span>
+                <div className="flex justify-between text-emerald-400">
+                  <span>Coupon Savings ({appliedCoupon?.code})</span>
                   <span className="font-mono">-{formatPaise(discount)}</span>
                 </div>
               )}
               <div className="flex justify-between text-text-muted">
                 <span>Delivery Charge</span>
-                <span className="font-mono text-text-primary">
-                  {delivery === 0 ? <span className="text-primary font-bold">FREE</span> : formatPaise(delivery)}
+                <span className="font-mono text-emerald-400">
+                  {delivery === 0 ? 'FREE' : formatPaise(delivery)}
                 </span>
               </div>
               <div className="flex justify-between text-base font-bold text-text-primary pt-3 border-t border-surface-border">
@@ -954,13 +780,7 @@ export default function CheckoutPage() {
                   ? 'Processing...'
                   : paymentPreference === 'razorpay'
                   ? 'Proceed to Pay with Razorpay'
-                  : isV2Enabled
-                  ? paymentPreference === 'cod'
-                    ? 'Confirm Order via COD'
-                    : 'Proceed to Online Payment'
-                  : currentUser
-                  ? 'Confirm & Place Order'
-                  : '⚡ Instant WhatsApp Order (Guest)'}
+                  : 'Confirm Order via Cash on Delivery'}
               </span>
             </Button>
 
@@ -970,10 +790,10 @@ export default function CheckoutPage() {
                 <span>
                   {currentUser
                     ? `Linked to account (${currentUser.email || currentUser.name})`
-                    : '100% Verified Authentic Streetwear'}
+                    : '100% Authentic Streetwear Guarantee'}
                 </span>
               </p>
-              <p>Statutory GST Tax Invoice &amp; tracking details dispatched upon packing.</p>
+              <p>Statutory GST Tax Invoice &amp; live courier tracking dispatched upon packing.</p>
             </div>
           </div>
         </div>
@@ -998,56 +818,42 @@ export default function CheckoutPage() {
                 Verify Cash on Delivery
               </h3>
               <p className="text-xs text-text-muted">
-                We sent a 6-digit confirmation code to{' '}
-                <strong className="text-text-primary">{currentUser?.email || address.phone}</strong>
+                A 6-digit confirmation code was sent to <strong className="text-text-primary">{currentUser?.email}</strong> to verify your delivery address.
               </p>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-text-muted mb-1.5 block">6-Digit Code</label>
-                <input
-                  type="text"
-                  maxLength={6}
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                  placeholder="Enter 6-digit code"
-                  className="w-full text-center text-2xl font-mono font-bold tracking-widest bg-surface-raised border border-surface-border rounded-xl p-3 text-text-primary focus:outline-none focus:border-primary"
-                  autoFocus
-                />
-              </div>
+            <div className="space-y-3">
+              <input
+                type="text"
+                maxLength={6}
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                placeholder="Enter 6-digit code"
+                className="w-full bg-surface-raised border border-surface-border rounded-xl p-3 text-center text-xl font-mono font-bold tracking-widest text-text-primary focus:outline-none focus:border-primary"
+              />
 
               {otpError && (
-                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-bold text-center">
-                  {otpError}
-                </div>
+                <p className="text-xs text-red-400 font-bold text-center">{otpError}</p>
               )}
 
               <Button
                 onClick={handleVerifyCodOtp}
-                size="lg"
                 fullWidth
                 disabled={isVerifyingOtp || otpCode.length !== 6}
-                className="py-3.5 text-xs font-headline font-bold"
+                className="py-3 font-headline font-bold"
               >
-                {isVerifyingOtp ? 'Verifying...' : 'Confirm & Commit Stock'}
+                {isVerifyingOtp ? 'Verifying...' : 'Confirm Delivery'}
               </Button>
 
-              <div className="text-center pt-2">
-                {otpCooldown > 0 ? (
-                  <span className="text-xs text-text-muted">
-                    Resend code in <strong className="text-primary font-mono">{otpCooldown}s</strong>
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => activeOrderId && handleSendCodOtp(activeOrderId)}
-                    disabled={isSendingOtp}
-                    className="text-xs text-primary hover:underline font-bold"
-                  >
-                    {isSendingOtp ? 'Sending...' : 'Resend Code'}
-                  </button>
-                )}
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => activeOrderId && handleSendCodOtp(activeOrderId)}
+                  disabled={otpCooldown > 0 || isSendingOtp}
+                  className="text-xs text-text-muted hover:text-primary transition-colors font-semibold disabled:opacity-50"
+                >
+                  {otpCooldown > 0 ? `Resend code in ${otpCooldown}s` : 'Resend Code'}
+                </button>
               </div>
             </div>
           </div>
