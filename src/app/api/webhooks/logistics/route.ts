@@ -25,8 +25,8 @@ export async function POST(req: NextRequest) {
     // 2. Ensure database is connected
     const isDbReady = await connectToMongo();
 
-    // 3. Parse payload
-    const payload = await req.json();
+    // 3. Parse payload safely (handles empty pings from Shiprocket test button)
+    const payload = await req.json().catch(() => ({}));
     const awb = String(payload.awb || payload.shipment_id || '').trim();
     const status = normalizeStatusLabel(payload.current_status || payload.shipment_status || 'UNKNOWN');
     const currentTimestamp = String(payload.current_timestamp || '').trim();
@@ -78,4 +78,8 @@ export async function POST(req: NextRequest) {
     // Shiprocket expects HTTP 200; return 200 with error note to avoid dropping carrier webhook
     return NextResponse.json({ success: false, error: err.message }, { status: 200 });
   }
+}
+
+export async function GET() {
+  return NextResponse.json({ ok: true, message: 'Logistics webhook endpoint active' }, { status: 200 });
 }
