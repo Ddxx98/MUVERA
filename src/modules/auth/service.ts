@@ -428,10 +428,99 @@ export const authService = {
       email: user.email,
       phone: user.phone,
       role,
-      addresses: user.addresses,
+      addresses: (user.addresses || []).map((a: any, idx: number) => ({
+        ...a,
+        id: a.id || `addr_${idx}_${a.pincode || Date.now()}`,
+      })),
       loyaltyTier: user.loyaltyTier,
       createdAt: user.createdAt,
     };
+  },
+
+  /**
+   * Adds or updates a saved address for a user.
+   */
+  async addOrUpdateAddress(
+    userId: string,
+    addressInput: UserAddress,
+    setAsDefault?: boolean
+  ): Promise<UserAddress[]> {
+    const user = await db.getUserById(userId);
+    if (!user) throw new Error('User not found');
+
+    const addresses: UserAddress[] = (user.addresses || []).map((a: any, idx: number) => ({
+      ...a,
+      id: a.id || `addr_${idx}_${Date.now()}`,
+    }));
+
+    const isFirst = addresses.length === 0;
+    const makeDefault = Boolean(setAsDefault || addressInput.isDefault || isFirst);
+
+    if (makeDefault) {
+      addresses.forEach((a) => {
+        a.isDefault = false;
+      });
+    }
+
+    const addrId = addressInput.id || `addr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const normalizedAddr: UserAddress = {
+      id: addrId,
+      fullName: addressInput.fullName.trim(),
+      phone: addressInput.phone.trim().replace(/\D/g, '').slice(-10),
+      street: addressInput.street.trim(),
+      apartment: addressInput.apartment?.trim() || undefined,
+      landmark: addressInput.landmark?.trim() || undefined,
+      city: addressInput.city.trim(),
+      state: addressInput.state?.trim() || 'Karnataka',
+      pincode: addressInput.pincode.trim(),
+      isDefault: makeDefault,
+    };
+
+    const existingIdx = addresses.findIndex((a) => a.id === addrId);
+    if (existingIdx >= 0) {
+      addresses[existingIdx] = normalizedAddr;
+    } else {
+      addresses.unshift(normalizedAddr);
+    }
+
+    user.addresses = addresses;
+    await db.saveUser(user);
+    return addresses;
+  },
+
+  /**
+   * Deletes a saved address by addressId.
+   */
+  async deleteAddress(userId: string, addressId: string): Promise<UserAddress[]> {
+    const user = await db.getUserById(userId);
+    if (!user) throw new Error('User not found');
+
+    let addresses: UserAddress[] = (user.addresses || []).filter((a: any) => a.id !== addressId);
+    if (addresses.length > 0 && !addresses.some((a) => a.isDefault)) {
+      addresses[0].isDefault = true;
+    }
+
+    user.addresses = addresses;
+    await db.saveUser(user);
+    return addresses;
+  },
+
+  /**
+   * Sets a saved address as the default address.
+   */
+  async setDefaultAddress(userId: string, addressId: string): Promise<UserAddress[]> {
+    const user = await db.getUserById(userId);
+    if (!user) throw new Error('User not found');
+
+    const addresses: UserAddress[] = (user.addresses || []).map((a: any) => ({
+      ...a,
+      id: a.id || `addr_${Date.now()}`,
+      isDefault: a.id === addressId,
+    }));
+
+    user.addresses = addresses;
+    await db.saveUser(user);
+    return addresses;
   },
 
 

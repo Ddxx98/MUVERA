@@ -1,6 +1,7 @@
 export type UserRole = 'admin' | 'customer';
 
 export interface UserAddress {
+  id?: string;
   fullName: string;
   phone: string;
   street: string;

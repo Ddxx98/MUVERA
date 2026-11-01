@@ -3,7 +3,7 @@
 import { cookies, headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { authService, SESSION_DURATION_MS } from './service';
-import { RegisterInput, LoginInput, UserProfile } from './types';
+import { RegisterInput, LoginInput, UserProfile, UserAddress } from './types';
 import { handleActionError, ServiceResult } from '@/lib/errors';
 import { verifyJwt } from './crypto';
 
@@ -210,6 +210,70 @@ export async function resetPasswordWithOtpAction(
     const res = await authService.resetPasswordWithOtp(email, otp, newPassword);
     revalidatePath('/account');
     return { ok: true, data: res };
+  } catch (err) {
+    return handleActionError(err);
+  }
+}
+
+/**
+ * Server Action: Adds or updates a saved delivery address for the logged-in customer.
+ */
+export async function saveAddressAction(
+  address: UserAddress,
+  setAsDefault?: boolean
+): Promise<ServiceResult<{ addresses: UserAddress[] }>> {
+  try {
+    const token = getSessionToken();
+    if (!token) throw new Error('You must be signed in to save delivery addresses');
+    const user = await authService.getUserFromToken(token);
+    if (!user) throw new Error('User account not found');
+
+    const updatedAddresses = await authService.addOrUpdateAddress(user.id, address, setAsDefault);
+    revalidatePath('/account');
+    revalidatePath('/checkout');
+    return { ok: true, data: { addresses: updatedAddresses } };
+  } catch (err) {
+    return handleActionError(err);
+  }
+}
+
+/**
+ * Server Action: Deletes a saved delivery address for the logged-in customer.
+ */
+export async function deleteAddressAction(
+  addressId: string
+): Promise<ServiceResult<{ addresses: UserAddress[] }>> {
+  try {
+    const token = getSessionToken();
+    if (!token) throw new Error('You must be signed in to delete saved addresses');
+    const user = await authService.getUserFromToken(token);
+    if (!user) throw new Error('User account not found');
+
+    const updatedAddresses = await authService.deleteAddress(user.id, addressId);
+    revalidatePath('/account');
+    revalidatePath('/checkout');
+    return { ok: true, data: { addresses: updatedAddresses } };
+  } catch (err) {
+    return handleActionError(err);
+  }
+}
+
+/**
+ * Server Action: Sets a saved address as the default address.
+ */
+export async function setDefaultAddressAction(
+  addressId: string
+): Promise<ServiceResult<{ addresses: UserAddress[] }>> {
+  try {
+    const token = getSessionToken();
+    if (!token) throw new Error('You must be signed in to manage saved addresses');
+    const user = await authService.getUserFromToken(token);
+    if (!user) throw new Error('User account not found');
+
+    const updatedAddresses = await authService.setDefaultAddress(user.id, addressId);
+    revalidatePath('/account');
+    revalidatePath('/checkout');
+    return { ok: true, data: { addresses: updatedAddresses } };
   } catch (err) {
     return handleActionError(err);
   }

@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export interface UserAddress {
+  id?: string;
   fullName: string;
   phone: string;
   street: string;
@@ -27,6 +28,7 @@ export interface UserDocument extends Document {
 
 const AddressSchema = new Schema(
   {
+    id: { type: String, default: () => `addr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}` },
     fullName: { type: String, required: true },
     phone: { type: String, required: true },
     street: { type: String, required: true },
