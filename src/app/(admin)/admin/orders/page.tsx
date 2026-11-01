@@ -31,7 +31,7 @@ export default function AdminOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<OrderSnapshot | null>(null);
   const [editingOrder, setEditingOrder] = useState<OrderSnapshot | null>(null);
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'allocated' | 'shipped' | 'cancelled'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'needs_attention' | 'pending' | 'allocated' | 'shipped' | 'cancelled' | 'legacy_review'>('all');
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [siteSettings, setSiteSettings] = useState<any>(null);
@@ -62,6 +62,27 @@ export default function AdminOrdersPage() {
   useEffect(() => {
     loadOrders();
   }, []);
+
+
+  const handlePackOrder = async (orderId: string) => {
+    setActionLoadingId(orderId);
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}/pack`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to pack order');
+        return;
+      }
+      await loadOrders();
+    } catch (err: any) {
+      alert(err.message || 'Pack request failed');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
 
   const handleUpdateStatus = async (
     orderId: string,
@@ -139,10 +160,12 @@ export default function AdminOrdersPage() {
   };
 
   const filteredOrders = orders.filter((o) => {
-    if (activeTab === 'pending') return o.paymentStatus === 'pending_whatsapp' && o.orderStatus !== 'cancelled';
+    if (activeTab === 'needs_attention') return o.needsAttention === true;
+    if (activeTab === 'pending') return (o.paymentStatus === 'pending_whatsapp' || o.paymentStatus === 'pending') && o.orderStatus !== 'cancelled';
     if (activeTab === 'allocated') return (o.fulfilmentStatus === 'allocated' || o.fulfilmentStatus === 'packed') && o.orderStatus !== 'cancelled';
     if (activeTab === 'shipped') return (o.fulfilmentStatus === 'shipped' || o.fulfilmentStatus === 'out_for_delivery') && o.orderStatus !== 'cancelled';
     if (activeTab === 'cancelled') return o.fulfilmentStatus === 'cancelled' || o.orderStatus === 'cancelled';
+    if (activeTab === 'legacy_review') return o.migrationTag === 'whatsapp_v1' || o.paymentPreference === 'upi_whatsapp';
     return true;
   });
 
@@ -181,6 +204,19 @@ export default function AdminOrdersPage() {
           All Orders ({orders.length})
         </button>
         <button
+          onClick={() => setActiveTab('needs_attention')}
+          className={`px-4 py-1.5 rounded-full transition-all flex-shrink-0 flex items-center gap-1.5 ${
+            activeTab === 'needs_attention' ? 'bg-red-500 text-white shadow-sm' : 'text-red-400 hover:text-red-300'
+          }`}
+        >
+          <span>Needs Attention</span>
+          {orders.filter((o) => o.needsAttention).length > 0 && (
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-red-600 text-white font-black">
+              {orders.filter((o) => o.needsAttention).length}
+            </span>
+          )}
+        </button>
+        <button
           onClick={() => setActiveTab('pending')}
           className={`px-4 py-1.5 rounded-full transition-all flex-shrink-0 flex items-center gap-1.5 ${
             activeTab === 'pending' ? 'bg-primary text-surface-base shadow-sm' : 'text-text-muted hover:text-text-primary'
@@ -208,6 +244,14 @@ export default function AdminOrdersPage() {
           }`}
         >
           Out for Delivery
+        </button>
+        <button
+          onClick={() => setActiveTab('legacy_review')}
+          className={`px-4 py-1.5 rounded-full transition-all flex-shrink-0 ${
+            activeTab === 'legacy_review' ? 'bg-primary text-surface-base shadow-sm' : 'text-text-muted hover:text-text-primary'
+          }`}
+        >
+          Legacy Review Desk
         </button>
         <button
           onClick={() => setActiveTab('cancelled')}
@@ -327,6 +371,18 @@ export default function AdminOrdersPage() {
                   </div>
                 </div>
 
+                {order.needsAttention && (
+                  <div className="p-3.5 rounded-xl bg-red-500/15 border border-red-500/40 text-red-300 text-xs font-bold flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                    <span>⚠️ Needs Operations Attention: {order.needsAttentionReason || 'Manual review required.'}</span>
+                  </div>
+                )}
+                {order.requiresUnpacking && (
+                  <div className="p-3.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                    <span>📦 Cancelled After Packing: Physical carton requires unpacking back onto warehouse shelf.</span>
+                  </div>
+                )}
                 {/* Order Info Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
                   {/* Customer Details */}
@@ -442,11 +498,12 @@ export default function AdminOrdersPage() {
                     {isAllocated && (
                       <Button
                         disabled={isBusy}
-                        onClick={() => handleUpdateStatus(order.id, { fulfilmentStatus: 'packed' })}
+                        onClick={() => handlePackOrder(order.id)}
                         size="sm"
+                        className="bg-primary hover:bg-primary-hover text-surface-base font-bold shadow-gold-glow"
                       >
                         <Package className="w-3.5 h-3.5" />
-                        <span>Mark as Packed</span>
+                        <span>Mark Packed &amp; Request AWB</span>
                       </Button>
                     )}
 

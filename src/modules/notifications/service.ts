@@ -256,6 +256,113 @@ class NotificationService {
       tags: ['password_changed'],
     });
   }
+
+  /**
+   * Dispatches a 6-digit OTP code to verify a Cash on Delivery (COD) order.
+   */
+  async sendCodOtp(to: string, name: string, otp: string, orderNo: string): Promise<string> {
+    const subject = `Your MUVERA COD Verification Code: ${otp} (Order #${orderNo})`;
+    const text = `Hi ${name},\n\nYour 6-digit verification code to confirm your Cash on Delivery order #${orderNo} is:\n\n${otp}\n\nThis code expires in 5 minutes. Please enter it on checkout to confirm your parcel.\n\nBest regards,\nMUVERA Team`;
+
+    const html = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; background-color: #0E0E10; color: #FFFFFF; border: 1px solid #27272A; border-radius: 16px; overflow: hidden; padding: 32px;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h1 style="color: #FACC15; font-size: 28px; font-weight: 900; letter-spacing: 4px; margin: 0;">MUVERA</h1>
+          <p style="color: #A1A1AA; font-size: 11px; margin-top: 4px; text-transform: uppercase; letter-spacing: 2px;">Cash on Delivery Verification</p>
+        </div>
+        
+        <div style="background-color: #121216; border: 1px solid #27272A; border-radius: 12px; padding: 24px; margin-bottom: 24px; text-align: center;">
+          <p style="font-size: 15px; line-height: 1.6; color: #FFFFFF; text-align: left; margin: 0 0 16px;">Hi <strong style="color: #FACC15;">${name}</strong>,</p>
+          <p style="font-size: 14px; line-height: 1.6; color: #A1A1AA; text-align: left; margin: 0 0 24px;">
+            Please enter the single-use 6-digit verification code below to confirm your Cash on Delivery order <strong>#${orderNo}</strong>.
+          </p>
+          
+          <div style="margin: 20px 0; background-color: #0A0A0D; border: 1px solid #FACC15; border-radius: 12px; padding: 20px 24px; display: inline-block;">
+            <p style="margin: 0 0 6px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #A1A1AA; font-weight: 700;">YOUR 6-DIGIT CODE</p>
+            <span style="font-family: 'Courier New', Courier, monospace; font-size: 38px; font-weight: 900; letter-spacing: 10px; color: #FACC15; padding-left: 10px;">
+              ${otp}
+            </span>
+            <p style="margin: 8px 0 0 0; font-size: 11px; color: #71717A;">Expires in 5 minutes</p>
+          </div>
+
+          <p style="font-size: 12px; line-height: 1.5; color: #71717A; margin: 24px 0 0; text-align: left;">
+            If you did not initiate this order, please disregard this email. Never share this code with anyone.
+          </p>
+        </div>
+      </div>
+    `;
+
+    const provider = serverEnv.BREVO_API_KEY ? this.brevoProvider : this.defaultProvider;
+
+    return provider.send({
+      to,
+      name,
+      subject,
+      html,
+      text,
+      otp,
+      tags: ['cod_verification_otp'],
+      templateParams: {
+        otp,
+        otp_code: otp,
+        passcode: otp,
+        to_name: name,
+        expiry_minutes: '5',
+        order_no: orderNo,
+        subject,
+      },
+    });
+  }
+
+  /**
+   * Sends booking confirmation email for a confirmed order (COD or Prepaid).
+   */
+  async sendOrderConfirmationEmail(order: any): Promise<string> {
+    const to = order.customerEmail || order.shippingAddress?.email;
+    if (!to) return '';
+    const name = order.customerName || 'Customer';
+    const orderNo = order.orderNo || order.id?.slice(-8) || 'ORDER';
+    const amountRupees = ((order.totalPaise || 0) / 100).toFixed(2);
+    const subject = `Order Confirmed: #${orderNo} - MUVERA`;
+
+    const text = `Hi ${name},\n\nYour order #${orderNo} has been confirmed!\nTotal Amount: ₹${amountRupees}\nPayment Method: ${order.paymentPreference === 'cod' ? 'Cash on Delivery' : 'Prepaid (Online)'}\n\nWe are preparing your package. A statutory tax invoice and tracking details will be generated upon dispatch.\n\nThank you for shopping with MUVERA.`;
+
+    const html = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; background-color: #0E0E10; color: #FFFFFF; border: 1px solid #27272A; border-radius: 16px; overflow: hidden; padding: 32px;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h1 style="color: #FACC15; font-size: 28px; font-weight: 900; letter-spacing: 4px; margin: 0;">MUVERA</h1>
+          <p style="color: #A1A1AA; font-size: 11px; margin-top: 4px; text-transform: uppercase; letter-spacing: 2px;">Order Confirmed</p>
+        </div>
+        
+        <div style="background-color: #121216; border: 1px solid #27272A; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+          <p style="font-size: 15px; line-height: 1.6; color: #FFFFFF; margin: 0 0 16px;">Hi <strong style="color: #FACC15;">${name}</strong>,</p>
+          <p style="font-size: 14px; line-height: 1.6; color: #A1A1AA; margin: 0 0 20px;">
+            Thank you for your order! Your order <strong>#${orderNo}</strong> is confirmed and is being prepped for fulfillment.
+          </p>
+
+          <div style="background-color: #0A0A0D; border: 1px solid #27272A; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+            <p style="margin: 0 0 8px; font-size: 13px; color: #A1A1AA;">Total Amount: <strong style="color: #FACC15;">₹${amountRupees}</strong></p>
+            <p style="margin: 0; font-size: 13px; color: #A1A1AA;">Payment: <strong style="color: #FFFFFF;">${order.paymentPreference === 'cod' ? 'Cash on Delivery (Pay upon delivery)' : 'Paid Online'}</strong></p>
+          </div>
+
+          <p style="font-size: 12px; line-height: 1.5; color: #71717A; margin: 0;">
+            * In accordance with statutory guidelines, your tax invoice and carrier tracking link will be provided upon warehouse dispatch.
+          </p>
+        </div>
+      </div>
+    `;
+
+    const provider = serverEnv.BREVO_API_KEY ? this.brevoProvider : this.defaultProvider;
+
+    return provider.send({
+      to,
+      name,
+      subject,
+      html,
+      text,
+      tags: ['order_confirmed'],
+    });
+  }
 }
 
 export const notificationService = new NotificationService();

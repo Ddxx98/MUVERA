@@ -124,6 +124,21 @@ export async function GET(
           } else if (job.type === 'fulfill_shipment') {
             const { fulfillShipmentJob } = await import('@/modules/shipping/jobs/fulfill-shipment');
             await fulfillShipmentJob(job.payload as any);
+          } else if (job.type === 'assign_awb') {
+            const { assignAwbJob } = await import('@/modules/shipping/jobs/assign-awb');
+            await assignAwbJob(job.payload as any);
+          } else if (job.type === 'cancel_shipment') {
+            const { cancelShipmentJob } = await import('@/modules/shipping/jobs/cancel-shipment');
+            await cancelShipmentJob(job.payload as any);
+          } else if (job.type === 'order_on_paid') {
+            const { orderOnPaidJob } = await import('@/modules/orders/jobs/order-on-paid');
+            await orderOnPaidJob(job.payload as any);
+          } else if (job.type === 'order_on_confirmed') {
+            const { orderOnConfirmedJob } = await import('@/modules/orders/jobs/order-on-confirmed');
+            await orderOnConfirmedJob(job.payload as any);
+          } else if (job.type === 'process_refund') {
+            const { processRefundJob } = await import('@/modules/payments/jobs/process-refund');
+            await processRefundJob(job.payload as any);
           } else if (job.type === 'verify_cod_delivery') {
             const { verifyCodDeliveryJob } = await import('@/modules/shipping/jobs/verify-cod-delivery');
             await verifyCodDeliveryJob(job.payload as any);

@@ -109,6 +109,20 @@ export class ShiprocketClient {
     return this.request<{ balance_amount: number }>('/account/details/wallet-balance');
   }
 
+  async cancelOrder(orderIds: number[]): Promise<any> {
+    return this.request('/orders/cancel', {
+      method: 'POST',
+      body: JSON.stringify({ ids: orderIds }),
+    });
+  }
+
+  async cancelAwb(awbs: string[]): Promise<any> {
+    return this.request('/orders/cancel/shipment/awbs', {
+      method: 'POST',
+      body: JSON.stringify({ awbs }),
+    });
+  }
+
   private handleMockRequest<T>(endpoint: string, options: RequestInit): T {
     if (endpoint.includes('/orders/create/adhoc')) {
       const body = JSON.parse(String(options.body || '{}'));
@@ -151,6 +165,12 @@ export class ShiprocketClient {
     if (endpoint.includes('/account/details/wallet-balance')) {
       return {
         balance_amount: 5000,
+      } as T;
+    }
+    if (endpoint.includes('/orders/cancel')) {
+      return {
+        message: 'Order cancelled successfully',
+        status_code: 200,
       } as T;
     }
     return {} as T;

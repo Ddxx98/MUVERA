@@ -57,6 +57,8 @@ export default function AdminSettingsPage() {
     upiEnabled: true,
     codEnabled: true,
     razorpayEnabled: false,
+    checkoutV2Enabled: false,
+    prepaidEnabled: false,
     heroActive: true,
     heroBackgroundImage: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=1600&auto=format&fit=crop&q=80',
     heroTagBadge: 'Blitz Drop 04',
@@ -1295,11 +1297,27 @@ export default function AdminSettingsPage() {
                 <label className="flex items-center gap-2 p-3 rounded-xl bg-surface-raised border border-surface-border cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={settings.razorpayEnabled}
-                    onChange={(e) => setSettings({ ...settings, razorpayEnabled: e.target.checked })}
+                    checked={settings.checkoutV2Enabled}
+                    onChange={(e) => setSettings({ ...settings, checkoutV2Enabled: e.target.checked })}
                     className="accent-primary w-4 h-4"
                   />
-                  <span className="text-xs font-bold text-text-primary">Online Gateway (Razorpay)</span>
+                  <div>
+                    <span className="text-xs font-bold text-text-primary block">Direct Commerce V2</span>
+                    <span className="text-[10px] text-text-muted">Enables direct COD with OTP and Shiprocket fulfillment</span>
+                  </div>
+                </label>
+
+                <label className="flex items-center gap-2 p-3 rounded-xl bg-surface-raised border border-surface-border cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settings.prepaidEnabled}
+                    onChange={(e) => setSettings({ ...settings, prepaidEnabled: e.target.checked })}
+                    className="accent-primary w-4 h-4"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-text-primary block">Online Gateway (Razorpay)</span>
+                    <span className="text-[10px] text-text-muted">Enables UPI, cards &amp; netbanking at checkout</span>
+                  </div>
                 </label>
               </div>
             </div>

@@ -39,6 +39,7 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
   { pattern: /^\/api\/cron\//, class: 'machine', description: 'Background cron jobs; verified by CRON_SECRET' },
   { pattern: /^\/api\/webhooks\/logistics/, class: 'machine', description: 'Shiprocket logistics webhooks; timing-safe secret verified' },
   { pattern: /^\/api\/webhooks\/razorpay/, class: 'machine', description: 'Razorpay payment webhooks; HMAC-SHA256 verified' },
+  { pattern: /^\/api\/payments\/razorpay\/webhook$/, class: 'machine', description: 'Razorpay payment webhook; HMAC-SHA256 verified' },
   { pattern: /^\/api\/webhooks\/brevo/, class: 'machine', description: 'Brevo email webhooks; key verified' },
   { pattern: /^\/api\/seed/, class: 'machine', description: 'Seed route; dev/test only' },
 
@@ -50,6 +51,11 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
   // ─── Public & Customer Storefront API routes ────────────────────────────────
   { pattern: /^\/api\/settings$/, class: 'public', description: 'Settings GET is public for storefront CMS, PUT is admin-only (checked in handler)' },
   { pattern: /^\/api\/orders$/, class: 'public', description: 'Orders API: POST creates order, GET returns customer/admin orders, PATCH requires admin' },
+  { pattern: /^\/api\/orders\/[^/]+\/cod-confirm$/, class: 'customer', description: 'COD email OTP send and verify' },
+  { pattern: /^\/api\/orders\/[^/]+\/cancel$/, class: 'customer', description: 'Customer or admin order cancellation' },
+  { pattern: /^\/api\/payments\/razorpay\/create-order$/, class: 'customer', description: 'Create Razorpay order for direct payment' },
+  { pattern: /^\/api\/create-order$/, class: 'customer', description: 'Create Razorpay standard web checkout order' },
+  { pattern: /^\/api\/verify-payment$/, class: 'customer', description: 'Verify Razorpay payment HMAC signature' },
   { pattern: /^\/api\/inventory$/, class: 'public', description: 'Inventory availability read; public for storefront' },
   { pattern: /^\/api\/shipping\/serviceability/, class: 'public', description: 'Pincode delivery & COD serviceability check' },
   { pattern: /^\/api\/shipping\/ndr/, class: 'public', description: 'NDR customer reattempt dispatch; verified by signed token' },

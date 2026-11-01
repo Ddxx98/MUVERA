@@ -56,6 +56,17 @@ export interface IShipment extends Document {
     images?: string[];
     failureReason?: string;
   };
+  srOrderId?: string;
+  srShipmentId?: number;
+  channelOrderId?: string;
+  shippingSyncStatus?: 'not_synced' | 'creating' | 'synced' | 'sync_failed';
+  awbStatus?: 'pending' | 'assigned' | 'failed';
+  pickupScheduled?: boolean;
+  labelGenerated?: boolean;
+  labelUrl?: string;
+  cancellationStatus?: 'none' | 'pending' | 'cancelled' | 'refused';
+  needsAttention?: boolean;
+  needsAttentionReason?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -66,7 +77,32 @@ const ShipmentSchema = new Schema<IShipment>(
     orderNo: { type: String, required: true, index: true },
     returnId: { type: String, index: true },
     direction: { type: String, enum: ['forward', 'return'], required: true, default: 'forward', index: true },
-    awb: { type: String, required: true, unique: true, index: true },
+    awb: { type: String, index: true },
+    srOrderId: { type: String, index: true },
+    srShipmentId: { type: Number, index: true },
+    channelOrderId: { type: String, index: true },
+    shippingSyncStatus: {
+      type: String,
+      enum: ['not_synced', 'creating', 'synced', 'sync_failed'],
+      default: 'not_synced',
+      index: true,
+    },
+    awbStatus: {
+      type: String,
+      enum: ['pending', 'assigned', 'failed'],
+      default: 'pending',
+      index: true,
+    },
+    pickupScheduled: { type: Boolean, default: false },
+    labelGenerated: { type: Boolean, default: false },
+    labelUrl: { type: String },
+    cancellationStatus: {
+      type: String,
+      enum: ['none', 'pending', 'cancelled', 'refused'],
+      default: 'none',
+    },
+    needsAttention: { type: Boolean, default: false },
+    needsAttentionReason: { type: String },
     courierName: { type: String, required: true },
     courierId: { type: Number },
     status: {
@@ -125,6 +161,12 @@ const ShipmentSchema = new Schema<IShipment>(
 
 ShipmentSchema.index({ orderId: 1, direction: 1 });
 ShipmentSchema.index({ status: 1, lastStatusTimestamp: -1 });
+
+// Partial unique index for non-null AWBs
+ShipmentSchema.index(
+  { awb: 1 },
+  { unique: true, partialFilterExpression: { awb: { $type: 'string' } } }
+);
 
 export const ShipmentModel: Model<IShipment> =
   mongoose.models.Shipment || mongoose.model<IShipment>('Shipment', ShipmentSchema);

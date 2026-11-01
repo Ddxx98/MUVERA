@@ -25,6 +25,7 @@ export interface CreateOrderInput {
   totalPaise: number;
   couponCode?: string;
   notes?: string;
+  idempotencyKey?: string;
 }
 
 export interface ManualOrderUpdateInput {
@@ -130,6 +131,7 @@ export const orderService = {
       deliveryFeePaise: input.deliveryFeePaise,
       totalPaise: input.totalPaise,
       couponCode: input.couponCode,
+      idempotencyKey: input.idempotencyKey,
       timeline: initialTimeline,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

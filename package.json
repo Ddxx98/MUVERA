@@ -11,7 +11,8 @@
     "check:routes": "node scripts/check-route-policy.js",
     "test:auth": "node --test tests/auth-architecture.test.js",
     "test:logistics": "node --test tests/logistics-architecture.test.js",
-    "test": "node --test tests/auth-architecture.test.js tests/logistics-architecture.test.js",
+    "test:direct": "node --test tests/direct-commerce.test.js",
+    "test": "node --test tests/auth-architecture.test.js tests/logistics-architecture.test.js tests/direct-commerce.test.js",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -23,6 +24,7 @@
     "mongoose": "^9.10.3",
     "next": "^14.2.15",
     "qrcode": "^1.5.4",
+    "razorpay": "^2.9.8",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-redux": "^9.3.1",

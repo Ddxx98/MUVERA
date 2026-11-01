@@ -29,11 +29,15 @@ const ROUTE_POLICIES = [
   // Machine routes
   /^\/api\/cron\//,
   /^\/api\/webhooks\//,
+  /^\/api\/payments\/razorpay\/webhook/,
   /^\/api\/seed/,
 
   // Admin API routes
   /^\/api\/admin\//,
   /^\/api\/orders$/,
+  /^\/api\/orders\/[^/]+\/cancel/,
+  /^\/api\/orders\/[^/]+\/cod-confirm/,
+  /^\/api\/payments\/razorpay\/create-order/,
   /^\/api\/returns$/,
   /^\/api\/settings$/,
   /^\/api\/inventory$/,
@@ -45,6 +49,8 @@ const ROUTE_POLICIES = [
   /^\/api\/coupons/,
   /^\/api\/shipping\/serviceability/,
   /^\/api\/shipping\/ndr/,
+  /^\/api\/create-order$/,
+  /^\/api\/verify-payment$/,
 
   // Admin pages
   /^\/admin/,

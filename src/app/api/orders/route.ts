@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import crypto from 'crypto';
+import { db, connectToMongo } from '@/lib/db';
 import { orderService } from '@/modules/orders';
-import { requireAdmin, requireCustomer, getOptionalUser } from '@/modules/auth/guards';
+import { requireAdmin, getOptionalUser } from '@/modules/auth/guards';
+import { IdempotencyKeyModel } from '@/lib/models/IdempotencyKey';
+import { SiteSettingsModel } from '@/lib/models/SiteSettings';
+import { serverEnv } from '@/config/env.server';
 import { AppError } from '@/lib/errors';
 
 export async function GET(req: Request) {
   try {
+    await connectToMongo();
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const userId = searchParams.get('userId');
@@ -29,7 +34,18 @@ export async function GET(req: Request) {
         }
       }
 
-      return NextResponse.json({ order });
+      // Customer-safe response
+      const safeOrder = {
+        ...order,
+        // Strip sensitive internal fields if requested by non-admin customer
+        ...(ctx?.role !== 'admin'
+          ? {
+              assignedRider: order.assignedRider,
+            }
+          : {}),
+      };
+
+      return NextResponse.json({ order: safeOrder });
     }
 
     // Listing orders:
@@ -44,7 +60,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ orders });
     }
 
-    // Authenticated customers see only their own orders using direct index-backed query (customerId or email/phone)
+    // Authenticated customers see only their own orders
     const userPhone = (ctx.phone || '').replace(/\D/g, '').slice(-10);
     const userEmail = (ctx.email || '').toLowerCase().trim();
 
@@ -64,17 +80,99 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    await connectToMongo();
     const ctx = await getOptionalUser();
     const body = await req.json();
+
+    // Check runtime feature flag from SiteSettings
+    const settings = await SiteSettingsModel.findOne().lean().catch(() => null);
+    const isV2Enabled = settings?.checkoutV2Enabled ?? false;
+
+    // In V2 direct commerce mode, customer account is mandatory
+    if (isV2Enabled && !ctx) {
+      return NextResponse.json(
+        { error: 'Login required to place an order. Please create an account or sign in.' },
+        { status: 401 }
+      );
+    }
+
+    const idempotencyKey = req.headers.get('Idempotency-Key')?.trim();
+    const customerId = ctx?.id || body.customerId || 'guest';
+    const requestHash = crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex');
+
+    let idempotencyDoc: any = null;
+
+    // Idempotency lease lock if key is provided
+    if (idempotencyKey) {
+      try {
+        idempotencyDoc = await IdempotencyKeyModel.create({
+          key: idempotencyKey,
+          customerId,
+          requestHash,
+          status: 'in_progress',
+          leaseExpiresAt: new Date(Date.now() + 60 * 1000), // 60-second lease
+        });
+      } catch (err: any) {
+        if (err.code === 11000) {
+          const existing = await IdempotencyKeyModel.findOne({ customerId, key: idempotencyKey });
+          if (!existing) {
+            return NextResponse.json({ error: 'Idempotency conflict' }, { status: 409 });
+          }
+
+          // Check body hash match
+          if (existing.requestHash !== requestHash) {
+            return NextResponse.json(
+              { error: 'Idempotency key reused with different payload' },
+              { status: 409 }
+            );
+          }
+
+          // If completed, return cached response
+          if (existing.status === 'completed' && existing.response) {
+            return NextResponse.json(existing.response, { status: 200 });
+          }
+
+          // If lease active, return 425 / 409
+          if (existing.status === 'in_progress' && existing.leaseExpiresAt > new Date()) {
+            return NextResponse.json(
+              { error: 'Order is currently being processed. Please wait a moment.' },
+              { status: 425 }
+            );
+          }
+
+          // Lease expired: reclaim
+          existing.leaseExpiresAt = new Date(Date.now() + 60 * 1000);
+          await existing.save();
+          idempotencyDoc = existing;
+        } else {
+          throw err;
+        }
+      }
+    }
 
     const customerName = (body.customerName || body.shippingAddress?.fullName || ctx?.name || '').trim() || 'Customer';
     const customerPhone = (body.customerPhone || body.shippingAddress?.phone || ctx?.phone || '').trim();
     const customerEmail = (body.customerEmail || ctx?.email || '').trim() || undefined;
 
-    if (!customerPhone) {
-      return NextResponse.json({ error: 'Customer mobile number is required' }, { status: 400 });
+    // Mobile number regex validation
+    if (!customerPhone || !/^[6-9]\d{9}$/.test(customerPhone.replace(/\D/g, '').slice(-10))) {
+      if (idempotencyDoc) await IdempotencyKeyModel.deleteOne({ _id: idempotencyDoc._id });
+      return NextResponse.json({ error: 'Please enter a valid 10-digit Indian mobile number' }, { status: 400 });
     }
 
+    // COD order limit check
+    if (body.paymentPreference === 'cod') {
+      const maxCodPaise = serverEnv.COD_MAX_ORDER_VALUE_PAISE || 500000;
+      if (Number(body.totalPaise) > maxCodPaise) {
+        if (idempotencyDoc) await IdempotencyKeyModel.deleteOne({ _id: idempotencyDoc._id });
+        return NextResponse.json(
+          { error: `Cash on Delivery is only available for orders up to ₹${maxCodPaise / 100}. Please choose online payment.` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Create order atomically
     const order = await orderService.createOrder({
       customerId: ctx?.id || body.customerId || undefined,
       customerName,
@@ -82,7 +180,7 @@ export async function POST(req: Request) {
       customerEmail,
       shippingAddress: body.shippingAddress,
       deliveryMethod: body.deliveryMethod || 'standard',
-      paymentPreference: body.paymentPreference || 'upi_whatsapp',
+      paymentPreference: body.paymentPreference || 'cod',
       items: (body.items || []).map((i: any) => ({
         ...i,
         variantId: i.variantId || i._id?.toString() || `${i.productId || 'p'}_${i.size || 'std'}_${i.sku || 'item'}`,
@@ -94,9 +192,20 @@ export async function POST(req: Request) {
       totalPaise: Number(body.totalPaise) || 0,
       couponCode: body.couponCode,
       notes: body.notes,
+      idempotencyKey: idempotencyKey || undefined,
     });
 
-    return NextResponse.json({ success: true, order });
+    const successResponse = { success: true, order };
+
+    // Mark idempotency key completed
+    if (idempotencyDoc) {
+      idempotencyDoc.status = 'completed';
+      idempotencyDoc.orderId = order.id;
+      idempotencyDoc.response = successResponse;
+      await idempotencyDoc.save();
+    }
+
+    return NextResponse.json(successResponse, { status: 201 });
   } catch (err: any) {
     console.error('Order creation failed:', err);
     return NextResponse.json({ error: err.message || 'Failed to place order' }, { status: 400 });
@@ -105,7 +214,6 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    // Status updates are admin-only
     await requireAdmin();
 
     const body = await req.json();

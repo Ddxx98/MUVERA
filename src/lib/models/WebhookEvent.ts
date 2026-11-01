@@ -8,6 +8,7 @@ export type WebhookEventStatus =
   | 'informational'
   | 'rejected_stale'
   | 'rejected_invalid_transition'
+  | 'rejected_amount_mismatch'
   | 'unmapped'
   | 'unknown_awb'
   | 'direction_mismatch'
@@ -39,6 +40,7 @@ const WebhookEventSchema = new Schema<IWebhookEvent>(
         'informational',
         'rejected_stale',
         'rejected_invalid_transition',
+        'rejected_amount_mismatch',
         'unmapped',
         'unknown_awb',
         'direction_mismatch',

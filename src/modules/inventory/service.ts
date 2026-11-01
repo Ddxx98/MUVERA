@@ -219,6 +219,41 @@ export const inventoryService = {
   /**
    * Restocks returned inventory items after inspection.
    */
+  /**
+   * Restocks committed items after an allocated order is cancelled.
+   */
+  async cancelRestock(
+    orderId: string,
+    items: Array<{ variantId: string; sku: string; quantity: number }>,
+    locationId: string = "loc_blr_ind_01",
+    actor: string = "Order Cancellation"
+  ): Promise<void> {
+    for (const item of items) {
+      let inv = await db.getInventoryItem(item.variantId, locationId);
+      if (!inv) continue;
+      const previousOnHand = inv.onHand;
+      inv.onHand += item.quantity;
+      inv.available = Math.max(0, inv.onHand - inv.reserved);
+      inv.updatedAt = new Date().toISOString();
+      await db.saveInventoryItem(inv);
+      const movement: StockMovement = {
+        id: "mov_cnl_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
+        variantId: item.variantId,
+        sku: item.sku,
+        locationId,
+        type: "cancel_restock" as any,
+        quantityDelta: item.quantity,
+        previousOnHand,
+        newOnHand: inv.onHand,
+        referenceId: orderId,
+        reason: "Order cancelled post-allocation",
+        actor,
+        createdAt: new Date().toISOString(),
+      };
+      await db.addStockMovement(movement);
+    }
+  },
+
   async returnStock(
     variantId: string,
     sku: string,

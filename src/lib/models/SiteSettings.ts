@@ -22,6 +22,9 @@ export interface SiteSettingsData {
   upiEnabled: boolean;
   codEnabled: boolean;
   razorpayEnabled: boolean;
+  checkoutV2Enabled?: boolean;
+  prepaidEnabled?: boolean;
+  courierSelectionStrategy?: 'cheapest' | 'fastest' | 'best_rated';
   // Hero Section CMS
   heroActive?: boolean;
   heroBackgroundImage?: string;
@@ -69,6 +72,9 @@ const SiteSettingsSchema = new Schema<SiteSettingsDocument>(
     upiEnabled: { type: Boolean, default: true },
     codEnabled: { type: Boolean, default: true },
     razorpayEnabled: { type: Boolean, default: false },
+    checkoutV2Enabled: { type: Boolean, default: false },
+    prepaidEnabled: { type: Boolean, default: false },
+    courierSelectionStrategy: { type: String, enum: ['cheapest', 'fastest', 'best_rated'], default: 'cheapest' },
     // Hero Section CMS
     heroActive: { type: Boolean, default: true },
     heroBackgroundImage: {

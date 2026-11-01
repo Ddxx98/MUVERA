@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useStore } from '@/lib/store-context';
@@ -19,24 +19,64 @@ import {
   ShieldCheck,
   Package,
   Download,
+  Clock,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 export default function OrderSuccessPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const orderId = params?.id as string;
+  const paymentIdParam = searchParams.get('payment_id');
   const { siteSettings } = useStore();
 
   const [order, setOrder] = useState<OrderSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
+  const [polling, setPolling] = useState(false);
 
   useEffect(() => {
+    let intervalId: any = null;
+    let pollCount = 0;
+    const maxPolls = 12; // 30 seconds (12 * 2.5s)
+
     async function fetchOrder() {
       try {
         const res = await fetch(`/api/orders?id=${orderId}`);
         const data = await res.json();
         if (data.order) {
           setOrder(data.order);
+
+          // If order is prepaid and payment is pending verification, poll
+          const isPending =
+            data.order.paymentPreference === 'razorpay' &&
+            data.order.paymentStatus === 'pending' &&
+            pollCount < maxPolls;
+
+          if (isPending) {
+            setPolling(true);
+            if (!intervalId) {
+              intervalId = setInterval(async () => {
+                pollCount++;
+                try {
+                  const pollRes = await fetch(`/api/orders?id=${orderId}`);
+                  const pollData = await pollRes.json();
+                  if (pollData.order) {
+                    setOrder(pollData.order);
+                    if (pollData.order.paymentStatus === 'paid' || pollCount >= maxPolls) {
+                      clearInterval(intervalId);
+                      setPolling(false);
+                    }
+                  }
+                } catch {
+                  clearInterval(intervalId);
+                  setPolling(false);
+                }
+              }, 2500);
+            }
+          } else {
+            setPolling(false);
+          }
         }
       } catch {
         // Handle error
@@ -44,7 +84,12 @@ export default function OrderSuccessPage() {
         setLoading(false);
       }
     }
+
     fetchOrder();
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [orderId]);
 
   if (loading) {
@@ -60,7 +105,9 @@ export default function OrderSuccessPage() {
     return (
       <div className="max-w-md mx-auto py-24 px-4 text-center space-y-4 bg-surface-card border border-surface-border rounded-3xl p-8 my-12 shadow-2xl">
         <h2 className="font-headline font-bold text-xl text-text-primary">Order Not Found</h2>
-        <p className="text-xs text-text-muted">We could not locate this order snapshot. Please check your order history in your account or reconnect via WhatsApp.</p>
+        <p className="text-xs text-text-muted">
+          We could not locate this order. Please check your order history in your account profile.
+        </p>
         <div className="pt-2">
           <Link
             href="/products"
@@ -74,22 +121,23 @@ export default function OrderSuccessPage() {
   }
 
   const orderNo = order.orderNo;
-  const total = order.totalPaise;
-
+  const isDirectCommerce = order.paymentPreference === 'cod' || order.paymentPreference === 'razorpay';
   const isCancelled = order.fulfilmentStatus === 'cancelled' || order.orderStatus === 'cancelled';
   const isPaidOrConfirmed =
     order.paymentStatus === 'paid' ||
     order.paymentStatus === 'authorized' ||
+    !!order.codConfirmedAt ||
     ['allocated', 'picking', 'packed', 'shipped', 'out_for_delivery', 'delivered'].includes(order.fulfilmentStatus);
+
   const isPacked = ['packed', 'shipped', 'out_for_delivery', 'delivered'].includes(order.fulfilmentStatus);
   const isShipped = ['shipped', 'out_for_delivery', 'delivered'].includes(order.fulfilmentStatus);
   const isDelivered = order.fulfilmentStatus === 'delivered';
 
   const steps = [
     { label: 'Booking Request', done: true },
-    { label: 'Confirmed & Paid', done: isPaidOrConfirmed },
-    { label: 'Packed', done: isPacked },
-    { label: 'Out for Delivery', done: isShipped },
+    { label: order.paymentPreference === 'cod' ? 'COD Confirmed' : 'Paid Online', done: isPaidOrConfirmed },
+    { label: 'Packed & Invoiced', done: isPacked },
+    { label: 'Dispatched', done: isShipped },
     { label: 'Delivered', done: isDelivered },
   ];
 
@@ -109,19 +157,29 @@ export default function OrderSuccessPage() {
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
       {/* Celebration Header */}
       <div className="p-8 rounded-3xl bg-surface-card border border-surface-border text-center space-y-4 shadow-2xl relative overflow-hidden">
-        <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto shadow-gold-glow ${
-          isCancelled
-            ? 'bg-red-500/20 border border-red-500/40 text-red-400'
-            : 'bg-primary/20 border border-primary/40 text-primary'
-        }`}>
+        <div
+          className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto shadow-gold-glow ${
+            isCancelled
+              ? 'bg-red-500/20 border border-red-500/40 text-red-400'
+              : 'bg-primary/20 border border-primary/40 text-primary'
+          }`}
+        >
           <CheckCircle className="w-9 h-9" />
         </div>
 
         <div className="space-y-1">
-          <span className={`text-xs font-black uppercase tracking-widest ${
-            isCancelled ? 'text-red-400' : 'text-primary'
-          }`}>
-            {isCancelled ? 'Order Cancelled' : isPaidOrConfirmed ? 'Order Confirmed' : 'WhatsApp Booking Request Initiated'}
+          <span
+            className={`text-xs font-black uppercase tracking-widest ${
+              isCancelled ? 'text-red-400' : 'text-primary'
+            }`}
+          >
+            {isCancelled
+              ? 'Order Cancelled'
+              : isPaidOrConfirmed
+              ? order.paymentPreference === 'cod'
+                ? 'Order Confirmed (Cash on Delivery)'
+                : 'Payment Verified & Confirmed'
+              : 'Order Placed • Awaiting Confirmation'}
           </span>
           <h1 className="font-headline font-black text-2xl sm:text-4xl text-text-primary">
             Order #{orderNo}
@@ -130,14 +188,21 @@ export default function OrderSuccessPage() {
             {isCancelled
               ? 'This order has been cancelled and any reserved inventory has been returned to stock.'
               : isPaidOrConfirmed
-              ? 'Your order has been verified and confirmed! Dark store fulfillment is underway.'
+              ? 'Your order is confirmed and stock has been committed. Fulfillment and dispatch are in progress!'
               : 'Your booking has been received. Please send your payment screenshot or confirm your details on WhatsApp with our Indiranagar dispatch desk to complete order placement.'}
           </p>
         </div>
 
+        {polling && (
+          <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-4 py-1.5 rounded-full text-xs font-bold text-amber-400 animate-pulse">
+            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            <span>Confirming payment capture with gateway...</span>
+          </div>
+        )}
+
         <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/30 px-4 py-1.5 rounded-full text-xs font-bold text-primary">
           <Truck className="w-4 h-4" />
-          <span>📦 Estimated Delivery: 2-4 Business Days</span>
+          <span>📦 Estimated Delivery: 2-4 Business Days via Express Courier</span>
         </div>
 
         {order.trackingNumber && (
@@ -165,7 +230,9 @@ export default function OrderSuccessPage() {
         ) : (
           <div className="relative flex items-center justify-between">
             <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1 bg-surface-border z-0" />
-            <div className={`absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-primary z-0 shadow-gold-glow transition-all duration-500 ${progressWidth}`} />
+            <div
+              className={`absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-primary z-0 shadow-gold-glow transition-all duration-500 ${progressWidth}`}
+            />
 
             {/* Steps */}
             {steps.map((step, idx) => (
@@ -179,7 +246,11 @@ export default function OrderSuccessPage() {
                 >
                   {step.done ? '✓' : idx + 1}
                 </div>
-                <span className={`text-[10px] font-bold text-center max-w-[4.5rem] leading-tight ${step.done ? 'text-primary' : 'text-text-muted'}`}>
+                <span
+                  className={`text-[10px] font-bold text-center max-w-[4.5rem] leading-tight ${
+                    step.done ? 'text-primary' : 'text-text-muted'
+                  }`}
+                >
                   {step.label}
                 </span>
               </div>
@@ -201,7 +272,7 @@ export default function OrderSuccessPage() {
           </button>
         )}
 
-        {order && (
+        {!isDirectCommerce && order && (
           <a
             href={generateWhatsAppOrderUrl(order, siteSettings?.whatsappNumber, siteSettings?.businessUpiMerchantName)}
             target="_blank"

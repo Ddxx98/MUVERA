@@ -8,9 +8,12 @@ const serverEnvSchema = z.object({
   SESSION_SECRET: z.string().default('muvera_customer_session_secret_2026'),
   /** Separate JWT signing secret for admin sessions (aud=admin) */
   ADMIN_SESSION_SECRET: z.string().default('muvera_admin_session_jwt_secret_2026'),
+  RAZORPAY_MODE: z.enum(['test', 'live']).default('test'),
   RAZORPAY_KEY_ID: z.string().optional().default(''),
   RAZORPAY_KEY_SECRET: z.string().optional().default(''),
   RAZORPAY_WEBHOOK_SECRET: z.string().optional().default(''),
+  OTP_SECRET: z.string().min(32).default('muvera_otp_secret_key_32chars_2026'),
+  COD_MAX_ORDER_VALUE_PAISE: z.coerce.number().int().positive().default(500000),
   CLOUDINARY_API_KEY: z.string().optional().default(''),
   CLOUDINARY_API_SECRET: z.string().optional().default(''),
   CRON_SECRET: z.string().default('muvera_cron_secret_internal_2026'),
@@ -46,6 +49,14 @@ if (!parsed.success) {
 }
 
 if (process.env.NODE_ENV === 'production') {
+  if (process.env.RAZORPAY_MODE === 'live') {
+    if (!process.env.RAZORPAY_KEY_ID?.startsWith('rzp_live_')) {
+      throw new Error('[ENV] RAZORPAY_KEY_ID must start with rzp_live_ in production live mode');
+    }
+    if (!process.env.RAZORPAY_KEY_SECRET || !process.env.RAZORPAY_WEBHOOK_SECRET) {
+      throw new Error('[ENV] RAZORPAY_KEY_SECRET and RAZORPAY_WEBHOOK_SECRET are required when RAZORPAY_MODE=live in production');
+    }
+  }
   if (process.env.SHIPPING_PROVIDER === 'shiprocket') {
     if (!process.env.SHIPROCKET_EMAIL || !process.env.SHIPROCKET_PASSWORD) {
       throw new Error('[ENV] SHIPROCKET_EMAIL and SHIPROCKET_PASSWORD are required when SHIPPING_PROVIDER=shiprocket');
@@ -58,9 +69,12 @@ export const serverEnv = parsed.success ? parsed.data : {
   ADMIN_SECRET_KEY: process.env.ADMIN_SECRET_KEY || 'muvera_admin_master_secret_2026',
   SESSION_SECRET: process.env.SESSION_SECRET || 'muvera_customer_session_secret_2026',
   ADMIN_SESSION_SECRET: process.env.ADMIN_SESSION_SECRET || 'muvera_admin_session_jwt_secret_2026',
+  RAZORPAY_MODE: (process.env.RAZORPAY_MODE as any) || 'test',
   RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID || '',
   RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET || '',
   RAZORPAY_WEBHOOK_SECRET: process.env.RAZORPAY_WEBHOOK_SECRET || '',
+  OTP_SECRET: process.env.OTP_SECRET || 'muvera_otp_secret_key_32chars_2026',
+  COD_MAX_ORDER_VALUE_PAISE: Number(process.env.COD_MAX_ORDER_VALUE_PAISE) || 500000,
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || '',
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || '',
   CRON_SECRET: process.env.CRON_SECRET || 'muvera_cron_secret_internal_2026',

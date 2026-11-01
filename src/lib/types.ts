@@ -107,8 +107,17 @@ export interface ShippingAddress {
   pincode: string;
 }
 
-export type PaymentPreference = 'upi_whatsapp' | 'cod_whatsapp' | 'online_gateway' | 'razorpay' | 'cod';
-export type PaymentStatus = 'pending_whatsapp' | 'pending' | 'authorized' | 'paid' | 'failed' | 'refunded' | 'partially_refunded';
+export type PaymentPreference = 'upi_whatsapp' | 'cod_whatsapp' | 'online_gateway' | 'razorpay' | 'cod' | 'manual_upi';
+export type PaymentStatus =
+  | 'pending_whatsapp'
+  | 'pending'
+  | 'authorized'
+  | 'paid'
+  | 'failed'
+  | 'refunded'
+  | 'partially_refunded'
+  | 'void'
+  | 'refund_pending';
 export type FulfilmentStatus =
   | 'unfulfilled'
   | 'allocated'
@@ -119,7 +128,8 @@ export type FulfilmentStatus =
   | 'delivered'
   | 'returned'
   | 'cancelled';
-export type OrderStatus = 'open' | 'processing' | 'completed' | 'cancelled';
+export type OrderStatus = 'open' | 'processing' | 'completed' | 'cancel_pending' | 'cancelled';
+export type ShippingSyncStatus = 'not_synced' | 'creating' | 'synced' | 'sync_failed';
 
 export interface OrderItemSnapshot {
   productId: string;
@@ -165,6 +175,23 @@ export interface OrderSnapshot {
   totalPaise: number;
   couponCode?: string;
   timeline: OrderEvent[];
+  idempotencyKey?: string;
+  codConfirmedAt?: string;
+  codOtp?: {
+    hash?: string;
+    expiresAt?: string;
+    attempts?: number;
+    lastSentAt?: string;
+    sendCount?: number;
+  };
+  razorpayOrderId?: string;
+  shippingSyncStatus?: ShippingSyncStatus;
+  needsAttention?: boolean;
+  needsAttentionReason?: string;
+  estimatedDeliveryDate?: string;
+  migrationTag?: string;
+  migrationReviewStatus?: string;
+  requiresUnpacking?: boolean;
   assignedRider?: {
     name: string;
     phone: string;

@@ -1,25 +1,27 @@
 import { OrderModel, ShipmentModel } from '@/lib/models';
 import { shiprocketClient } from '../providers/shiprocket/client';
 import { planOrderPackaging, sanitizeAddressLines } from '../box-packer';
-import { locationService } from '@/modules/locations/service';
 import { auditService } from '@/modules/audit/service';
+import { connectToMongo } from '@/lib/db';
 
 export async function fulfillShipmentJob(payload: { orderId: string }): Promise<void> {
-  const order = await OrderModel.findById(payload.orderId);
-  if (!order) throw new Error(`Order ${payload.orderId} not found`);
+  await connectToMongo();
+  const order = await OrderModel.findOne({
+    $or: [{ id: payload.orderId }, { orderId: payload.orderId }, { _id: payload.orderId.match(/^[0-9a-fA-F]{24}$/) ? payload.orderId : null }],
+  });
+  if (!order) throw new Error(`Order ${payload.orderId} not found in fulfillShipmentJob`);
 
-  if (order.fulfilmentStatus !== 'packed') {
-    return; // Only dispatch shipments once packed
+  if (order.orderStatus === 'cancelled') {
+    console.warn(`[FULFILL_SHIPMENT] Order ${order.id} is cancelled. Skipping fulfillment.`);
+    return;
   }
 
-  // 1. Resolve dark store origin location
-  const mainLocation = await locationService.getLocationByCode('MAIN_WAREHOUSE').catch(() => null);
-  const pickupLocationName = mainLocation?.code || 'MAIN_WAREHOUSE';
+  // Live verified pickup location
+  const pickupLocationName = 'Abhi';
 
-  // 2. Check if shipments already exist for this order
+  // Find or initialize shipments
   let existingShipments = await ShipmentModel.find({ orderId: order.id, direction: 'forward' });
 
-  // If no shipments exist, calculate packaging and create them
   if (existingShipments.length === 0) {
     const packagingItems = (order.items || []).map((item: any) => ({
       variantId: item.variantId,
@@ -50,6 +52,7 @@ export async function fulfillShipmentJob(payload: { orderId: string }): Promise<
         awb: `PENDING_${order.orderNo}_${i + 1}`,
         courierName: 'Shiprocket',
         status: 'created',
+        shippingSyncStatus: 'not_synced',
         dimensions: {
           lengthCm: plan.box.lengthCm,
           breadthCm: plan.box.breadthCm,
@@ -67,22 +70,40 @@ export async function fulfillShipmentJob(payload: { orderId: string }): Promise<
     }
   }
 
-  // 3. Process fulfillment steps for each shipment
-  const sanitizedAddr = sanitizeAddressLines(order.shippingAddress?.street || '1st Main');
+  const rawName = (order.customerName || order.shippingAddress?.fullName || 'Customer').trim();
+  const nameParts = rawName.split(/\s+/);
+  const firstName = nameParts[0] || 'Customer';
+  const lastName = nameParts.slice(1).join(' ') || firstName;
+  const sanitizedAddr = sanitizeAddressLines(order.shippingAddress?.street || 'Indiranagar');
 
+  let hasAnyFailure = false;
+  let allSynced = true;
+
+  // Process shipments independently for multi-box resilience
   for (const shipment of existingShipments) {
-    // Step 1: Create Order in Shiprocket
-    let srShipmentId = (shipment as any).srShipmentId;
-    if (!srShipmentId) {
+    if (shipment.shippingSyncStatus === 'synced' && shipment.srOrderId) {
+      continue; // Already created in Shiprocket
+    }
+
+    try {
+      // Mark creating status
+      shipment.shippingSyncStatus = 'creating';
+      await shipment.save();
+
+      const channelOrderId = `${order.orderNo}_${shipment.id}`;
+      const isCod = shipment.cod?.isCod ?? false;
+      const subTotalRupees = Number(((order.totalPaise || 0) / 100).toFixed(2));
+
       const srRes = await shiprocketClient.createAdhocOrder({
-        order_id: `${order.orderNo}_${shipment.id}`,
+        order_id: channelOrderId,
         order_date: new Date().toISOString().slice(0, 19).replace('T', ' '),
         pickup_location: pickupLocationName,
-        billing_customer_name: order.customerName || 'Customer',
+        billing_customer_name: firstName,
+        billing_last_name: lastName,
         billing_address: sanitizedAddr.line1,
         billing_address_2: sanitizedAddr.line2 || '',
         billing_city: order.shippingAddress?.city || 'Bengaluru',
-        billing_pincode: order.shippingAddress?.pincode || '560001',
+        billing_pincode: order.shippingAddress?.pincode || '560038',
         billing_state: order.shippingAddress?.state || 'Karnataka',
         billing_country: 'India',
         billing_email: order.customerEmail || 'support@muvera.in',
@@ -92,60 +113,55 @@ export async function fulfillShipmentJob(payload: { orderId: string }): Promise<
           name: it.productName || 'Apparel Item',
           sku: it.variantId || 'SKU_APP',
           units: it.quantity,
-          selling_price: Math.round((it.sellingPricePaise || 0) / 100),
+          selling_price: Number(((it.sellingPricePaise || order.totalPaise) / (100 * (it.quantity || 1))).toFixed(2)),
         })),
-        payment_method: shipment.cod.isCod ? 'COD' : 'Prepaid',
-        sub_total: Math.round((order.totalPaise || 0) / 100),
+        payment_method: isCod ? 'COD' : 'Prepaid',
+        sub_total: subTotalRupees,
         length: shipment.dimensions.lengthCm,
         breadth: shipment.dimensions.breadthCm,
         height: shipment.dimensions.heightCm,
         weight: shipment.deadWeightKg,
       });
 
-      srShipmentId = srRes.shipment_id;
-      (shipment as any).srShipmentId = srShipmentId;
-      await ShipmentModel.updateOne({ _id: shipment.id }, { $set: { srShipmentId } });
-    }
+      shipment.srOrderId = String(srRes.order_id);
+      shipment.srShipmentId = srRes.shipment_id;
+      shipment.channelOrderId = channelOrderId;
+      shipment.shippingSyncStatus = 'synced';
+      shipment.needsAttention = false;
+      shipment.needsAttentionReason = undefined;
+      await shipment.save();
+    } catch (err: any) {
+      console.error(`[FULFILL_SHIPMENT] Box creation failed for shipment ${shipment.id}:`, err);
+      hasAnyFailure = true;
+      allSynced = false;
 
-    // Step 2: Assign AWB
-    if (shipment.awb.startsWith('PENDING_')) {
-      const awbRes = await shiprocketClient.assignAwb(srShipmentId);
-      shipment.awb = awbRes.awb_code;
-      shipment.courierName = awbRes.courier_name;
-      shipment.status = 'manifested';
-      await ShipmentModel.updateOne(
-        { _id: shipment.id },
-        {
-          $set: {
-            awb: awbRes.awb_code,
-            courierName: awbRes.courier_name,
-            status: 'manifested',
-          },
-        }
-      );
-    }
-
-    // Step 3: Schedule Pickup
-    if (!(shipment as any).pickupScheduled) {
-      await shiprocketClient.schedulePickup(srShipmentId);
-      await ShipmentModel.updateOne({ _id: shipment.id }, { $set: { pickupScheduled: true } });
-    }
-
-    // Step 4: Generate Label
-    if (!(shipment as any).labelUrl) {
-      const labelRes = await shiprocketClient.generateLabel(srShipmentId);
-      await ShipmentModel.updateOne(
-        { _id: shipment.id },
-        { $set: { labelUrl: labelRes.label_url } }
-      );
+      shipment.shippingSyncStatus = 'sync_failed';
+      shipment.needsAttention = true;
+      shipment.needsAttentionReason = `Shiprocket creation failed: ${err.message}`;
+      await shipment.save();
     }
   }
 
+  // Update overall order sync status
+  if (allSynced && !hasAnyFailure) {
+    order.shippingSyncStatus = 'synced';
+  } else if (hasAnyFailure) {
+    order.shippingSyncStatus = 'sync_failed';
+    order.needsAttention = true;
+    order.needsAttentionReason = 'One or more parcel boxes failed to sync with Shiprocket. Operations review required.';
+  }
+  await order.save();
+
   await auditService.recordAudit({
-    action: 'FULFILL_SHIPMENT_DISPATCHED',
+    action: 'FULFILL_SHIPMENT_SYNCED',
     entity: 'order',
     entityId: order.id,
     actor: 'system_logistics',
-    metadata: { orderId: order.id, shipmentCount: existingShipments.length },
+    metadata: {
+      orderId: order.id,
+      shipmentCount: existingShipments.length,
+      allSynced,
+      hasAnyFailure,
+    },
   });
 }
