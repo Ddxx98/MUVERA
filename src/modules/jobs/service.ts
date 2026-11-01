@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { JobModel, IJob } from './model';
 import { logger } from '@/lib/logger';
+import { connectToMongo } from '@/lib/db';
 
 const LEASE_MS = 60_000;
 
@@ -27,8 +28,9 @@ if (!global._muveraJobs) {
   global._muveraJobs = [];
 }
 
-function isDbConnected(): boolean {
-  return mongoose.connection && mongoose.connection.readyState === 1;
+async function isDbConnected(): Promise<boolean> {
+  if (mongoose.connection && mongoose.connection.readyState === 1) return true;
+  return await connectToMongo();
 }
 
 export const jobService = {
@@ -43,7 +45,7 @@ export const jobService = {
     const runAt = options.runAt || new Date();
     const maxAttempts = options.maxAttempts || 3;
 
-    if (isDbConnected()) {
+    if (await isDbConnected()) {
       try {
         if (options.dedupeKey) {
           const existing = await JobModel.findOne({ dedupeKey: options.dedupeKey, status: { $in: ['pending', 'running'] } });
@@ -93,7 +95,7 @@ export const jobService = {
    * Claims next pending job atomically using MongoDB findOneAndUpdate or in-memory lock.
    */
   async claimJob(now = new Date()): Promise<IJob | InMemoryJob | null> {
-    if (isDbConnected()) {
+    if (await isDbConnected()) {
       try {
         const job = await JobModel.findOneAndUpdate(
           {
@@ -132,7 +134,7 @@ export const jobService = {
    */
   async recoverExpiredLeases(now = new Date()): Promise<number> {
     let recoveredCount = 0;
-    if (isDbConnected()) {
+    if (await isDbConnected()) {
       try {
         const res = await JobModel.updateMany(
           {
@@ -164,7 +166,7 @@ export const jobService = {
    * Marks a job completed.
    */
   async completeJob(jobId: string): Promise<void> {
-    if (isDbConnected()) {
+    if (await isDbConnected()) {
       try {
         await JobModel.updateOne({ _id: jobId }, { $set: { status: 'completed' } });
       } catch (err) {
@@ -192,7 +194,7 @@ export const jobService = {
     const errorMessage = err instanceof Error ? err.message : String(err);
     const nextRunAt = new Date(now.getTime() + Math.pow(2, attempts) * 30_000);
 
-    if (isDbConnected()) {
+    if (await isDbConnected()) {
       try {
         await JobModel.updateOne(
           { _id: jobId },

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { serverEnv } from '@/config/env.server';
 import { WebhookEventModel } from '@/lib/models';
+import { connectToMongo } from '@/lib/db';
 import { jobService } from '@/modules/jobs';
 import { normalizeStatusLabel } from '@/modules/shipping/state-machine';
 
@@ -21,7 +22,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized webhook request' }, { status: 401 });
     }
 
-    // 2. Parse payload
+    // 2. Ensure database is connected
+    const isDbReady = await connectToMongo();
+
+    // 3. Parse payload
     const payload = await req.json();
     const awb = String(payload.awb || payload.shipment_id || '').trim();
     const status = normalizeStatusLabel(payload.current_status || payload.shipment_status || 'UNKNOWN');
@@ -39,28 +43,32 @@ export async function POST(req: NextRequest) {
     // Deterministic event key (Never use Date.now())
     const eventKey = `${awb}_${status}_${currentTimestamp}_${latestScanTimestamp}`;
 
-    // 3. Insert-first deduplication in webhook_events
-    const upsertRes = await WebhookEventModel.updateOne(
-      { source: 'shiprocket', eventKey },
-      {
-        $setOnInsert: {
-          source: 'shiprocket',
-          eventKey,
-          payload,
-          status: 'received',
-          createdAt: new Date(),
+    if (isDbReady) {
+      // 4. Insert-first deduplication in webhook_events
+      const upsertRes = await WebhookEventModel.updateOne(
+        { source: 'shiprocket', eventKey },
+        {
+          $setOnInsert: {
+            source: 'shiprocket',
+            eventKey,
+            payload,
+            status: 'received',
+            createdAt: new Date(),
+          },
         },
-      },
-      { upsert: true }
-    );
-
-    // 4. Enqueue background processing job only if newly inserted
-    if (upsertRes.upsertedCount > 0) {
-      await jobService.enqueueJob(
-        'process_logistics_event',
-        { eventKey },
-        { dedupeKey: `proc_logistics_${eventKey}` }
+        { upsert: true }
       );
+
+      // 5. Enqueue background processing job only if newly inserted
+      if (upsertRes.upsertedCount > 0) {
+        await jobService.enqueueJob(
+          'process_logistics_event',
+          { eventKey },
+          { dedupeKey: `proc_logistics_${eventKey}` }
+        );
+      }
+    } else {
+      console.warn(`[Logistics Webhook] Database offline, recorded eventKey: ${eventKey}`);
     }
 
     // Always return HTTP 200 to Shiprocket for authenticated requests

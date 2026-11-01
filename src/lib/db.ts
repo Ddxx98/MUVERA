@@ -107,7 +107,7 @@ if (!global._muveraDb) {
   };
 }
 
-async function connectToMongo(): Promise<boolean> {
+export async function connectToMongo(): Promise<boolean> {
   const uri = process.env.MONGODB_URI || env.mongoUri;
   if (!uri) return false;
 

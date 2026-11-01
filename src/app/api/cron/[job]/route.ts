@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { jobService } from '@/modules/jobs';
-import { db } from '@/lib/db';
+import { db, connectToMongo } from '@/lib/db';
 import { inventoryService } from '@/modules/inventory';
 import { couponService } from '@/modules/coupons';
 import { serverEnv } from '@/config/env.server';
@@ -29,6 +29,7 @@ export async function GET(
   const jobType = params.job;
 
   try {
+    await connectToMongo();
     switch (jobType) {
       case 'recover-leases': {
         const recovered = await jobService.recoverExpiredLeases();
