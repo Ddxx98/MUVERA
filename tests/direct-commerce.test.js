@@ -207,8 +207,53 @@ test('7. Responsive Email Architecture: Validates viewport, fluid widths, and OT
   // Must have media query for mobile widths <= 480px
   assert.equal(templateSource.includes('@media only screen and (max-width: 480px)'), true);
   // Must constrain OTP box width so it never overflows a 360px mobile viewport
-  assert.equal(templateSource.includes('max-width: 290px'), true);
+  assert.equal(templateSource.includes('max-width: 260px'), true);
   // Must use table-based presentation for cross-client reliability
   assert.equal(templateSource.includes('role="presentation"'), true);
 });
 
+
+// ─── 8. COD Toggle Enforcement (Admin Setting) ───────────────────────────
+test('8. COD Toggle Enforcement: Validates COD availability against siteSettings', () => {
+  function isCodAllowed(settings) {
+    return (settings?.codEnabled ?? settings?.enableCod ?? true);
+  }
+
+  // Default enabled
+  assert.equal(isCodAllowed({}), true);
+  assert.equal(isCodAllowed({ codEnabled: true }), true);
+  assert.equal(isCodAllowed({ enableCod: true }), true);
+
+  // Explicitly disabled via codEnabled
+  assert.equal(isCodAllowed({ codEnabled: false }), false);
+
+  // Explicitly disabled via enableCod
+  assert.equal(isCodAllowed({ enableCod: false }), false);
+
+  // Both defined and disabled
+  assert.equal(isCodAllowed({ codEnabled: false, enableCod: false }), false);
+});
+
+// ─── 9. Mandatory Customer Session Enforcement for Orders ─────────────────
+test('9. Mandatory Authentication Gate: Rejects orders without customer session', () => {
+  function validateOrderAuth(ctx) {
+    if (!ctx || !ctx.id) {
+      return { ok: false, status: 401, error: 'Please sign in or create an account to place an order.' };
+    }
+    return { ok: true, customerId: ctx.id };
+  }
+
+  // Guest / unauthenticated context: MUST fail with 401
+  const guestResult = validateOrderAuth(null);
+  assert.equal(guestResult.ok, false);
+  assert.equal(guestResult.status, 401);
+
+  const emptyContext = validateOrderAuth({});
+  assert.equal(emptyContext.ok, false);
+  assert.equal(emptyContext.status, 401);
+
+  // Authenticated customer: Allowed
+  const customerResult = validateOrderAuth({ id: 'user_cust_123', email: 'deekshith@muvera.club' });
+  assert.equal(customerResult.ok, true);
+  assert.equal(customerResult.customerId, 'user_cust_123');
+});

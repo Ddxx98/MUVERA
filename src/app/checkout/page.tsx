@@ -86,41 +86,56 @@ export default function CheckoutPage() {
   // Order submission error
   const [orderError, setOrderError] = useState<string | null>(null);
 
-  // Load User profile & populate default address
+  const [authLoading, setAuthLoading] = useState(true);
+  const isCodGloballyEnabled = (siteSettings?.codEnabled ?? siteSettings?.enableCod ?? true);
+
+  // Auto-switch to online payment if COD is disabled
+  useEffect(() => {
+    if (!isCodGloballyEnabled && paymentPreference === 'cod') {
+      setPaymentPreference('razorpay');
+    }
+  }, [isCodGloballyEnabled, paymentPreference]);
+
+  // Load User profile & require login for checkout
   useEffect(() => {
     async function loadUser() {
       try {
         const user = await getCurrentUserAction().catch(() => null);
-        if (user) {
-          setCurrentUser(user);
-          if (user.addresses && user.addresses.length > 0) {
-            const defaultAddr = user.addresses.find((a) => a.isDefault) || user.addresses[0];
-            setSelectedAddressId(defaultAddr.id || 'addr_0');
-            setAddress({
-              fullName: defaultAddr.fullName,
-              phone: defaultAddr.phone,
-              street: defaultAddr.street,
-              apartment: defaultAddr.apartment || '',
-              landmark: defaultAddr.landmark || '',
-              city: defaultAddr.city,
-              state: defaultAddr.state,
-              pincode: defaultAddr.pincode,
-            });
-          } else {
-            setSelectedAddressId('new');
-            setAddress((prev) => ({
-              ...prev,
-              fullName: user.name || '',
-              phone: user.phone || '',
-            }));
-          }
+        if (!user) {
+          router.push('/login?redirect=/checkout');
+          return;
+        }
+        setCurrentUser(user);
+        if (user.addresses && user.addresses.length > 0) {
+          const defaultAddr = user.addresses.find((a) => a.isDefault) || user.addresses[0];
+          setSelectedAddressId(defaultAddr.id || 'addr_0');
+          setAddress({
+            fullName: defaultAddr.fullName,
+            phone: defaultAddr.phone,
+            street: defaultAddr.street,
+            apartment: defaultAddr.apartment || '',
+            landmark: defaultAddr.landmark || '',
+            city: defaultAddr.city,
+            state: defaultAddr.state,
+            pincode: defaultAddr.pincode,
+          });
+        } else {
+          setSelectedAddressId('new');
+          setAddress((prev) => ({
+            ...prev,
+            fullName: user.name || '',
+            phone: user.phone || '',
+          }));
         }
       } catch (err) {
         console.error('Failed to load user address in checkout:', err);
+        router.push('/login?redirect=/checkout');
+      } finally {
+        setAuthLoading(false);
       }
     }
     loadUser();
-  }, []);
+  }, [router]);
 
   // Cooldown countdown
   useEffect(() => {
@@ -829,27 +844,42 @@ export default function CheckoutPage() {
                 </button>
 
                 {/* Option 2: Cash on Delivery */}
-                <button
-                  type="button"
-                  onClick={() => setPaymentPreference('cod')}
-                  className={`p-4 rounded-xl border font-bold text-xs flex items-start gap-3 transition-all text-left ${
-                    paymentPreference === 'cod'
-                      ? 'border-primary bg-primary/15 text-primary shadow-gold-glow'
-                      : 'border-surface-border bg-surface-raised text-text-muted hover:bg-surface-bright'
-                  }`}
-                >
-                  <div className="w-4 h-4 rounded-full border border-primary flex items-center justify-center flex-shrink-0 mt-0.5">
-                    {paymentPreference === 'cod' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                {isCodGloballyEnabled ? (
+                  <button
+                    type="button"
+                    onClick={() => setPaymentPreference('cod')}
+                    className={`p-4 rounded-xl border font-bold text-xs flex items-start gap-3 transition-all text-left ${
+                      paymentPreference === 'cod'
+                        ? 'border-primary bg-primary/15 text-primary shadow-gold-glow'
+                        : 'border-surface-border bg-surface-raised text-text-muted hover:bg-surface-bright'
+                    }`}
+                  >
+                    <div className="w-4 h-4 rounded-full border border-primary flex items-center justify-center flex-shrink-0 mt-0.5">
+                      {paymentPreference === 'cod' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                    </div>
+                    <div>
+                      <p className="font-bold text-text-primary text-sm">
+                        💵 Cash on Delivery
+                      </p>
+                      <p className="text-[11px] text-text-muted mt-1 leading-relaxed">
+                        Pay cash or UPI directly to the courier upon doorstep parcel delivery.
+                      </p>
+                    </div>
+                  </button>
+                ) : (
+                  <div className="p-4 rounded-xl border border-surface-border/60 bg-surface-raised/40 opacity-60 text-text-muted flex items-start gap-3 cursor-not-allowed">
+                    <div className="w-4 h-4 rounded-full border border-surface-border flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold text-text-muted text-sm flex items-center gap-2">
+                        <span>💵 Cash on Delivery</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-surface-card border border-surface-border text-text-muted font-bold uppercase">Disabled</span>
+                      </p>
+                      <p className="text-[11px] text-text-muted mt-1 leading-relaxed">
+                        Cash on Delivery is currently disabled. Please select online payment.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-bold text-text-primary text-sm">
-                      💵 Cash on Delivery
-                    </p>
-                    <p className="text-[11px] text-text-muted mt-1 leading-relaxed">
-                      Pay cash or UPI directly to the courier upon doorstep parcel delivery.
-                    </p>
-                  </div>
-                </button>
+                )}
               </div>
 
               {paymentPreference === 'razorpay' && (

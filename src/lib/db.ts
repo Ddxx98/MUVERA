@@ -28,6 +28,7 @@ export const initialSiteSettings: SiteSettingsData = {
   defaultTheme: 'dark',
   upiEnabled: true,
   codEnabled: true,
+  enableCod: true,
   razorpayEnabled: false,
   heroActive: true,
   heroBackgroundImage: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=1600&auto=format&fit=crop&q=80',

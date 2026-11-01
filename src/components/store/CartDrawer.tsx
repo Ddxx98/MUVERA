@@ -5,10 +5,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useStore, useReservationTimer } from '@/lib/store-context';
 import { formatPaise } from '@/lib/money';
-import { generateInstantWhatsAppCartUrl } from '@/lib/whatsapp';
 import { getCurrentUserAction } from '@/modules/auth/actions';
 import { UserProfile } from '@/modules/auth/types';
-import { X, Plus, Minus, Trash2, Zap, ArrowRight, Tag, ShieldCheck, MessageCircle, User } from 'lucide-react';
+import { X, Plus, Minus, Trash2, Zap, ArrowRight, Tag, ShieldCheck, User } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 export function CartDrawer() {
@@ -305,35 +304,13 @@ export function CartDrawer() {
               {/* Proceed Buttons */}
               <div className="space-y-2">
                 <Link
-                  href="/checkout"
+                  href={currentUser ? '/checkout' : '/login?redirect=/checkout'}
                   onClick={() => setIsCartDrawerOpen(false)}
                   className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-surface-base py-3.5 px-4 rounded-full font-headline font-extrabold text-sm shadow-gold-glow transition-all active:scale-95"
                 >
-                  <span>{currentUser ? 'Proceed to Checkout' : 'Proceed to Checkout / Log In'}</span>
+                  <span>{currentUser ? 'Proceed to Checkout' : 'Log In to Checkout'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
-
-                {!currentUser && (
-                  <a
-                    href={generateInstantWhatsAppCartUrl({
-                      items: cart,
-                      subtotalPaise: subtotal,
-                      discountPaise: discount,
-                      deliveryFeePaise: delivery,
-                      totalPaise: grandTotal,
-                      couponCode: appliedCoupon?.code,
-                      customPhone: siteSettings?.whatsappNumber,
-                      customBusinessName: siteSettings?.businessName,
-                    })}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setIsCartDrawerOpen(false)}
-                    className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white py-3 px-4 rounded-full font-headline font-bold text-xs shadow-[0_4px_16px_rgba(16,185,129,0.25)] transition-all active:scale-95"
-                  >
-                    <MessageCircle className="w-4 h-4 fill-current" />
-                    <span>⚡ Instant WhatsApp Order (No Login)</span>
-                  </a>
-                )}
               </div>
 
               <div className="flex items-center justify-center gap-1.5 text-[11px] text-text-muted text-center pt-1">
@@ -341,7 +318,7 @@ export function CartDrawer() {
                 <span>
                   {currentUser
                     ? `Logged in as ${currentUser.name || currentUser.email} • Instant Hold`
-                    : 'Log in to track orders, or tap Instant WhatsApp Order'}
+                    : 'Customer account login required to place orders'}
                 </span>
               </div>
             </div>

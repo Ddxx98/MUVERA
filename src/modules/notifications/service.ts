@@ -38,7 +38,7 @@ class NotificationService {
    * Prefers EmailJS using template_4ck851n, falling back to Brevo or Console.
    */
   async sendSignupOtp(to: string, name: string, otp: string): Promise<string> {
-    const subject = `Your MUVERA Verification Code: ${otp}`;
+    const subject = `${otp} is your MUVERA verification code`;
     const text = `Hi ${name},\n\nWelcome to MUVERA. Your 4-digit verification code is:\n\n${otp}\n\nThis code is valid for 10 minutes. Please enter it to verify your email address and activate your account.\n\nBest regards,\nMUVERA Team`;
     const html = buildSignupOtpEmail(name, otp);
 
@@ -73,7 +73,7 @@ class NotificationService {
    * Prefers Brevo rich HTML with fallback to EmailJS or Console.
    */
   async sendPasswordResetOtp(to: string, name: string, otp: string, resetUrl?: string): Promise<string> {
-    const subject = `Your MUVERA Password Reset OTP: ${otp}`;
+    const subject = `${otp} is your MUVERA password reset code`;
     const text = `Hi ${name},\n\nYour 6-digit password reset verification OTP for MUVERA is:\n\n${otp}\n\nThis OTP is valid for 15 minutes. Do not share this code with anyone.\n\nBest regards,\nMUVERA Security Team`;
     const html = buildPasswordResetOtpEmail(name, otp, resetUrl);
 
@@ -154,7 +154,7 @@ class NotificationService {
    * Dispatches a 6-digit OTP code to verify a Cash on Delivery (COD) order.
    */
   async sendCodOtp(to: string, name: string, otp: string, orderNo: string): Promise<string> {
-    const subject = `Your MUVERA COD Verification Code: ${otp} (Order #${orderNo})`;
+    const subject = `${otp} is your MUVERA COD code (#${orderNo})`;
     const text = `Hi ${name},\n\nYour 6-digit verification code to confirm your Cash on Delivery order #${orderNo} is:\n\n${otp}\n\nThis code expires in 5 minutes. Please enter it on checkout to confirm your parcel.\n\nBest regards,\nMUVERA Team`;
     const html = buildCodOtpEmail(name, otp, orderNo);
 

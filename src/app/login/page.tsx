@@ -11,7 +11,7 @@ import { ShieldCheck, Mail, Lock, ShieldAlert, ArrowLeft, RefreshCw, CheckCircle
 function LoginFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/account';
+  const callbackUrl = searchParams.get('callbackUrl') || searchParams.get('redirect') || '/account';
   const errorParam = searchParams.get('error');
   const messageParam = searchParams.get('message');
 
@@ -354,7 +354,7 @@ function LoginFormContent() {
         <div className="text-center pt-2 border-t border-surface-border">
           <p className="text-xs text-text-muted">
             New to MUVERA?{' '}
-            <Link href="/signup" className="font-bold text-primary hover:underline">
+            <Link href={`/signup${callbackUrl !== '/account' ? `?redirect=${encodeURIComponent(callbackUrl)}` : ''}`} className="font-bold text-primary hover:underline">
               Create an Account
             </Link>
           </p>

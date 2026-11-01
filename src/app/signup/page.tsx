@@ -1,15 +1,17 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { registerAction, verifySignupOtpAction, resendSignupOtpAction } from '@/modules/auth/actions';
 import { ShieldCheck, User, Mail, Phone, Lock, ArrowRight, ArrowLeft, RefreshCw, CheckCircle2 } from 'lucide-react';
 
-export default function CustomerSignUpPage() {
+function SignUpFormContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get('callbackUrl') || searchParams.get('redirect') || '/account';
 
   // Step 1 Form state
   const [step, setStep] = useState<'form' | 'otp'>('form');
@@ -162,7 +164,7 @@ export default function CustomerSignUpPage() {
 
       setSuccessMsg('Account verified successfully! Welcome to MUVERA.');
       setTimeout(() => {
-        router.push('/account');
+        router.push(callbackUrl);
       }, 500);
     } catch (err: any) {
       setError(err?.message || 'Verification failed. Please try again.');
@@ -404,7 +406,7 @@ export default function CustomerSignUpPage() {
         <div className="text-center pt-2 border-t border-surface-border">
           <p className="text-xs text-text-muted">
             Already have a verified account?{' '}
-            <Link href="/login" className="font-bold text-primary hover:underline">
+            <Link href={`/login${callbackUrl !== '/account' ? `?redirect=${encodeURIComponent(callbackUrl)}` : ''}`} className="font-bold text-primary hover:underline">
               Sign In
             </Link>
           </p>
@@ -416,5 +418,13 @@ export default function CustomerSignUpPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CustomerSignUpPage() {
+  return (
+    <Suspense fallback={<div className="max-w-md mx-auto py-20 text-center text-text-muted">Loading sign up...</div>}>
+      <SignUpFormContent />
+    </Suspense>
   );
 }

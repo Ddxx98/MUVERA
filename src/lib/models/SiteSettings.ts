@@ -21,6 +21,7 @@ export interface SiteSettingsData {
   defaultTheme: 'dark' | 'light' | 'system';
   upiEnabled: boolean;
   codEnabled: boolean;
+  enableCod?: boolean;
   razorpayEnabled: boolean;
   checkoutV2Enabled?: boolean;
   prepaidEnabled?: boolean;
@@ -71,6 +72,7 @@ const SiteSettingsSchema = new Schema<SiteSettingsDocument>(
     defaultTheme: { type: String, enum: ['dark', 'light', 'system'], default: 'dark' },
     upiEnabled: { type: Boolean, default: true },
     codEnabled: { type: Boolean, default: true },
+    enableCod: { type: Boolean, default: true },
     razorpayEnabled: { type: Boolean, default: false },
     checkoutV2Enabled: { type: Boolean, default: false },
     prepaidEnabled: { type: Boolean, default: false },

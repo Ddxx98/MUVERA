@@ -82,6 +82,12 @@ export async function POST(req: Request) {
   try {
     await connectToMongo();
     const ctx = await getOptionalUser();
+    if (!ctx || !ctx.id) {
+      return NextResponse.json(
+        { error: 'Please sign in or create an account to place an order.' },
+        { status: 401 }
+      );
+    }
     const body = await req.json();
 
     // Check runtime feature flag from SiteSettings
@@ -152,8 +158,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Please enter a valid 10-digit Indian mobile number' }, { status: 400 });
     }
 
-    // COD order limit check
+    // COD toggle & order limit check
     if (body.paymentPreference === 'cod') {
+      const isCodEnabled = settings?.codEnabled ?? settings?.enableCod ?? true;
+      if (!isCodEnabled) {
+        if (idempotencyDoc) await IdempotencyKeyModel.deleteOne({ _id: idempotencyDoc._id });
+        return NextResponse.json(
+          { error: 'Cash on Delivery is currently disabled by store administration. Please select online payment.' },
+          { status: 400 }
+        );
+      }
       const maxCodPaise = serverEnv.COD_MAX_ORDER_VALUE_PAISE || 500000;
       if (Number(body.totalPaise) > maxCodPaise) {
         if (idempotencyDoc) await IdempotencyKeyModel.deleteOne({ _id: idempotencyDoc._id });

@@ -56,6 +56,7 @@ export default function AdminSettingsPage() {
     defaultTheme: 'dark',
     upiEnabled: true,
     codEnabled: true,
+    enableCod: true,
     razorpayEnabled: false,
     checkoutV2Enabled: false,
     prepaidEnabled: false,
@@ -1284,14 +1285,24 @@ export default function AdminSettingsPage() {
                   <span className="text-xs font-bold text-text-primary">Instant UPI &amp; QR Scan</span>
                 </label>
 
-                <label className="flex items-center gap-2 p-3 rounded-xl bg-surface-raised border border-surface-border cursor-pointer">
+                <label className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${settings.codEnabled !== false ? 'bg-primary/10 border-primary' : 'bg-surface-raised border-surface-border'}`}>
                   <input
                     type="checkbox"
-                    checked={settings.codEnabled}
-                    onChange={(e) => setSettings({ ...settings, codEnabled: e.target.checked })}
-                    className="accent-primary w-4 h-4"
+                    checked={settings.codEnabled !== false}
+                    onChange={(e) => setSettings({ ...settings, codEnabled: e.target.checked, enableCod: e.target.checked })}
+                    className="accent-primary w-4 h-4 mt-0.5"
                   />
-                  <span className="text-xs font-bold text-text-primary">Cash on Delivery (COD)</span>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-text-primary">Cash on Delivery (COD)</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${settings.codEnabled !== false ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
+                        {settings.codEnabled !== false ? 'Enabled' : 'Disabled'}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-text-muted mt-0.5 block">
+                      Enable or disable Cash on Delivery across customer checkout. When disabled, customers can only pay online.
+                    </span>
+                  </div>
                 </label>
 
                 <label className="flex items-center gap-2 p-3 rounded-xl bg-surface-raised border border-surface-border cursor-pointer">

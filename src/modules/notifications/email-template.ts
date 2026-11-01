@@ -55,27 +55,24 @@ export function wrapResponsiveEmail({
     }
     @media only screen and (max-width: 480px) {
       .email-wrapper {
-        padding: 12px 6px !important;
+        padding: 16px 8px !important;
       }
       .email-container {
         width: 100% !important;
         max-width: 100% !important;
-        padding: 20px 14px !important;
+        padding: 22px 16px !important;
         border-radius: 12px !important;
       }
-      .email-card {
-        padding: 16px 12px !important;
-        border-radius: 10px !important;
-      }
       .otp-box {
-        padding: 14px 10px !important;
-        width: 100% !important;
-        max-width: 100% !important;
+        width: 250px !important;
+        max-width: 260px !important;
+        margin: 20px auto !important;
+        padding: 14px 16px !important;
       }
       .otp-code {
-        font-size: 26px !important;
-        letter-spacing: 5px !important;
-        padding-left: 5px !important;
+        font-size: 28px !important;
+        letter-spacing: 6px !important;
+        padding-left: 6px !important;
       }
       .email-brand {
         font-size: 24px !important;
@@ -89,28 +86,22 @@ export function wrapResponsiveEmail({
   </style>
 </head>
 <body style="margin: 0; padding: 0; background-color: #060608; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" class="email-wrapper" style="width: 100%; background-color: #060608; padding: 28px 12px; margin: 0; border-collapse: collapse;">
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" class="email-wrapper" style="width: 100%; background-color: #060608; padding: 28px 10px; margin: 0; border-collapse: collapse;">
     <tr>
       <td align="center" valign="top">
-        <!-- Main Card Container -->
-        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" class="email-container" style="max-width: 500px; width: 100%; margin: 0 auto; background-color: #0E0E10; color: #FFFFFF; border: 1px solid #27272A; border-radius: 16px; padding: 28px 22px; box-sizing: border-box; border-collapse: collapse;">
+        <!-- Single Clean Card Container -->
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" class="email-container" style="max-width: 480px; width: 100%; margin: 0 auto; background-color: #111115; color: #FFFFFF; border: 1px solid #27272A; border-radius: 16px; padding: 28px 22px; box-sizing: border-box; border-collapse: collapse;">
           <!-- Brand Header -->
           <tr>
-            <td align="center" style="padding-bottom: 20px;">
-              <h1 class="email-brand" style="color: #FACC15; font-size: 28px; font-weight: 900; letter-spacing: 4px; margin: 0; text-transform: uppercase; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">MUVERA</h1>
-              <p style="color: #A1A1AA; font-size: 11px; margin: 5px 0 0; text-transform: uppercase; letter-spacing: 2px; font-weight: 600;">${subtitle}</p>
+            <td align="center" style="padding-bottom: 20px; border-bottom: 1px solid #1E1E24;">
+              <h1 class="email-brand" style="color: #FACC15; font-size: 26px; font-weight: 900; letter-spacing: 4px; margin: 0; text-transform: uppercase; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">MUVERA</h1>
+              <p style="color: #A1A1AA; font-size: 11px; margin: 6px 0 0; text-transform: uppercase; letter-spacing: 2px; font-weight: 600;">${subtitle}</p>
             </td>
           </tr>
-          <!-- Content Card -->
+          <!-- Content Directly Inside Card -->
           <tr>
-            <td align="center">
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" class="email-card" style="background-color: #121216; border: 1px solid #27272A; border-radius: 12px; padding: 20px 18px; box-sizing: border-box; width: 100%; border-collapse: collapse;">
-                <tr>
-                  <td align="left" style="color: #FFFFFF;">
-                    ${contentHtml}
-                  </td>
-                </tr>
-              </table>
+            <td align="left" style="padding-top: 22px; color: #FFFFFF;">
+              ${contentHtml}
             </td>
           </tr>
           ${
@@ -126,7 +117,7 @@ export function wrapResponsiveEmail({
           }
           <!-- Statutory Footer -->
           <tr>
-            <td align="center" style="padding-top: 20px;">
+            <td align="center" style="padding-top: 22px; border-top: 1px solid #1E1E24; margin-top: 20px;">
               <p style="font-size: 11px; color: #52525B; margin: 0; letter-spacing: 0.5px;">© 2026 MUVERA Luxury Streetwear • High-Speed Fashion</p>
             </td>
           </tr>
@@ -143,11 +134,11 @@ export function wrapResponsiveEmail({
  */
 export function renderOtpBox(label: string, otp: string, expiryText: string): string {
   return `
-    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" class="otp-box" style="margin: 20px auto; background-color: #0A0A0D; border: 1px solid #FACC15; border-radius: 12px; padding: 16px 14px; width: 100%; max-width: 290px; box-sizing: border-box; text-align: center; border-collapse: collapse;">
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="otp-box" style="margin: 22px auto; background-color: #17171C; border: 1.5px solid #FACC15; border-radius: 12px; padding: 16px 20px; width: 250px; max-width: 260px; box-sizing: border-box; text-align: center; border-collapse: collapse;">
       <tr>
         <td align="center">
           <p style="margin: 0 0 6px; font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #A1A1AA; font-weight: 700;">${label}</p>
-          <div class="otp-code" style="font-family: 'Courier New', Courier, monospace, Consolas; font-size: 32px; font-weight: 900; letter-spacing: 8px; color: #FACC15; padding-left: 8px; text-align: center; word-break: break-all; line-height: 1.2;">
+          <div class="otp-code" style="font-family: 'Courier New', Courier, monospace, Consolas; font-size: 32px; font-weight: 900; letter-spacing: 7px; color: #FACC15; padding-left: 7px; text-align: center; word-break: break-all; line-height: 1.2;">
             ${otp}
           </div>
           <p style="margin: 8px 0 0; font-size: 11px; color: #71717A;">${expiryText}</p>
@@ -204,8 +195,7 @@ export function buildSignupOtpEmail(name: string, otp: string): string {
  */
 export function buildPasswordResetOtpEmail(name: string, otp: string, resetUrl?: string): string {
   const contentHtml = `
-    <h2 style="font-size: 17px; font-weight: 700; margin: 0 0 14px; color: #FFFFFF; text-align: center;">Password Reset Verification</h2>
-    <p style="font-size: 14px; line-height: 1.6; color: #D1C6AB; margin: 0 0 12px;">Hi <strong>${name}</strong>,</p>
+    <p style="font-size: 15px; line-height: 1.6; color: #FFFFFF; margin: 0 0 14px;">Hi <strong style="color: #FACC15;">${name}</strong>,</p>
     <p style="font-size: 14px; line-height: 1.6; color: #A1A1AA; margin: 0 0 18px;">
       We received a request to reset your password. Use the single-use 6-digit verification OTP below to verify your identity.
     </p>
@@ -214,7 +204,7 @@ export function buildPasswordResetOtpEmail(name: string, otp: string, resetUrl?:
       resetUrl
         ? `
       <div style="text-align: center; margin: 16px 0;">
-        <a href="${resetUrl}" class="btn-action" style="background-color: #2E2E38; color: #FACC15; padding: 10px 20px; border-radius: 8px; font-weight: 700; font-size: 12px; text-decoration: none; display: inline-block; border: 1px solid #3F3F46; box-sizing: border-box;">
+        <a href="${resetUrl}" class="btn-action" style="background-color: #2E2E38; color: #FACC15; padding: 12px 20px; border-radius: 8px; font-weight: 700; font-size: 13px; text-decoration: none; display: inline-block; border: 1px solid #3F3F46; box-sizing: border-box;">
           Or Click Here to Reset Instantly
         </a>
       </div>
@@ -237,8 +227,7 @@ export function buildPasswordResetOtpEmail(name: string, otp: string, resetUrl?:
  */
 export function buildPasswordResetEmail(name: string, resetUrl: string): string {
   const contentHtml = `
-    <h2 style="font-size: 17px; font-weight: 700; margin: 0 0 14px; color: #FFFFFF; text-align: center;">Password Reset Request</h2>
-    <p style="font-size: 14px; line-height: 1.6; color: #D1C6AB; margin: 0 0 12px;">Hi <strong>${name}</strong>,</p>
+    <p style="font-size: 15px; line-height: 1.6; color: #FFFFFF; margin: 0 0 14px;">Hi <strong style="color: #FACC15;">${name}</strong>,</p>
     <p style="font-size: 14px; line-height: 1.6; color: #A1A1AA; margin: 0 0 18px;">
       We received a request to reset the password for your MUVERA account. Click the button below to choose a new password. This link is single-use and will expire in <strong>30 minutes</strong>.
     </p>
@@ -271,12 +260,16 @@ export function buildPasswordResetEmail(name: string, resetUrl: string): string 
  */
 export function buildPasswordChangedEmail(name: string): string {
   const contentHtml = `
-    <h2 style="font-size: 17px; font-weight: 700; margin: 0 0 14px; color: #10B981; text-align: center;">✓ Password Changed Successfully</h2>
-    <p style="font-size: 14px; line-height: 1.6; color: #D1C6AB; margin: 0 0 12px;">Hi <strong>${name}</strong>,</p>
+    <div style="margin: 0 0 14px;">
+      <span style="display: inline-block; padding: 4px 10px; background-color: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 6px; font-size: 12px; font-weight: 700; color: #10B981; letter-spacing: 1px;">
+        ✓ PASSWORD UPDATED
+      </span>
+    </div>
+    <p style="font-size: 15px; line-height: 1.6; color: #FFFFFF; margin: 0 0 14px;">Hi <strong style="color: #FACC15;">${name}</strong>,</p>
     <p style="font-size: 14px; line-height: 1.6; color: #A1A1AA; margin: 0 0 16px;">
-      Your password was just updated. For your security, all active sessions on other devices have been signed out.
+      Your MUVERA account password was just updated. For your security, all active sessions on other devices have been securely signed out.
     </p>
-    <p style="font-size: 13px; line-height: 1.5; color: #EF4444; margin: 0;">
+    <p style="font-size: 13px; line-height: 1.5; color: #F87171; margin: 0;">
       <strong>Wasn't you?</strong> If you did not make this change, please reach out to <a href="mailto:support@muvera.club" style="color: #FACC15; text-decoration: none;">support@muvera.club</a> immediately to freeze your account.
     </p>
   `;
@@ -297,11 +290,33 @@ export function buildOrderConfirmationEmail(order: any): string {
   const paymentMethodLabel =
     order.paymentPreference === 'cod' ? 'Cash on Delivery (Pay upon delivery)' : 'Paid Online (Razorpay)';
 
+  const itemsList = Array.isArray(order.items) && order.items.length > 0
+    ? `
+      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 14px 0; border-collapse: collapse;">
+        ${order.items.map((item: any) => `
+          <tr style="border-bottom: 1px solid #1E1E24;">
+            <td style="padding: 10px 0; font-size: 13px; color: #FFFFFF; vertical-align: middle;">
+              <strong>${item.title || item.productTitle || 'MUVERA Piece'}</strong>
+              <div style="font-size: 11px; color: #71717A; margin-top: 2px;">
+                Size: ${item.size || 'Standard'} • Qty: ${item.quantity || 1}
+              </div>
+            </td>
+            <td align="right" style="padding: 10px 0; font-size: 13px; color: #FACC15; font-weight: 700; white-space: nowrap; vertical-align: middle;">
+              ₹${(((item.pricePaise || item.sellingPricePaise || 0) * (item.quantity || 1)) / 100).toFixed(2)}
+            </td>
+          </tr>
+        `).join('')}
+      </table>
+    `
+    : '';
+
   const contentHtml = `
     <p style="font-size: 15px; line-height: 1.6; color: #FFFFFF; margin: 0 0 12px;">Hi <strong style="color: #FACC15;">${name}</strong>,</p>
-    <p style="font-size: 14px; line-height: 1.6; color: #A1A1AA; margin: 0 0 18px;">
-      Thank you for your order! Your order <strong>#${orderNo}</strong> is confirmed and is being prepped for fulfillment.
+    <p style="font-size: 14px; line-height: 1.6; color: #A1A1AA; margin: 0 0 16px;">
+      Thank you for your order! Your order <strong>#${orderNo}</strong> is confirmed and being prepared for express fulfillment.
     </p>
+
+    ${itemsList}
 
     <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #0A0A0D; border: 1px solid #27272A; border-radius: 8px; padding: 14px; margin: 16px 0; width: 100%; box-sizing: border-box; border-collapse: collapse;">
       <tr>
