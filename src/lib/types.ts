@@ -62,7 +62,7 @@ export interface StockMovement {
   variantId: string;
   sku: string;
   locationId: string;
-  type: 'sale' | 'reservation' | 'release' | 'receiving' | 'damage' | 'correction' | 'return_restock';
+  type: 'sale' | 'reservation' | 'release' | 'receiving' | 'damage' | 'correction' | 'return_restock' | 'cancel_restock';
   quantityDelta: number;
   previousOnHand: number;
   newOnHand: number;

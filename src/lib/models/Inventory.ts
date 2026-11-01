@@ -29,7 +29,7 @@ const StockMovementSchema = new Schema(
     locationId: { type: String, required: true },
     type: {
       type: String,
-      enum: ['sale', 'reservation', 'release', 'receiving', 'damage', 'correction', 'return_restock'],
+      enum: ['sale', 'reservation', 'release', 'receiving', 'damage', 'correction', 'return_restock', 'cancel_restock'],
       required: true,
     },
     quantityDelta: { type: Number, required: true },

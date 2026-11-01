@@ -241,7 +241,7 @@ export const inventoryService = {
         variantId: item.variantId,
         sku: item.sku,
         locationId,
-        type: "cancel_restock" as any,
+        type: "cancel_restock",
         quantityDelta: item.quantity,
         previousOnHand,
         newOnHand: inv.onHand,
