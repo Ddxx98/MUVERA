@@ -179,7 +179,9 @@ export async function middleware(req: NextRequest) {
 
   // ─── Customer routes ─────────────────────────────────────────────────────
   if (policy.class === 'customer') {
-    const customerToken = req.cookies.get(CUSTOMER_COOKIE)?.value;
+    const customerToken =
+      req.cookies.get(CUSTOMER_COOKIE)?.value ||
+      req.cookies.get(ADMIN_COOKIE)?.value;
 
     if (!customerToken) {
       // Cart and checkout allow unauthenticated/guest access from the client
