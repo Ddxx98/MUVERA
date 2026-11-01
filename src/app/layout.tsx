@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Outfit, Plus_Jakarta_Sans } from 'next/font/google';
+import Script from 'next/script';
 import './globals.css';
 import { ThemeProvider } from '@/lib/theme-context';
 import { StoreProvider } from '@/lib/store-context';
@@ -205,6 +206,7 @@ export default async function RootLayout({
         />
       </head>
       <body className="bg-surface text-on-surface antialiased selection:bg-primary selection:text-surface-base">
+        <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
         <ThemeProvider>
           <StoreProvider initialSettings={initialSettings}>
             <ToastProvider>
