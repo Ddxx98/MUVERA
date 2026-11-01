@@ -15,7 +15,6 @@ import {
   MapPin,
   CheckCircle,
   ChevronDown,
-  MessageCircle,
   ChevronLeft,
   ChevronRight,
   Maximize2,
@@ -33,7 +32,6 @@ interface ProductDetailClientProps {
 
 export function ProductDetailClient({ product, similarProducts }: ProductDetailClientProps) {
   const { addToCart, toggleWishlist, isWishlisted, siteSettings } = useStore();
-  const whatsappNum = (siteSettings?.whatsappNumber || '919380933170').replace(/\D/g, '');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const galleryRef = useRef<HTMLDivElement>(null);
 
@@ -330,26 +328,13 @@ export function ProductDetailClient({ product, similarProducts }: ProductDetailC
           )}
 
           {/* CTA Buttons */}
-          <div className="space-y-2.5 pt-2">
+          <div className="pt-2">
             <Button onClick={handleAddToCart} size="lg" fullWidth>
               <span>Add to Bag</span>
               <span className="font-mono text-xs opacity-75">
                 • {formatPaise(selectedVariant.pricePaise || product.sellingPricePaise)}
               </span>
             </Button>
-
-            {/* Quick WhatsApp Link for this exact item */}
-            <a
-              href={`https://wa.me/${whatsappNum}?text=${encodeURIComponent(
-                `Hi MUVERA! I want to book: ${product.title} (Size: ${selectedVariant.size || 'M'}, SKU: ${selectedVariant.sku || 'N/A'}) for ${formatPaise(selectedVariant.pricePaise || product.sellingPricePaise)}. Please confirm availability!`
-              )}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-headline font-bold text-xs sm:text-sm py-3 px-4 rounded-full shadow-[0_4px_16px_rgba(16,185,129,0.25)] transition-all active:scale-95"
-            >
-              <MessageCircle className="w-4 h-4 fill-current" />
-              <span>Instant WhatsApp Booking</span>
-            </a>
           </div>
 
           {/* Express Pincode Estimator */}
