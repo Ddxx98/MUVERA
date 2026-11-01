@@ -35,6 +35,8 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
   const [returnReason, setReturnReason] = useState('Wrong Size');
   const [refundMethod, setRefundMethod] = useState<'upi_refund' | 'bank_transfer'>('upi_refund');
   const [returnSuccess, setReturnSuccess] = useState(false);
@@ -80,21 +82,32 @@ export default function OrderDetailPage() {
   };
 
   const handleCancelOrder = async () => {
-    setIsCancelModalOpen(false);
-    setOrder({
-      ...order,
-      orderStatus: 'cancelled',
-      timeline: [
-        ...order.timeline,
-        {
-          id: `ev_cancel_${Date.now()}`,
-          status: 'cancelled',
-          description: 'Order cancelled by customer before dispatch.',
-          actor: 'Customer',
-          createdAt: new Date().toISOString(),
-        },
-      ],
-    });
+    setCancelling(true);
+    setCancelError(null);
+    try {
+      const res = await fetch(`/api/orders/${order.id}/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: 'Customer requested cancellation via profile' }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to cancel order');
+      }
+      setIsCancelModalOpen(false);
+      // Refresh order data
+      const refreshRes = await fetch(`/api/orders?id=${order.id}`);
+      const refreshData = await refreshRes.json();
+      if (refreshData.order) {
+        setOrder(refreshData.order);
+      } else {
+        setOrder((prev) => (prev ? { ...prev, orderStatus: 'cancelled' } : null));
+      }
+    } catch (err) {
+      setCancelError(err.message || 'Failed to cancel order');
+    } finally {
+      setCancelling(false);
+    }
   };
 
   return (
@@ -133,10 +146,24 @@ export default function OrderDetailPage() {
             <span>Download Invoice (PDF)</span>
           </Button>
 
-          {order.orderStatus !== 'cancelled' && order.fulfilmentStatus === 'unfulfilled' && (
-            <Button onClick={() => setIsCancelModalOpen(true)} variant="danger" size="sm">
-              Cancel Order
-            </Button>
+          {order.orderStatus !== 'cancelled' &&
+            order.orderStatus !== 'cancel_pending' &&
+            ['unfulfilled', 'allocated'].includes(order.fulfilmentStatus) && (
+              <Button onClick={() => { setIsCancelModalOpen(true); setCancelError(null); }} variant="danger" size="sm">
+                Cancel Order
+              </Button>
+            )}
+
+          {order.orderStatus === 'cancel_pending' && (
+            <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              Cancellation In Progress
+            </span>
+          )}
+
+          {order.orderStatus === 'cancelled' && (
+            <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30">
+              Cancelled
+            </span>
           )}
 
           {order.fulfilmentStatus === 'delivered' && (
@@ -274,14 +301,19 @@ export default function OrderDetailPage() {
           <div className="bg-surface-card border border-surface-border rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
             <h3 className="font-headline font-bold text-base text-text-primary">Cancel Order #{order.orderNo}?</h3>
             <p className="text-xs text-text-muted">
-              Are you sure you want to cancel this order? Your reserved stock will be returned to the dark store inventory.
+              Are you sure you want to cancel this order? The fulfillment will be halted and any prepaid amount will be refunded.
             </p>
+            {cancelError && (
+              <p className="text-xs text-red-400 bg-red-950/40 p-2 rounded-lg border border-red-800/50">
+                {cancelError}
+              </p>
+            )}
             <div className="flex gap-2">
-              <Button onClick={() => setIsCancelModalOpen(false)} variant="outline" size="sm" fullWidth>
+              <Button onClick={() => { setIsCancelModalOpen(false); setCancelError(null); }} variant="outline" size="sm" fullWidth disabled={cancelling}>
                 Keep Order
               </Button>
-              <Button onClick={handleCancelOrder} variant="danger" size="sm" fullWidth>
-                Yes, Cancel
+              <Button onClick={handleCancelOrder} variant="danger" size="sm" fullWidth disabled={cancelling}>
+                {cancelling ? 'Cancelling...' : 'Yes, Cancel'}
               </Button>
             </div>
           </div>
