@@ -194,3 +194,21 @@ test('6. Inventory Cancellation: Follows distinct reservation-release vs cancel_
   assert.equal(postPack.requiresUnpacking, true);
   assert.equal(postPack.restockOnHand, false);
 });
+
+// ─── 7. Mobile-Responsive Email Template Structure ───────────────────────
+test('7. Responsive Email Architecture: Validates viewport, fluid widths, and OTP bounds for mobile screens', () => {
+  const fs = require('fs');
+  const templateSource = fs.readFileSync('src/modules/notifications/email-template.ts', 'utf8');
+
+  // Must declare viewport for mobile clients
+  assert.equal(templateSource.includes('name="viewport"'), true);
+  // Must enforce border-box sizing across all elements
+  assert.equal(templateSource.includes('box-sizing: border-box !important'), true);
+  // Must have media query for mobile widths <= 480px
+  assert.equal(templateSource.includes('@media only screen and (max-width: 480px)'), true);
+  // Must constrain OTP box width so it never overflows a 360px mobile viewport
+  assert.equal(templateSource.includes('max-width: 290px'), true);
+  // Must use table-based presentation for cross-client reliability
+  assert.equal(templateSource.includes('role="presentation"'), true);
+});
+
