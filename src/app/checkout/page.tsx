@@ -766,7 +766,7 @@ export default function CheckoutPage() {
                 {pincodeServiceability.serviceable ? (
                   <span className="text-emerald-400 font-bold flex items-center gap-1.5">
                     <CheckCircle className="w-3.5 h-3.5" />
-                    Serviceable by Express Couriers • Estimated Delivery: {pincodeServiceability.estimatedDays || 3} days
+                    Serviceable by Express Couriers • Estimated Delivery: {pincodeServiceability.estimatedDays || 3} {pincodeServiceability.estimatedDays === 1 ? 'day' : 'days'}
                   </span>
                 ) : (
                   <span className="text-red-400 font-bold flex items-center gap-1.5">

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverEnv } from '@/config/env.server';
 import { getValidShiprocketToken } from '@/modules/shipping/providers/shiprocket/token-manager';
+import { SiteSettingsModel } from '@/lib/models/SiteSettings';
+import { connectToMongo } from '@/lib/db';
 
 interface CacheEntry {
   data: any;
@@ -30,7 +32,9 @@ export async function GET(req: NextRequest) {
     if (serverEnv.SHIPPING_PROVIDER === 'shiprocket') {
       try {
         const token = await getValidShiprocketToken();
-        const pickupPin = '560100'; // Default Indiranagar/Electronic City warehouse
+        await connectToMongo().catch(() => null);
+        const settings = await SiteSettingsModel.findOne().lean().catch(() => null);
+        const pickupPin = settings?.defaultLocationPincode?.trim() || '560038';
         const sUrl = `https://apiv2.shiprocket.in/v1/external/courier/serviceability/?pickup_postcode=${pickupPin}&delivery_postcode=${pincode}&weight=${weight}&cod=${cod ? 1 : 0}`;
         const sRes = await fetch(sUrl, {
           headers: {
