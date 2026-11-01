@@ -103,7 +103,7 @@ export default function OrderDetailPage() {
       } else {
         setOrder((prev) => (prev ? { ...prev, orderStatus: 'cancelled' } : null));
       }
-    } catch (err) {
+    } catch (err: any) {
       setCancelError(err.message || 'Failed to cancel order');
     } finally {
       setCancelling(false);
