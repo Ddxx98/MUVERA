@@ -99,8 +99,8 @@ sequenceDiagram
 
 | Cookie | Role | SameSite | Secure | HttpOnly | Max-Age |
 |:---|:---:|:---:|:---:|:---:|:---:|
-| `muvera_admin_session` | Admin | `Strict` | `true` (prod) | `true` | 6 hours |
-| `muvera_session` | Customer | `Lax` | `true` (prod) | `true` | 6 hours |
+| `muvera_admin_session` | Admin | `Strict` | `true` (prod) | `true` | 7 days |
+| `muvera_session` | Customer | `Lax` | `true` (prod) | `true` | 7 days |
 
 - **Admin cookie** uses `SameSite=Strict` to prevent CSRF on sensitive admin mutations.
 - **Customer cookie** uses `SameSite=Lax` to allow WhatsApp/OAuth redirects.

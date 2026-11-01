@@ -16,7 +16,7 @@ export function normalizeUserRole(role?: string): UserRole {
   return role && role.trim().toLowerCase() === 'admin' ? 'admin' : 'customer';
 }
 
-export const SESSION_DURATION_MS = 6 * 60 * 60 * 1000; // 6 hours auto-logout
+export const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days auto-logout
 
 export const authService = {
   /**

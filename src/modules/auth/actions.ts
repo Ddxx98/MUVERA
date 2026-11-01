@@ -2,7 +2,7 @@
 
 import { cookies, headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
-import { authService } from './service';
+import { authService, SESSION_DURATION_MS } from './service';
 import { RegisterInput, LoginInput, UserProfile } from './types';
 import { handleActionError, ServiceResult } from '@/lib/errors';
 import { verifyJwt } from './crypto';
@@ -15,7 +15,7 @@ import { verifyJwt } from './crypto';
 const ADMIN_COOKIE_NAME = 'muvera_admin_session';
 const CUSTOMER_COOKIE_NAME = 'muvera_session';
 
-const SESSION_MAX_AGE_SECONDS = 6 * 60 * 60; // 6 hours auto-logout
+const SESSION_MAX_AGE_SECONDS = SESSION_DURATION_MS / 1000; // 7 days auto-logout
 
 function setSessionCookie(token: string, role: string) {
   const isAdmin = role === 'admin';
